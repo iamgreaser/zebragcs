@@ -1,0 +1,23 @@
+# vim: sw=2 sts=2 et syntax= :
+
+param bool @harmenemy true
+param bool @harmplayer true
+param dir @movedir idle
+
+on state main {
+  move @movedir else {
+    send @movedir shot
+    if @harmplayer {
+      send @movedir enemyshot
+    }
+    if @harmenemy {
+      send @movedir playershot
+    }
+    die
+  }
+  sleep 1
+}
+
+on event shot {
+  die
+}

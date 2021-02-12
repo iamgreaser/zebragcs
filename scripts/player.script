@@ -1,0 +1,56 @@
+# vim: sw=2 sts=2 et syntax= :
+
+param int @health 100
+param int @ammo 2
+param bool @shiftpressed false
+param dir @nextdir idle
+global pos $playerpos
+
+on state main {
+  if eq @nextdir idle {
+    sleep 1
+  } else {
+    if @shiftpressed {
+      if ge @ammo 1 {
+        dec @ammo 1
+        spawn @nextdir bullet {
+          set @harmplayer false
+          set @movedir @nextdir
+        } else {
+          inc @ammo 1
+        }
+      } else {
+        # TODO: Post message and/or play sound --GM
+      }
+      sleep 1
+    } else {
+      move @nextdir
+    }
+    set @nextdir idle
+  }
+  set $playerpos thispos
+}
+
+on event pressshift {
+  set @shiftpressed true
+}
+on event releaseshift {
+  set @shiftpressed false
+}
+
+on event typeup {
+  set @nextdir north
+}
+on event typedown {
+  set @nextdir south
+}
+on event typeleft {
+  set @nextdir west
+}
+on event typeright {
+  set @nextdir east
+}
+
+on event enemyshot {
+  dec @health 10
+}
