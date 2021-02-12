@@ -1,8 +1,18 @@
-import gcsglobals
+import types
 
 proc parseOnBlock(sps: ScriptParseState): ScriptNode
 proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode]
 proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode
+
+proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string, fname: string)
+proc newBoard*(share: ScriptSharedExecState): Board
+proc newEntity*(board: Board, entityType: string, x, y: int): Entity
+proc newScriptSharedExecState*(): ScriptSharedExecState
+proc tick*(execState: ScriptExecState)
+proc tick*(entity: Entity)
+proc tick*(board: Board)
+proc tickEvent*(execState: ScriptExecState, eventName: string)
+proc tickEvent*(entity: Entity, eventName: string)
 
 import streams
 import strformat
@@ -12,14 +22,14 @@ import tables
 
 const maxPeekDist = 100
 
-proc `$`(x: ScriptVal): string =
+proc `$`*(x: ScriptVal): string =
   case x.kind
   of svkBool: &"BoolV({x.boolVal})"
   of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
   of svkInt: &"IntV({x.intVal})"
   of svkPos: &"PosV({x.posValX}, {x.posValY})"
 
-proc `$`(x: ScriptToken): string =
+proc `$`*(x: ScriptToken): string =
   case x.kind
   of stkBraceClosed: return "}T"
   of stkBraceOpen: return "{T"
@@ -32,7 +42,7 @@ proc `$`(x: ScriptToken): string =
   of stkParenOpen: return "(T"
   of stkWord: return &"WordT({x.strVal})"
 
-proc `$`(x: ScriptNode): string =
+proc `$`*(x: ScriptNode): string =
   case x.kind
   of snkAssign: return &"Assign({x.assignType}: {x.assignDstExpr} <:- {x.assignSrcExpr})"
   of snkBroadcast: return &"Broadcast({x.broadcastEventName})"
@@ -53,33 +63,33 @@ proc `$`(x: ScriptNode): string =
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
   of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
 
-proc `$`(x: ScriptGlobalBase): string =
+proc `$`*(x: ScriptGlobalBase): string =
   &"Global({x.varType})"
-proc `$`(x: ScriptParamBase): string =
+proc `$`*(x: ScriptParamBase): string =
   &"Param({x.varType} := {x.varDefault})"
-proc `$`(x: ScriptStateBase): string =
+proc `$`*(x: ScriptStateBase): string =
   &"State({x.stateBody})"
-proc `$`(x: ScriptEventBase): string =
+proc `$`*(x: ScriptEventBase): string =
   &"Event({x.eventBody})"
 
-proc `$`(x: ScriptSharedExecState): string =
+proc `$`*(x: ScriptSharedExecState): string =
   &"SharedExecState(globals={x.globals})"
 
-proc `$`(x: ScriptExecBase): string =
+proc `$`*(x: ScriptExecBase): string =
   &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, states={x.states}, events={x.events})"
 
-proc `$`(x: ScriptContinuation): string =
+proc `$`*(x: ScriptContinuation): string =
   &"Continuation({x.codePc} in {x.codeBlock})"
 
-proc `$`(x: ScriptExecState): string =
+proc `$`*(x: ScriptExecState): string =
   #&"ExecState(execBase={x.execBase}, activeState={x.activeState}, continuations={x.continuations})"
   #&"ExecState(activeState={x.activeState}, continuations={x.continuations})"
   &"ExecState(activeState={x.activeState}, alive={x.alive})"
 
-proc `$`(x: Entity): string =
+proc `$`*(x: Entity): string =
   &"Entity(pos=({x.x}, {x.y}), execState={x.execState}, params={x.params}, alive={x.alive})"
 
-proc `$`(x: Board): string =
+proc `$`*(x: Board): string =
   &"Board(entities={x.entities}, share={x.share})"
 
 proc asBool(x: ScriptVal): bool =
@@ -929,55 +939,3 @@ proc tick(board: Board) =
     else:
       board.removeEntityFromGrid(entity)
   board.entities = entitiesCopy
-
-proc main() =
-  var share = newScriptSharedExecState()
-
-  share.loadEntityTypeFromFile("player", "scripts/player.script")
-  share.loadEntityTypeFromFile("bullet", "scripts/bullet.script")
-
-  var board = newBoard(share)
-  var entity = board.newEntity(
-    "player",
-    30, 12,
-  )
-  echo &"board: {board}\n"
-  echo &"entity: {entity}\n"
-  var ticksLeft: int = 40
-  var ticksDone: int = 0
-  while entity.alive and ticksLeft > 0:
-    case ticksDone
-    of 14: entity.tickEvent("enemyshot")
-    of 17: entity.tickEvent("pressshift")
-    of 18: entity.tickEvent("typeup")
-    of 20: entity.tickEvent("typeup")
-    of 22: entity.tickEvent("typeup")
-    of 24: entity.tickEvent("releaseshift")
-    of 25: entity.tickEvent("typeleft")
-    else: discard
-    board.tick()
-    ticksLeft -= 1
-    ticksDone += 1
-    #echo &"board: {board}"
-
-    # TODO: Not hardcode the width and height --GM
-    echo ">==========================================================="
-    for y in 0..24:
-      var lineSeq: seq[char] = @[]
-      for x in 0..59:
-        var gridseq = board.grid[y][x]
-        lineSeq.add(if gridseq.len >= 1:
-            '*'
-          else:
-            ' '
-        )
-      echo lineSeq.join("")
-    echo "============================================================"
-    for entity in board.entities:
-      echo &"  - ({entity.x}, {entity.y})"
-    echo ""
-    #var health = entity.params.getOrDefault("health", ScriptVal(kind: svkInt, intVal: 0))
-    #var ammo = entity.params.getOrDefault("ammo", ScriptVal(kind: svkInt, intVal: 0))
-    #echo &"entity pos: {entity.x}, {entity.y} / health: {health} / ammo: {ammo} / alive: {entity.alive}"
-
-main()

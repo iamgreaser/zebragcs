@@ -7,13 +7,13 @@ type
   ScriptExecError* = object of CatchableError
   ScriptParseError* = object of CatchableError
 
-  Board = ref BoardObj
+  Board* = ref BoardObj
   BoardObj = object
     grid*: array[0..24, array[0..59, seq[Entity]]]
     entities*: seq[Entity]
     share*: ScriptSharedExecState
 
-  Entity = ref EntityObj
+  Entity* = ref EntityObj
   EntityObj = object
     board*: Board
     execState*: ScriptExecState
@@ -21,15 +21,15 @@ type
     params*: Table[string, ScriptVal]
     alive*: bool
 
-  ScriptParseState = ref ScriptParseStateObj
+  ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
     strm*: Stream
     row*, col*: int
 
-  ScriptGlobalBase = ref ScriptGlobalBaseObj
-  ScriptParamBase = ref ScriptParamBaseObj
-  ScriptStateBase = ref ScriptStateBaseObj
-  ScriptEventBase = ref ScriptEventBaseObj
+  ScriptGlobalBase* = ref ScriptGlobalBaseObj
+  ScriptParamBase* = ref ScriptParamBaseObj
+  ScriptStateBase* = ref ScriptStateBaseObj
+  ScriptEventBase* = ref ScriptEventBaseObj
   ScriptGlobalBaseObj = object
     varType*: ScriptValKind
   ScriptParamBaseObj = object
@@ -40,7 +40,7 @@ type
   ScriptEventBaseObj = object
     eventBody*: seq[ScriptNode]
 
-  ScriptExecBase = ref ScriptExecBaseObj
+  ScriptExecBase* = ref ScriptExecBaseObj
   ScriptExecBaseObj = object
     globals*: Table[string, ScriptGlobalBase]
     params*: Table[string, ScriptParamBase]
@@ -48,17 +48,17 @@ type
     events*: Table[string, ScriptEventBase]
     initState*: string
 
-  ScriptContinuation = ref ScriptContinuationObj
+  ScriptContinuation* = ref ScriptContinuationObj
   ScriptContinuationObj = object
     codeBlock*: seq[ScriptNode]
     codePc*: int
 
-  ScriptSharedExecState = ref ScriptSharedExecStateObj
+  ScriptSharedExecState* = ref ScriptSharedExecStateObj
   ScriptSharedExecStateObj = object
     globals*: Table[string, ScriptVal]
     entityTypes*: Table[string, ScriptExecBase]
 
-  ScriptExecState = ref ScriptExecStateObj
+  ScriptExecState* = ref ScriptExecStateObj
   ScriptExecStateObj = object
     share*: ScriptSharedExecState
     entity*: Entity
@@ -68,7 +68,7 @@ type
     sleepTicksLeft*: int
     alive*: bool
 
-  ScriptTokenKind = enum
+  ScriptTokenKind* = enum
     stkBraceClosed,
     stkBraceOpen,
     stkEof,
@@ -79,7 +79,7 @@ type
     stkParenClosed,
     stkParenOpen,
     stkWord,
-  ScriptToken = ref ScriptTokenObj
+  ScriptToken* = ref ScriptTokenObj
   ScriptTokenObj = object
     case kind*: ScriptTokenKind
     of stkBraceOpen, stkBraceClosed: discard
@@ -91,14 +91,14 @@ type
     of stkParenOpen, stkParenClosed: discard
     of stkWord: strVal*: string
 
-  ScriptAssignType = enum
+  ScriptAssignType* = enum
     satDec,
     satFDiv,
     satInc,
     satMul,
     satSet,
 
-  ScriptFuncType = enum
+  ScriptFuncType* = enum
     sftCcw,
     sftCw,
     sftEq,
@@ -110,7 +110,7 @@ type
     sftOpp,
     sftThispos,
 
-  ScriptNodeKind = enum
+  ScriptNodeKind* = enum
     snkAssign,
     snkBroadcast,
     snkConst,
@@ -129,7 +129,7 @@ type
     snkSend,
     snkSleep,
     snkSpawn,
-  ScriptNode = ref ScriptNodeObj
+  ScriptNode* = ref ScriptNodeObj
   ScriptNodeObj = object
     case kind*: ScriptNodeKind
     of snkRootBlock:
@@ -183,43 +183,15 @@ type
     of snkParamVar:
       paramVarName*: string
 
-  ScriptValKind = enum
+  ScriptValKind* = enum
     svkBool,
     svkDir,
     svkInt,
     svkPos,
-  ScriptVal = ref ScriptValObj
+  ScriptVal* = ref ScriptValObj
   ScriptValObj = object
     case kind*: ScriptValKind
     of svkBool: boolVal*: bool
     of svkDir: dirValX*, dirValY*: int
     of svkInt: intVal*: int
     of svkPos: posValX*, posValY*: int
-
-
-export ScriptCompileError
-export ScriptExecError
-export ScriptParseError
-
-export ScriptAssignType
-export ScriptContinuation
-export ScriptSharedExecState
-export ScriptExecBase
-export ScriptExecState
-export ScriptFuncType
-export ScriptNode
-export ScriptNodeKind
-export ScriptParseState
-export ScriptToken
-export ScriptTokenKind
-export ScriptVal
-export ScriptValKind
-
-export ScriptGlobalBase
-export ScriptParamBase
-export ScriptStateBase
-export ScriptEventBase
-
-export Board
-export Entity
-
