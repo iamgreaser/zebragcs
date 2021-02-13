@@ -20,7 +20,12 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int, y: int): bool =
   if not (x >= 0 and x < boardWidth and y >= 0 and y < boardHeight):
     false
   else:
-    true
+    var gridseq = board.grid[y][x]
+    if gridseq.len == 0:
+      return true
+
+    # TODO: Deal with physics constraints --GM
+    false
 
 proc addEntityToGrid(board: Board, entity: Entity) =
   assert board.canAddEntityToGridPos(entity, entity.x, entity.y)

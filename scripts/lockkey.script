@@ -2,13 +2,44 @@
 
 param int @color 10
 param int @char 12
-global int $setkey
+global int $invkey1
+global int $invkey2
+global int $invkey3
+global int $invkey4
+global int $invkey5
+global int $invkey6
+global int $invkey7
 
 on state idle {
 }
 
 on event touch {
-  set $setkey @color
-  broadcast keygrabbed
-  die
+  if eq @color 9 {
+    inc $invkey1 1
+    die
+  }
+  if eq @color 10 {
+    inc $invkey2 1
+    die
+  }
+  if eq @color 11 {
+    inc $invkey3 1
+    die
+  }
+  if eq @color 12 {
+    inc $invkey4 1
+    die
+  }
+  if eq @color 13 {
+    inc $invkey5 1
+    die
+  }
+  if eq @color 14 {
+    inc $invkey6 1
+    die
+  }
+  if eq @color 15 {
+    inc $invkey7 1
+    die
+  }
 }

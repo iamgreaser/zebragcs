@@ -24,8 +24,16 @@ on state main {
   broadcast typeup
   sleep 2
   broadcast releaseshift
-  sleep 1
+  sleep 3
+  broadcast typeright
+  sleep 3
   broadcast typeleft
+  sleep 3
+  broadcast typeright
+  sleep 3
+  broadcast typeright
+  sleep 3
+  broadcast typeup
   sleep 15
   die
 }

@@ -3,7 +3,13 @@
 param int @color 10
 param int @char 10
 param bool @stateheld false
-global int $setkey
+global int $invkey1
+global int $invkey2
+global int $invkey3
+global int $invkey4
+global int $invkey5
+global int $invkey6
+global int $invkey7
 
 on state idle {
 }
@@ -23,10 +29,47 @@ on state unlocked {
   die
 }
 
-on event keygrabbed {
-  if eq $setkey @color {
-    if eq @stateheld false {
-      goto unlocked
+on event touch {
+  if eq @color 9 {
+    if ge $invkey1 1 {
+      dec $invkey1 1
+      die
+    }
+  }
+  if eq @color 10 {
+    if ge $invkey2 1 {
+      dec $invkey2 1
+      die
+    }
+  }
+  if eq @color 11 {
+    if ge $invkey3 1 {
+      dec $invkey3 1
+      die
+    }
+  }
+  if eq @color 12 {
+    if ge $invkey4 1 {
+      dec $invkey4 1
+      die
+    }
+  }
+  if eq @color 13 {
+    if ge $invkey5 1 {
+      dec $invkey5 1
+      die
+    }
+  }
+  if eq @color 14 {
+    if ge $invkey6 1 {
+      dec $invkey6 1
+      die
+    }
+  }
+  if eq @color 15 {
+    if ge $invkey7 1 {
+      dec $invkey7 1
+      die
     }
   }
 }

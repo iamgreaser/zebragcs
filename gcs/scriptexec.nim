@@ -29,6 +29,7 @@ proc tickContinuations(execState: ScriptExecState) =
         var assignResult: ScriptVal = case assignType
           of satSet: assignSrc
           of satDec: ScriptVal(kind: svkInt, intVal: assignDst.asInt() - assignSrc.asInt())
+          of satInc: ScriptVal(kind: svkInt, intVal: assignDst.asInt() + assignSrc.asInt())
           else:
             raise newException(ScriptExecError, &"Unhandled assignment type {assignType}")
 
@@ -39,6 +40,9 @@ proc tickContinuations(execState: ScriptExecState) =
         assert entity != nil
         execState.alive = false;
         entity.alive = false;
+        var board = entity.board
+        assert board != nil
+        board.removeEntityFromGrid(entity)
         execState.continuations = @[]
         return
 
