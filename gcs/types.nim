@@ -2,6 +2,8 @@ import streams
 import strformat
 import tables
 
+const boardWidth* = 60
+const boardHeight* = 25
 
 type
   ScriptCompileError* = object of CatchableError
@@ -10,7 +12,7 @@ type
 
   Board* = ref BoardObj
   BoardObj = object
-    grid*: array[0..24, array[0..59, seq[Entity]]]
+    grid*: array[0..(boardHeight-1), array[0..(boardWidth-1), seq[Entity]]]
     entities*: seq[Entity]
     share*: ScriptSharedExecState
 

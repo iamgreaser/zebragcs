@@ -144,8 +144,8 @@ proc draw(gfx: GfxState, board: Board) =
   renderer.setDrawColor(0, 0, 170, 255)
   renderer.fillRect()
 
-  for y in 0..24:
-    for x in 0..59:
+  for y in 0..(boardHeight-1):
+    for x in 0..(boardWidth-1):
       var gridseq = board.grid[y][x]
       var (col, ch) = if gridseq.len >= 1:
           var entity = gridseq[gridseq.len-1]

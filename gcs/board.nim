@@ -16,7 +16,7 @@ proc newBoard(share: ScriptSharedExecState): Board =
   )
 
 proc canAddEntityToGridPos(board: Board, entity: Entity, x: int, y: int): bool =
-  if not (x >= 0 and x < 60 and y >= 0 and y < 25): # TODO: Put width/height into the Board --GM
+  if not (x >= 0 and x < boardWidth and y >= 0 and y < boardHeight):
     false
   else:
     true
