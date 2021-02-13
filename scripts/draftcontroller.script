@@ -30,6 +30,13 @@ on state init {
     set @color 13
   }
 
+  spawn at 30 7 breakable {
+  }
+  spawn at 31 7 breakable {
+  }
+  spawn at 32 7 breakable {
+  }
+
   goto main
 }
 

@@ -5,14 +5,18 @@ param int @char 248
 param bool @harmenemy true
 param bool @harmplayer true
 param dir @movedir idle
+global dir $shotdir
 
 on state main {
   move @movedir else {
+    set $shotdir @movedir
     send @movedir shot
     if @harmplayer {
+      set $shotdir @movedir
       send @movedir enemyshot
     }
     if @harmenemy {
+      set $shotdir @movedir
       send @movedir playershot
     }
     die
