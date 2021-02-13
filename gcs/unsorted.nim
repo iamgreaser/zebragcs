@@ -1,4 +1,4 @@
-import tokens
+import scripttokens
 import types
 
 
