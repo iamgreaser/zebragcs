@@ -166,4 +166,4 @@ proc draw(gfx: GfxState, board: Board) =
       )
 
   renderer.present()
-  sdl2.delay(100)
+  sdl2.delay(50)
