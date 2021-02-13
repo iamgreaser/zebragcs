@@ -22,6 +22,7 @@ type
     execState*: ScriptExecState
     x*, y*: int
     params*: Table[string, ScriptVal]
+    locals*: Table[string, ScriptVal]
     alive*: bool
 
   ScriptParseState* = ref ScriptParseStateObj
@@ -32,11 +33,15 @@ type
 
   ScriptGlobalBase* = ref ScriptGlobalBaseObj
   ScriptParamBase* = ref ScriptParamBaseObj
+  ScriptLocalBase* = ref ScriptLocalBaseObj
   ScriptStateBase* = ref ScriptStateBaseObj
   ScriptEventBase* = ref ScriptEventBaseObj
   ScriptGlobalBaseObj = object
     varType*: ScriptValKind
   ScriptParamBaseObj = object
+    varType*: ScriptValKind
+    varDefault*: ScriptNode
+  ScriptLocalBaseObj = object
     varType*: ScriptValKind
     varDefault*: ScriptNode
   ScriptStateBaseObj = object
@@ -49,6 +54,7 @@ type
     entityName*: string
     globals*: Table[string, ScriptGlobalBase]
     params*: Table[string, ScriptParamBase]
+    locals*: Table[string, ScriptLocalBase]
     states*: Table[string, ScriptStateBase]
     events*: Table[string, ScriptEventBase]
     initState*: string
@@ -81,6 +87,7 @@ type
     stkEol,
     stkGlobalVar,
     stkInt,
+    stkLocalVar,
     stkParamVar,
     stkParenClosed,
     stkParenOpen,
@@ -93,6 +100,7 @@ type
     of stkEol: discard
     of stkGlobalVar: globalName*: string
     of stkInt: intVal*: int
+    of stkLocalVar: localName*: string
     of stkParamVar: paramName*: string
     of stkParenOpen, stkParenClosed: discard
     of stkWord: strVal*: string
@@ -147,6 +155,8 @@ type
     snkGlobalVar,
     snkGoto,
     snkIfBlock,
+    snkLocalDef,
+    snkLocalVar,
     snkMove,
     snkOnStateBlock,
     snkOnEventBlock,
@@ -213,6 +223,12 @@ type
       paramDefInitValue*: ScriptNode
     of snkParamVar:
       paramVarName*: string
+    of snkLocalDef:
+      localDefType*: ScriptValKind
+      localDefName*: string
+      localDefInitValue*: ScriptNode
+    of snkLocalVar:
+      localVarName*: string
 
   ScriptValKind* = enum
     svkBool,
@@ -245,6 +261,8 @@ proc `$`*(x: ScriptNode): string =
   of snkGlobalVar: return &"GlobalVar(${x.globalVarName})"
   of snkGoto: return &"Goto({x.gotoStateName})"
   of snkIfBlock: return &"If({x.ifTest}, then {x.ifBody}, else {x.ifElse})"
+  of snkLocalDef: return &"LocalDef(@{x.localDefName}: {x.localDefType} := {x.localDefInitValue})"
+  of snkLocalVar: return &"LocalVar(@{x.localVarName})"
   of snkMove: return &"Move({x.moveDirExpr})"
   of snkOnEventBlock: return &"OnEvent({x.onEventName}: {x.onEventBody})"
   of snkOnStateBlock: return &"OnState({x.onStateName}: {x.onStateBody})"
@@ -264,6 +282,7 @@ proc `$`*(x: ScriptToken): string =
   of stkEol: return "EolT"
   of stkGlobalVar: return &"GlobalT({x.globalName})"
   of stkInt: return &"IntT({x.intVal})"
+  of stkLocalVar: return &"LocalT({x.localName})"
   of stkParamVar: return &"ParamT({x.paramName})"
   of stkParenClosed: return ")T"
   of stkParenOpen: return "(T"
@@ -273,6 +292,8 @@ proc `$`*(x: ScriptGlobalBase): string =
   &"Global({x.varType})"
 proc `$`*(x: ScriptParamBase): string =
   &"Param({x.varType} := {x.varDefault})"
+proc `$`*(x: ScriptLocalBase): string =
+  &"Local({x.varType} := {x.varDefault})"
 proc `$`*(x: ScriptStateBase): string =
   &"State({x.stateBody})"
 proc `$`*(x: ScriptEventBase): string =
@@ -282,7 +303,7 @@ proc `$`*(x: ScriptSharedExecState): string =
   &"SharedExecState(globals={x.globals})"
 
 proc `$`*(x: ScriptExecBase): string =
-  &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, states={x.states}, events={x.events})"
+  &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, locals={x.locals}, states={x.states}, events={x.events})"
 
 proc `$`*(x: ScriptContinuation): string =
   &"Continuation({x.codePc} in {x.codeBlock})"
@@ -293,7 +314,7 @@ proc `$`*(x: ScriptExecState): string =
   &"ExecState(activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Entity): string =
-  &"Entity(pos=({x.x}, {x.y}), execState={x.execState}, params={x.params}, alive={x.alive})"
+  &"Entity(pos=({x.x}, {x.y}), execState={x.execState}, params={x.params}, locals={x.locals}, alive={x.alive})"
 
 proc `$`*(x: Board): string =
   &"Board(entities={x.entities}, share={x.share})"

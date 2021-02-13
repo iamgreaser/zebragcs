@@ -54,10 +54,24 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
     var expectedType = try:
         execBase.params[dst.paramVarName].varType
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared param \"${dst.paramVarName}\"")
+        raise newException(ScriptExecError, &"Undeclared param \"@{dst.paramVarName}\"")
 
     if expectedType == val.kind:
       entity.params[dst.paramVarName] = val
+    else:
+      raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
+
+  of snkLocalVar:
+    var entity = execState.entity
+    assert entity != nil
+
+    var expectedType = try:
+        execBase.locals[dst.localVarName].varType
+      except KeyError:
+        raise newException(ScriptExecError, &"Undeclared local \"%{dst.localVarName}\"")
+
+    if expectedType == val.kind:
+      entity.locals[dst.localVarName] = val
     else:
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
@@ -160,6 +174,20 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       except KeyError:
         var vd = execState.resolveExpr(d0.varDefault)
         execState.entity.params[k0] = vd
+        vd
+    return v0
+
+  of snkLocalVar:
+    var k0 = expr.localVarName
+    var d0 = try:
+        execState.execBase.locals[k0]
+      except KeyError:
+        raise newException(ScriptExecError, &"Undeclared local \"%{k0}\"")
+    var v0: ScriptVal = try:
+        execState.entity.locals[k0]
+      except KeyError:
+        var vd = execState.resolveExpr(d0.varDefault)
+        execState.entity.locals[k0] = vd
         vd
     return v0
 

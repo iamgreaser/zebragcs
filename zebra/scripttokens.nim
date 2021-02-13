@@ -7,11 +7,12 @@ import types
 
 proc expectToken*(sps: ScriptParseState, kind: ScriptTokenKind)
 proc newScriptParseError*(sps: ScriptParseState, message: string): ref ScriptParseError
+proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
 proc readGlobalName*(sps: ScriptParseState): string
 proc readKeywordToken*(sps: ScriptParseState): string
+proc readLocalName*(sps: ScriptParseState): string
 proc readParamName*(sps: ScriptParseState): string
 proc readToken*(sps: ScriptParseState): ScriptToken
-proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
 proc readVarTypeKeyword*(sps: ScriptParseState): ScriptValKind
 
 const maxPeekDist = 100
@@ -66,6 +67,9 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
   elif scanf(s, "$s@$w$*", mid, post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkParamVar, paramName: mid)
+  elif scanf(s, "$s%$w$*", mid, post):
+    skipBytes(sps, s.len - post.len)
+    return ScriptToken(kind: stkLocalVar, localName: mid)
   elif scanf(s, "$s$w$*", mid, post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkWord, strVal: mid)
@@ -126,3 +130,6 @@ proc readGlobalName(sps: ScriptParseState): string =
 
 proc readParamName(sps: ScriptParseState): string =
   sps.readExpectedToken(stkParamVar).paramName
+
+proc readLocalName(sps: ScriptParseState): string =
+  sps.readExpectedToken(stkLocalVar).localName

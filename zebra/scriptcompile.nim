@@ -49,6 +49,12 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
         varDefault: node.paramDefInitValue,
       )
 
+    of snkLocalDef:
+      execBase.locals[node.localDefName] = ScriptLocalBase(
+        varType: node.localDefType,
+        varDefault: node.localDefInitValue,
+      )
+
     of snkOnStateBlock:
       if execBase.initState == "":
         execBase.initState = node.onStateName

@@ -15,6 +15,7 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
   of stkInt: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkInt, intVal: tok.intVal))
   of stkGlobalVar: return ScriptNode(kind: snkGlobalVar, globalVarName: tok.globalName)
   of stkParamVar: return ScriptNode(kind: snkParamVar, paramVarName: tok.paramName)
+  of stkLocalVar: return ScriptNode(kind: snkLocalVar, localVarName: tok.localName)
   of stkWord:
     case tok.strVal.toLowerAscii()
     of "false": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: false))
@@ -287,6 +288,18 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
           paramDefType: varType,
           paramDefName: varName,
           paramDefInitValue: valueNode,
+        ))
+
+      of "local":
+        var varType = sps.readVarTypeKeyword()
+        var varName = sps.readLocalName()
+        var valueNode = sps.parseExpr()
+
+        nodes.add(ScriptNode(
+          kind: snkLocalDef,
+          localDefType: varType,
+          localDefName: varName,
+          localDefInitValue: valueNode,
         ))
 
       else:

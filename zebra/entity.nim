@@ -39,12 +39,15 @@ proc newEntity(board: Board, entityType: string, x, y: int): Entity =
     x: x, y: y,
     execState: execState,
     params: Table[string, ScriptVal](),
+    locals: Table[string, ScriptVal](),
     alive: true,
   )
   execState.entity = entity
   # Initialise!
   for k0, v0 in execBase.params.pairs():
     entity.params[k0] = execState.resolveExpr(v0.varDefault)
+  for k0, v0 in execBase.locals.pairs():
+    entity.locals[k0] = execState.resolveExpr(v0.varDefault)
 
   # Now attempt to see if we can add it
   if board.canAddEntityToGridPos(entity, entity.x, entity.y):
