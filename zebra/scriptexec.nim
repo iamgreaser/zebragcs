@@ -62,6 +62,14 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: int) =
         execState.continuations.add(cont)
         cont = ScriptContinuation(codeBlock: body, codePc: 0)
 
+      of snkWhileBlock:
+        var test = execState.resolveExpr(node.whileTest)
+        var body = node.whileBody
+        if test.asBool():
+          cont.codePc = nodePc # Step back to here
+          execState.continuations.add(cont)
+          cont = ScriptContinuation(codeBlock: body, codePc: 0)
+
       of snkMove:
         var moveDir = execState.resolveExpr(node.moveDirExpr)
         if moveDir.kind != svkDir:

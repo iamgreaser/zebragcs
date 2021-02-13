@@ -6,6 +6,8 @@ param int @bgcolor 15
 param int @fgcolor 0
 param int @char 67
 
+param int @x 0
+
 on state init {
   spawn at 30 12 player {
   }
@@ -31,11 +33,11 @@ on state init {
     set @fgcolor 13
   }
 
-  spawn at 30 7 breakable {
-  }
-  spawn at 31 7 breakable {
-  }
-  spawn at 32 7 breakable {
+  set @x 20
+  while lt @x 40 {
+    spawn at @x 7 breakable {
+    }
+    inc @x 1
   }
 
   goto main

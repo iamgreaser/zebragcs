@@ -145,16 +145,17 @@ type
     snkGlobalDef,
     snkGlobalVar,
     snkGoto,
+    snkIfBlock,
     snkMove,
     snkOnStateBlock,
     snkOnEventBlock,
-    snkIfBlock,
     snkParamDef,
     snkParamVar,
     snkRootBlock,
     snkSend,
     snkSleep,
     snkSpawn,
+    snkWhileBlock,
   ScriptNode* = ref ScriptNodeObj
   ScriptNodeObj = object
     case kind*: ScriptNodeKind
@@ -170,6 +171,9 @@ type
       ifTest*: ScriptNode
       ifBody*: seq[ScriptNode]
       ifElse*: seq[ScriptNode]
+    of snkWhileBlock:
+      whileTest*: ScriptNode
+      whileBody*: seq[ScriptNode]
     of snkConst:
       constVal*: ScriptVal
     of snkAssign:
@@ -249,6 +253,7 @@ proc `$`*(x: ScriptNode): string =
   of snkSend: return &"Send({x.sendEventName} -> {x.sendPos})"
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
   of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
+  of snkWhileBlock: return &"While({x.whileTest}: {x.whileBody})"
 
 proc `$`*(x: ScriptToken): string =
   case x.kind

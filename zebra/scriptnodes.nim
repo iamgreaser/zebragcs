@@ -215,6 +215,16 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           spawnElse: sps.parseEolOrElse(),
         ))
 
+      of "while":
+        var whileTest = sps.parseExpr()
+        sps.expectToken(stkBraceOpen)
+        nodes.add(ScriptNode(
+          kind: snkWhileBlock,
+          whileTest: whileTest,
+          whileBody: sps.parseCodeBlock(stkBraceClosed),
+        ))
+        sps.expectToken(stkEol)
+
       else:
         raise newScriptParseError(sps, &"Unexpected word token \"{tok.strval}\"")
     else:
