@@ -2,6 +2,31 @@
 
 param int @color 10
 param int @char 10
+param bool @stateheld false
+global int $setkey
 
 on state idle {
+}
+
+on state unlocked {
+  set @stateheld true
+  set @char 8
+  sleep 2
+  set @char 219
+  sleep 2
+  set @char 178
+  sleep 2
+  set @char 177
+  sleep 2
+  set @char 176
+  sleep 2
+  die
+}
+
+on event keygrabbed {
+  if eq $setkey @color {
+    if eq @stateheld false {
+      goto unlocked
+    }
+  }
 }

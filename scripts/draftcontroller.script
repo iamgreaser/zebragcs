@@ -1,0 +1,31 @@
+# vim: sw=2 sts=2 et syntax= :
+
+# Just a test while I currently don't have any board editing facilities. --GM
+
+param int @color 240
+param int @char 67
+
+on state init {
+  spawn at 30 12 player {
+  }
+  goto main
+}
+
+on state main {
+  sleep 14
+  broadcast enemyshot
+  sleep 3
+  broadcast pressshift
+  sleep 1
+  broadcast typeup
+  sleep 2
+  broadcast typeup
+  sleep 2
+  broadcast typeup
+  sleep 2
+  broadcast releaseshift
+  sleep 1
+  broadcast typeleft
+  sleep 15
+  die
+}

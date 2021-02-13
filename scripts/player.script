@@ -39,6 +39,7 @@ on state main {
       }
       sleep 1
     } else {
+      send @nextdir touch
       move @nextdir
     }
     set @nextdir idle

@@ -104,6 +104,7 @@ type
     satSet,
 
   ScriptFuncType* = enum
+    sftAt,
     sftCcw,
     sftCw,
     sftEq,

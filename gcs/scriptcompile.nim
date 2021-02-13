@@ -85,6 +85,8 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
 proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string, fdirroot: string) =
   var fname = (&"{fdirroot}/{entityName}.script").replace("//", "/")
   var strm = newFileStream(fname, fmRead)
+  if strm == nil:
+    raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
     share.loadEntityType(entityName, strm)
   finally:

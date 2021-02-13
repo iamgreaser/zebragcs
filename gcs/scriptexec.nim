@@ -6,6 +6,7 @@ import types
 proc tick*(execState: ScriptExecState)
 proc tickEvent*(execState: ScriptExecState, eventName: string)
 
+import board
 import entity
 import scriptexprs
 
@@ -74,7 +75,19 @@ proc tickContinuations(execState: ScriptExecState) =
           execState.continuations.add(cont)
           cont = ScriptContinuation(codeBlock: body, codePc: 0)
 
+      of snkBroadcast:
+        var entity = execState.entity
+        assert entity != nil
+        var board = entity.board
+        assert board != nil
+        var eventName: string = node.broadcastEventName
+        board.broadcastEvent(eventName)
+
       of snkSend:
+        var entity = execState.entity
+        assert entity != nil
+        var board = entity.board
+        assert board != nil
         var eventName: string = node.sendEventName
         var dirOrPos = execState.resolveExpr(node.sendPos)
         var pos = case dirOrPos.kind:
@@ -88,8 +101,7 @@ proc tickContinuations(execState: ScriptExecState) =
           of svkPos: dirOrPos
           else:
             raise newException(ScriptExecError, &"Expected dir or pos, got {dirOrPos} instead")
-        # TODO: Actually send event --GM
-        echo &"TODO: Send event {eventName} to ({pos.posValX}, {pos.posValY})"
+        board.sendEventToPos(eventName, pos.posValX, pos.posValY)
 
       of snkSleep:
         var sleepTime = execState.resolveExpr(node.sleepTimeExpr).asInt()

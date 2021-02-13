@@ -84,10 +84,14 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       var iseq: bool = case v0.kind
         of svkBool:
           v1.kind == svkBool and v0.boolVal == v1.boolVal
+        of svkInt:
+          v1.kind == svkInt and v0.intVal == v1.intVal
         of svkDir:
           v1.kind == svkDir and v0.dirValX == v1.dirValX and v0.dirValY == v1.dirValY
-        else:
-          raise newException(ScriptExecError, &"Unhandled bool kind {v0.kind}")
+        of svkPos:
+          v1.kind == svkPos and v0.posValX == v1.posValX and v0.posValY == v1.posValY
+        #else:
+        #  raise newException(ScriptExecError, &"Unhandled bool kind {v0.kind}")
       return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == sftEq)))
 
     of sftLt, sftLe, sftGt, sftGe:
@@ -102,6 +106,12 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         else:
           raise newException(ScriptExecError, &"EDOOFUS: ScriptFuncType unknown for {expr}!")
       return ScriptVal(kind: svkBool, boolVal: b0)
+
+    of sftAt:
+      assert expr.funcArgs.len == 2
+      var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
+      var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
+      return ScriptVal(kind: svkPos, posValX: v0, posValY: v1)
 
     else:
       raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")

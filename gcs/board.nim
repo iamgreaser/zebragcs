@@ -1,7 +1,8 @@
-
 import types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
+proc broadcastEvent*(board: Board, eventName: string)
+proc sendEventToPos*(board: Board, eventName: string, x: int, y: int)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int, y: int): bool
 proc newBoard*(share: ScriptSharedExecState): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
@@ -36,6 +37,17 @@ proc removeEntityFromGrid(board: Board, entity: Entity) =
 
   board.grid[entity.y][entity.x] = gridseq
   discard
+
+proc broadcastEvent(board: Board, eventName: string) =
+  for entity in board.entities:
+    entity.tickEvent(eventName)
+
+proc sendEventToPos(board: Board, eventName: string, x: int, y: int) =
+  if (x >= 0 and x < boardWidth and y >= 0 and y < boardHeight):
+    var entseq = board.grid[y][x]
+    if entseq.len >= 1:
+      var entity = entseq[entseq.len-1]
+      entity.tickEvent(eventName)
 
 proc tick(board: Board) =
   var entitiesCopy: seq[Entity] = @[]

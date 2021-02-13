@@ -2,6 +2,13 @@
 
 param int @color 10
 param int @char 12
+global int $setkey
 
 on state idle {
+}
+
+on event touch {
+  set $setkey @color
+  broadcast keygrabbed
+  die
 }

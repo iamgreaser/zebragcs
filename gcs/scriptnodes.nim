@@ -39,6 +39,8 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
 
     of "thispos": return ScriptNode(kind: snkFunc, funcType: sftThispos, funcArgs: @[])
 
+    of "at": return ScriptNode(kind: snkFunc, funcType: sftAt, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
+
     else:
       raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
   else:
