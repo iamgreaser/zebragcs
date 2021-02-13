@@ -43,6 +43,7 @@ type
 
   ScriptExecBase* = ref ScriptExecBaseObj
   ScriptExecBaseObj = object
+    entityName*: string
     globals*: Table[string, ScriptGlobalBase]
     params*: Table[string, ScriptParamBase]
     states*: Table[string, ScriptStateBase]

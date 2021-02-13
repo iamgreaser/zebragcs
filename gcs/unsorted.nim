@@ -124,8 +124,9 @@ proc moveTo(entity: Entity, x: int, y: int): bool =
 proc moveBy(entity: Entity, dx: int, dy: int): bool =
   entity.moveTo(entity.x + dx, entity.y + dy)
 
-proc compileRoot(node: ScriptNode): ScriptExecBase =
+proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   var execBase = ScriptExecBase(
+    entityName: entityName,
     globals: initTable[string, ScriptGlobalBase](),
     params: initTable[string, ScriptParamBase](),
     states: initTable[string, ScriptStateBase](),
@@ -177,7 +178,7 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   var sps = newScriptParseState(strm)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
-  var execBase = node.compileRoot()
+  var execBase = node.compileRoot(entityName)
   #echo &"exec base: {execBase}\n"
   share.entityTypes[entityName] = execBase
 
