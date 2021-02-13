@@ -1,4 +1,5 @@
 import streams
+import strformat
 import tables
 
 
@@ -195,3 +196,73 @@ type
     of svkDir: dirValX*, dirValY*: int
     of svkInt: intVal*: int
     of svkPos: posValX*, posValY*: int
+
+proc `$`*(x: ScriptVal): string =
+  case x.kind
+  of svkBool: &"BoolV({x.boolVal})"
+  of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
+  of svkInt: &"IntV({x.intVal})"
+  of svkPos: &"PosV({x.posValX}, {x.posValY})"
+
+proc `$`*(x: ScriptNode): string =
+  case x.kind
+  of snkAssign: return &"Assign({x.assignType}: {x.assignDstExpr} <:- {x.assignSrcExpr})"
+  of snkBroadcast: return &"Broadcast({x.broadcastEventName})"
+  of snkConst: return &"Const({x.constVal})"
+  of snkDie: return &"Die"
+  of snkFunc: return &"Func:{x.funcType}({x.funcArgs})"
+  of snkGlobalDef: return &"GlobalDef(${x.globalDefName}: {x.globalDefType})"
+  of snkGlobalVar: return &"GlobalVar(${x.globalVarName})"
+  of snkGoto: return &"Goto({x.gotoStateName})"
+  of snkIfBlock: return &"If({x.ifTest}, then {x.ifBody}, else {x.ifElse})"
+  of snkMove: return &"Move({x.moveDirExpr})"
+  of snkOnEventBlock: return &"OnEvent({x.onEventName}: {x.onEventBody})"
+  of snkOnStateBlock: return &"OnState({x.onStateName}: {x.onStateBody})"
+  of snkParamDef: return &"ParamDef(@{x.paramDefName}: {x.paramDefType} := {x.paramDefInitValue})"
+  of snkParamVar: return &"ParamVar(@{x.paramVarName})"
+  of snkRootBlock: return &"Root({x.rootBody})"
+  of snkSend: return &"Send({x.sendEventName} -> {x.sendPos})"
+  of snkSleep: return &"Sleep({x.sleepTimeExpr})"
+  of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
+
+proc `$`*(x: ScriptToken): string =
+  case x.kind
+  of stkBraceClosed: return "}T"
+  of stkBraceOpen: return "{T"
+  of stkEof: return "EofT"
+  of stkEol: return "EolT"
+  of stkGlobalVar: return &"GlobalT({x.globalName})"
+  of stkInt: return &"IntT({x.intVal})"
+  of stkParamVar: return &"ParamT({x.paramName})"
+  of stkParenClosed: return ")T"
+  of stkParenOpen: return "(T"
+  of stkWord: return &"WordT({x.strVal})"
+
+proc `$`*(x: ScriptGlobalBase): string =
+  &"Global({x.varType})"
+proc `$`*(x: ScriptParamBase): string =
+  &"Param({x.varType} := {x.varDefault})"
+proc `$`*(x: ScriptStateBase): string =
+  &"State({x.stateBody})"
+proc `$`*(x: ScriptEventBase): string =
+  &"Event({x.eventBody})"
+
+proc `$`*(x: ScriptSharedExecState): string =
+  &"SharedExecState(globals={x.globals})"
+
+proc `$`*(x: ScriptExecBase): string =
+  &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, states={x.states}, events={x.events})"
+
+proc `$`*(x: ScriptContinuation): string =
+  &"Continuation({x.codePc} in {x.codeBlock})"
+
+proc `$`*(x: ScriptExecState): string =
+  #&"ExecState(execBase={x.execBase}, activeState={x.activeState}, continuations={x.continuations})"
+  #&"ExecState(activeState={x.activeState}, continuations={x.continuations})"
+  &"ExecState(activeState={x.activeState}, alive={x.alive})"
+
+proc `$`*(x: Entity): string =
+  &"Entity(pos=({x.x}, {x.y}), execState={x.execState}, params={x.params}, alive={x.alive})"
+
+proc `$`*(x: Board): string =
+  &"Board(entities={x.entities}, share={x.share})"

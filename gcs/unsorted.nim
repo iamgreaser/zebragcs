@@ -1,4 +1,6 @@
+import tokens
 import types
+
 
 proc parseOnBlock(sps: ScriptParseState): ScriptNode
 proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode]
@@ -16,81 +18,9 @@ proc tickEvent*(entity: Entity, eventName: string)
 
 import streams
 import strformat
-import strscans
 import strutils
 import tables
 
-const maxPeekDist = 100
-
-proc `$`*(x: ScriptVal): string =
-  case x.kind
-  of svkBool: &"BoolV({x.boolVal})"
-  of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
-  of svkInt: &"IntV({x.intVal})"
-  of svkPos: &"PosV({x.posValX}, {x.posValY})"
-
-proc `$`*(x: ScriptToken): string =
-  case x.kind
-  of stkBraceClosed: return "}T"
-  of stkBraceOpen: return "{T"
-  of stkEof: return "EofT"
-  of stkEol: return "EolT"
-  of stkGlobalVar: return &"GlobalT({x.globalName})"
-  of stkInt: return &"IntT({x.intVal})"
-  of stkParamVar: return &"ParamT({x.paramName})"
-  of stkParenClosed: return ")T"
-  of stkParenOpen: return "(T"
-  of stkWord: return &"WordT({x.strVal})"
-
-proc `$`*(x: ScriptNode): string =
-  case x.kind
-  of snkAssign: return &"Assign({x.assignType}: {x.assignDstExpr} <:- {x.assignSrcExpr})"
-  of snkBroadcast: return &"Broadcast({x.broadcastEventName})"
-  of snkConst: return &"Const({x.constVal})"
-  of snkDie: return &"Die"
-  of snkFunc: return &"Func:{x.funcType}({x.funcArgs})"
-  of snkGlobalDef: return &"GlobalDef(${x.globalDefName}: {x.globalDefType})"
-  of snkGlobalVar: return &"GlobalVar(${x.globalVarName})"
-  of snkGoto: return &"Goto({x.gotoStateName})"
-  of snkIfBlock: return &"If({x.ifTest}, then {x.ifBody}, else {x.ifElse})"
-  of snkMove: return &"Move({x.moveDirExpr})"
-  of snkOnEventBlock: return &"OnEvent({x.onEventName}: {x.onEventBody})"
-  of snkOnStateBlock: return &"OnState({x.onStateName}: {x.onStateBody})"
-  of snkParamDef: return &"ParamDef(@{x.paramDefName}: {x.paramDefType} := {x.paramDefInitValue})"
-  of snkParamVar: return &"ParamVar(@{x.paramVarName})"
-  of snkRootBlock: return &"Root({x.rootBody})"
-  of snkSend: return &"Send({x.sendEventName} -> {x.sendPos})"
-  of snkSleep: return &"Sleep({x.sleepTimeExpr})"
-  of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
-
-proc `$`*(x: ScriptGlobalBase): string =
-  &"Global({x.varType})"
-proc `$`*(x: ScriptParamBase): string =
-  &"Param({x.varType} := {x.varDefault})"
-proc `$`*(x: ScriptStateBase): string =
-  &"State({x.stateBody})"
-proc `$`*(x: ScriptEventBase): string =
-  &"Event({x.eventBody})"
-
-proc `$`*(x: ScriptSharedExecState): string =
-  &"SharedExecState(globals={x.globals})"
-
-proc `$`*(x: ScriptExecBase): string =
-  &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, states={x.states}, events={x.events})"
-
-proc `$`*(x: ScriptContinuation): string =
-  &"Continuation({x.codePc} in {x.codeBlock})"
-
-proc `$`*(x: ScriptExecState): string =
-  #&"ExecState(execBase={x.execBase}, activeState={x.activeState}, continuations={x.continuations})"
-  #&"ExecState(activeState={x.activeState}, continuations={x.continuations})"
-  &"ExecState(activeState={x.activeState}, alive={x.alive})"
-
-proc `$`*(x: Entity): string =
-  &"Entity(pos=({x.x}, {x.y}), execState={x.execState}, params={x.params}, alive={x.alive})"
-
-proc `$`*(x: Board): string =
-  &"Board(entities={x.entities}, share={x.share})"
 
 proc asBool(x: ScriptVal): bool =
   case x.kind
@@ -290,110 +220,6 @@ proc moveTo(entity: Entity, x: int, y: int): bool =
 
 proc moveBy(entity: Entity, dx: int, dy: int): bool =
   entity.moveTo(entity.x + dx, entity.y + dy)
-
-proc skipBytes(sps: ScriptParseState, count: int) =
-  var skipped = sps.strm.readstr(count)
-  for c in skipped:
-    if c == '\n':
-      sps.col = 1
-      sps.row += 1
-    elif c == '\r':
-      raise newException(ScriptParseError, &"unexpected CR character at {sps.row}:{sps.col}, stop using Windows newlines")
-    elif c == '\t':
-      raise newException(ScriptParseError, &"unexpected tab character at {sps.row}:{sps.col}")
-    else:
-      sps.col += 1
-
-proc newScriptParseError(sps: ScriptParseState, message: string): ref ScriptParseError =
-  newException(ScriptParseError, &"{sps.row}:{sps.col}: {message}")
-
-proc readTokenDirect(sps: ScriptParseState): ScriptToken =
-  var s = peekStr(sps.strm, maxPeekDist)
-  var mid, post: string
-  var midInt: int
-
-  # Skip comments
-  if scanf(s, "$s#$*", post):
-    skipBytes(sps, s.len - post.len)
-    s = peekStr(sps.strm, maxPeekDist)
-    if scanf(s, "$*\n$*", mid, post):
-      echo &"Comment: [#{mid}]"
-      skipBytes(sps, s.len - post.len)
-      return ScriptToken(kind: stkEol)
-    else:
-      skipBytes(sps, s.len)
-      s = peekStr(sps.strm, maxPeekDist)
-      if s == "":
-        return ScriptToken(kind: stkEof)
-      else:
-        raise newScriptParseError(sps, &"Line after comment too long")
-
-  if scanf(s, "$*\n$s$*", mid, post) and scanf(mid, "$s$."):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkEol)
-  elif scanf(s, "$s$i$*", midInt, post):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkInt, intVal: midInt)
-  elif scanf(s, "$s$$$w$*", mid, post):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkGlobalVar, globalName: mid)
-  elif scanf(s, "$s@$w$*", mid, post):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkParamVar, paramName: mid)
-  elif scanf(s, "$s$w$*", mid, post):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkWord, strVal: mid)
-  elif scanf(s, "$s{$*", post):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkBraceOpen)
-  elif scanf(s, "$s}$*", post):
-    skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkBraceClosed)
-  elif s == "":
-    return ScriptToken(kind: stkEof)
-  else:
-    #raise newScriptParseError(sps, &"Invalid token from \"{s}\"")
-    raise newScriptParseError(sps, &"Invalid token")
-
-proc readToken(sps: ScriptParseState): ScriptToken =
-  var tok = sps.readTokenDirect()
-  #echo &"Token: {tok}"
-  return tok
-
-proc readExpectedToken(sps: ScriptParseState, kind: ScriptTokenKind): ScriptToken =
-  var tok = sps.readToken()
-  if tok.kind != kind:
-    raise newScriptParseError(sps, &"Expected {kind} token, got {tok} instead")
-  else:
-    return tok
-
-proc expectToken(sps: ScriptParseState, kind: ScriptTokenKind) =
-  var tok = sps.readToken()
-  if tok.kind != kind:
-    raise newScriptParseError(sps, &"Expected {kind} token, got {tok} instead")
-
-proc readKeywordToken(sps: ScriptParseState): string =
-  var tok = sps.readToken()
-  if tok.kind == stkWord:
-    return tok.strVal.toLowerAscii()
-  else:
-    raise newScriptParseError(sps, &"Expected keyword token, got {tok} instead")
-
-proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
-  var varTypeName = sps.readKeywordToken()
-  case varTypeName
-  of "bool": svkBool
-  of "dir": svkDir
-  of "int": svkInt
-  of "pos": svkPos
-  else:
-    raise newScriptParseError(sps, &"Expected type keyword, got \"{varTypeName}\" instead")
-
-proc readGlobalName(sps: ScriptParseState): string =
-  sps.readExpectedToken(stkGlobalVar).globalName
-
-proc readParamName(sps: ScriptParseState): string =
-  sps.readExpectedToken(stkParamVar).paramName
 
 proc parseExpr(sps: ScriptParseState): ScriptNode =
   var tok = sps.readToken()

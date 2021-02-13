@@ -1,7 +1,9 @@
 import strformat
 import strutils
 
+import types
 import unsorted
+
 
 proc main() =
   var share = newScriptSharedExecState()
