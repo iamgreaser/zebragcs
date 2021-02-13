@@ -10,25 +10,14 @@ param int @x 0
 
 on state init {
   spawn at 30 12 player
-  spawn at 30 15 ammo else {
-  }
-  spawn at 29 12 lockkey {
-    set @fgcolor 12
-  }
-  spawn at 31 12 lockdoor {
-    set @fgcolor 12
-  }
-  spawn at 33 12 lockdoor {
-    set @fgcolor 12
-  }
-  spawn at 34 12 lockkey {
-    set @fgcolor 12
-  }
+  spawn at 30 15 ammo
+  spawn at 29 12 lockkey { set @fgcolor 12 }
+  spawn at 31 12 lockdoor { set @fgcolor 12 }
+  spawn at 33 12 lockdoor { set @fgcolor 12 }
+  spawn at 34 12 lockkey { set @fgcolor 12 }
   spawn at 31 11 box
   spawn at 31 10 box
-  spawn at 31 9 lockkey {
-    set @fgcolor 13
-  }
+  spawn at 31 9 lockkey { set @fgcolor 13 }
 
   set @x 20
   while lt @x 40 {

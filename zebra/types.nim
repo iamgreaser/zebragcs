@@ -28,6 +28,7 @@ type
   ScriptParseStateObj = object
     strm*: Stream
     row*, col*: int
+    tokenPushStack*: seq[ScriptToken]
 
   ScriptGlobalBase* = ref ScriptGlobalBaseObj
   ScriptParamBase* = ref ScriptParamBaseObj

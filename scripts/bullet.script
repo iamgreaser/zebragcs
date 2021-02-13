@@ -24,6 +24,4 @@ on state main {
   sleep 1
 }
 
-on event shot {
-  die
-}
+on event shot { die }

@@ -49,9 +49,9 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
 
 proc parseEolOrElse(sps: ScriptParseState): seq[ScriptNode] =
   var tok = sps.readToken()
-  if tok.kind == stkEol:
-    return @[]
-  elif tok.kind == stkWord:
+  case tok.kind
+  of stkEol: return @[]
+  of stkWord:
     case tok.strVal.toLowerAscii()
     of "else":
       sps.expectToken(stkBraceOpen)
@@ -59,6 +59,9 @@ proc parseEolOrElse(sps: ScriptParseState): seq[ScriptNode] =
       return sps.parseCodeBlock(stkBraceClosed)
     else:
       raise newScriptParseError(sps, &"Expected EOL or \"else\" keyword, got {tok} instead")
+  of stkBraceClosed:
+    sps.pushBackToken(tok)
+    return @[]
   else:
     raise newScriptParseError(sps, &"Expected EOL or \"else\" keyword, got {tok} instead")
 
@@ -69,7 +72,6 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
   of "event":
     var eventName = sps.readKeywordToken()
     sps.expectToken(stkBraceOpen)
-    sps.expectToken(stkEol)
     return ScriptNode(
       kind: snkOnEventBlock,
       onEventName: eventName,
@@ -79,7 +81,6 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
   of "state":
     var stateName = sps.readKeywordToken()
     sps.expectToken(stkBraceOpen)
-    sps.expectToken(stkEol)
     return ScriptNode(
       kind: snkOnStateBlock,
       onStateName: stateName,
@@ -91,16 +92,21 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
 
 proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode] =
   var nodes: seq[ScriptNode] = @[]
+  var awaitingEol: bool = false
   while true:
     var tok = sps.readToken()
     case tok.kind
-    of stkEol: discard
+    of stkEol:
+      awaitingEol = false
     of stkWord:
+      if awaitingEol:
+        raise newScriptParseError(sps, &"Expected EOL, got {tok} instead")
+
       case tok.strVal.toLowerAscii()
 
       of "goto":
         var stateName = sps.readKeywordToken()
-        sps.expectToken(stkEol)
+        awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkGoto,
           gotoStateName: stateName,
@@ -108,7 +114,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
 
       of "broadcast":
         var eventName = sps.readKeywordToken()
-        sps.expectToken(stkEol)
+        awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkBroadcast,
           broadcastEventName: eventName,
@@ -127,7 +133,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
 
         var dstExpr = sps.parseExpr()
         var srcExpr = sps.parseExpr()
-        sps.expectToken(stkEol)
+        awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkAssign,
           assignType: assignType,
@@ -136,7 +142,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         ))
 
       of "die":
-        sps.expectToken(stkEol)
+        awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkDie,
         ))
@@ -144,11 +150,13 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
       of "if":
         var ifTest = sps.parseExpr()
         sps.expectToken(stkBraceOpen)
+        var ifBody = sps.parseCodeBlock(stkBraceClosed)
+        var ifElse = sps.parseEolOrElse()
         nodes.add(ScriptNode(
           kind: snkIfBlock,
           ifTest: ifTest,
-          ifBody: sps.parseCodeBlock(stkBraceClosed),
-          ifElse: sps.parseEolOrElse(),
+          ifBody: ifBody,
+          ifElse: ifElse,
         ))
 
       of "move":
@@ -162,7 +170,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
       of "send":
         var posExpr = sps.parseExpr()
         var eventName = sps.readKeywordToken().toLowerAscii()
-        sps.expectToken(stkEol)
+        awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkSend,
           sendEventName: eventName,
@@ -171,7 +179,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
 
       of "sleep":
         var timeExpr = sps.parseExpr()
-        sps.expectToken(stkEol)
+        awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkSleep,
           sleepTimeExpr: timeExpr,
@@ -188,13 +196,11 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
             case braceToken.strVal
             of "else":
               sps.expectToken(stkBraceOpen)
-              sps.expectToken(stkEol)
               (@[], sps.parseCodeBlock(stkBraceClosed))
             else:
               raise newScriptParseError(sps, &"Unexpected spawn block token {braceToken}")
 
           of stkBraceOpen:
-            sps.expectToken(stkEol)
             var bodyExpr: seq[ScriptNode] = @[]
             while true:
               var tok = sps.readToken()
@@ -240,7 +246,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           whileTest: whileTest,
           whileBody: sps.parseCodeBlock(stkBraceClosed),
         ))
-        sps.expectToken(stkEol)
+        awaitingEol = true
 
       else:
         raise newScriptParseError(sps, &"Unexpected word token \"{tok.strval}\"")

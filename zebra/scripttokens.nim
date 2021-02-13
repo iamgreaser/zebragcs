@@ -11,6 +11,7 @@ proc readGlobalName*(sps: ScriptParseState): string
 proc readKeywordToken*(sps: ScriptParseState): string
 proc readParamName*(sps: ScriptParseState): string
 proc readToken*(sps: ScriptParseState): ScriptToken
+proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
 proc readVarTypeKeyword*(sps: ScriptParseState): ScriptValKind
 
 const maxPeekDist = 100
@@ -81,9 +82,15 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
     raise newScriptParseError(sps, &"Invalid token")
 
 proc readToken(sps: ScriptParseState): ScriptToken =
-  var tok = sps.readTokenDirect()
+  var tok = if sps.tokenPushStack.len >= 1:
+      sps.tokenPushStack.pop()
+    else:
+      sps.readTokenDirect()
   #echo &"Token: {tok}"
   return tok
+
+proc pushBackToken(sps: ScriptParseState, tok: ScriptToken) =
+  sps.tokenPushStack.add(tok)
 
 proc readExpectedToken(sps: ScriptParseState, kind: ScriptTokenKind): ScriptToken =
   var tok = sps.readToken()

@@ -47,30 +47,14 @@ on state main {
   set $playerpos thispos
 }
 
-on event pressshift {
-  set @shiftpressed true
-}
-on event releaseshift {
-  set @shiftpressed false
-}
+on event pressshift { set @shiftpressed true }
+on event releaseshift { set @shiftpressed false }
 
-on event typeup {
-  set @nextdir north
-}
-on event typedown {
-  set @nextdir south
-}
-on event typeleft {
-  set @nextdir west
-}
-on event typeright {
-  set @nextdir east
-}
+on event typeup { set @nextdir north }
+on event typedown { set @nextdir south }
+on event typeleft { set @nextdir west }
+on event typeright { set @nextdir east }
 
-on event enemyshot {
-  dec @health 10
-}
+on event enemyshot { dec @health 10 }
 
-on event giveammo {
-  inc @ammo $givecount
-}
+on event giveammo { inc @ammo $givecount }
