@@ -3,9 +3,10 @@ import tables
 
 import types
 
-proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
 proc asBool*(x: ScriptVal): bool
 proc asInt*(x: ScriptVal): int
+proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
+proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 
 
 proc asBool(x: ScriptVal): bool =
@@ -26,6 +27,42 @@ proc defaultScriptVal(kind: ScriptValKind): ScriptVal =
   of svkDir: ScriptVal(kind: kind, dirValX: 0, dirValY: 0)
   of svkInt: ScriptVal(kind: kind, intVal: 0)
   of svkPos: ScriptVal(kind: kind, posValX: 0, posValY: 0) # TODO: Consider making pos not have a default, and throw an exception instead --GM
+
+proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
+  var execBase = execState.execBase
+  assert execBase != nil
+
+  case dst.kind
+  of snkGlobalVar:
+    var share = execState.share
+    assert share != nil
+
+    var expectedType = try:
+        execBase.globals[dst.globalVarName].varType
+      except KeyError:
+        raise newException(ScriptExecError, &"Undeclared global \"${dst.globalVarName}\"")
+
+    if expectedType == val.kind:
+      share.globals[dst.globalVarName] = val
+    else:
+      raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
+
+  of snkParamVar:
+    var entity = execState.entity
+    assert entity != nil
+
+    var expectedType = try:
+        execBase.params[dst.paramVarName].varType
+      except KeyError:
+        raise newException(ScriptExecError, &"Undeclared param \"${dst.paramVarName}\"")
+
+    if expectedType == val.kind:
+      entity.params[dst.paramVarName] = val
+    else:
+      raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
+
+  else:
+    raise newException(ScriptExecError, &"Unhandled assignment destination {dst}")
 
 proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
   case expr.kind

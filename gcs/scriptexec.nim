@@ -31,21 +31,7 @@ proc tickContinuations(execState: ScriptExecState) =
           else:
             raise newException(ScriptExecError, &"Unhandled assignment type {assignType}")
 
-        case assignDstExpr.kind
-        of snkGlobalVar:
-          var share = execState.share
-          assert share != nil
-          # TODO: Confirm types --GM
-          share.globals[assignDstExpr.globalVarName] = assignResult
-
-        of snkParamVar:
-          var entity = execState.entity
-          assert entity != nil
-          # TODO: Confirm types --GM
-          entity.params[assignDstExpr.paramVarName] = assignResult
-
-        else:
-          raise newException(ScriptExecError, &"Unhandled assignment destination {assignDstExpr}")
+        execState.storeAtExpr(assignDstExpr, assignResult)
 
       of snkDie:
         var entity = execState.entity
