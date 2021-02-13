@@ -3,6 +3,7 @@
 param int @color 10
 param int @char 12
 param bool @physblock true
+global dir $pushdir
 global int $invkey1
 global int $invkey2
 global int $invkey3
@@ -27,6 +28,11 @@ on state taken {
   set @char 250
   sleep 2
   die
+}
+
+on event push {
+  send $pushdir push
+  move $pushdir
 }
 
 on event touch {

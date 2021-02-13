@@ -18,6 +18,9 @@ on state init {
   }
   spawn at 31 10 box {
   }
+  spawn at 31 9 lockkey {
+    set @color 13
+  }
 
   goto main
 }

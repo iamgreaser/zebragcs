@@ -8,6 +8,11 @@ on state idle {
 }
 
 on event touch {
-  send $pushdir touch
+  send $pushdir push
+  move $pushdir
+}
+
+on event push {
+  send $pushdir push
   move $pushdir
 }
