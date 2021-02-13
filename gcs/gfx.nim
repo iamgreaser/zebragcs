@@ -165,16 +165,5 @@ proc draw(gfx: GfxState, board: Board) =
         ch = ch,
       )
 
-  # DEBUG: Show all chars
-  if true:
-    for y in 0..(16-1):
-      for x in 0..(16-1):
-        gfx.drawChar(
-          x = x, y = y,
-          fg = (uint8(255), uint8(85), uint8(85)),
-          bg = (uint8(0), uint8(0), uint8(170)),
-          ch = x+y*16,
-        )
-
   renderer.present()
   sdl2.delay(100)
