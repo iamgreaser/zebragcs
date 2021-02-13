@@ -8,6 +8,17 @@ param int @char 67
 on state init {
   spawn at 30 12 player {
   }
+  spawn at 29 12 lockkey {
+    set @color 12
+  }
+  spawn at 31 12 lockdoor {
+    set @color 12
+  }
+  spawn at 31 11 box {
+  }
+  spawn at 31 10 box {
+  }
+
   goto main
 }
 

@@ -1,0 +1,13 @@
+# vim: sw=2 sts=2 et syntax= :
+
+param int @color 15
+param int @char 254
+global dir $pushdir
+
+on state idle {
+}
+
+on event touch {
+  send $pushdir touch
+  move $pushdir
+}
