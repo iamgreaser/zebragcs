@@ -32,12 +32,15 @@ type
     fontTex: sdl2.TexturePtr
 
 import strformat
+import tables
 
 import types
 
 proc openGfx*(): GfxState
 proc close*(gfx: GfxState)
 proc draw*(gfx: GfxState, board: Board)
+
+import scriptexprs
 
 template withOpenGfx*(gfx: untyped, body: untyped): untyped =
   block:
@@ -150,13 +153,16 @@ proc draw(gfx: GfxState, board: Board) =
           assert execState != nil
           var execBase = execState.execBase
           assert execBase != nil
-          case execBase.entityName
-            # FIXME: Handle this in execState --GM
-            of "player": (0x4F, int('\x02'))
-            of "bullet": (0x0F, int('\xF8'))
-            else: (0x0F, int('?'))
+
+          var ch = try: entity.params["char"].asInt()
+            except KeyError: int('?')
+          var col = try: entity.params["color"].asInt()
+            except KeyError: 0x07
+
+          (col, ch)
+
         else:
-          (0x0F, int(' '))
+          (0x07, int(' '))
       discard col
       gfx.drawChar(
         x = x, y = y,
