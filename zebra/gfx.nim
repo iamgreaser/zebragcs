@@ -59,7 +59,7 @@ proc sdlAssertTrue(test: bool, failMsg: string) =
 proc openGfx(): GfxState =
   sdlAssertTrue(sdl2.init(INIT_VIDEO or INIT_TIMER or INIT_EVENTS), &"sdl2.init failed")
   let window = sdl2.createWindow(
-    title = "gcs",
+    title = "ZebraGCS",
     x = SDL_WINDOWPOS_UNDEFINED,
     y = SDL_WINDOWPOS_UNDEFINED,
     w = 640,
