@@ -1,6 +1,7 @@
 import strformat
 
 import gcs/gfx
+import gcs/scriptcompile
 import gcs/types
 import gcs/unsorted
 
