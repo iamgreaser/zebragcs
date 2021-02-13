@@ -178,7 +178,7 @@ proc draw(gfx: GfxState, board: Board) =
   for y in 0..(boardHeight-1):
     for x in 0..(boardWidth-1):
       var gridseq = board.grid[y][x]
-      var (col, ch) = if gridseq.len >= 1:
+      var (fgcolor, bgcolor, ch) = if gridseq.len >= 1:
           var entity = gridseq[gridseq.len-1]
           var execState = entity.execState
           assert execState != nil
@@ -187,18 +187,19 @@ proc draw(gfx: GfxState, board: Board) =
 
           var ch = try: entity.params["char"].asInt()
             except KeyError: int('?')
-          var col = try: entity.params["color"].asInt()
+          var fgcolor = try: entity.params["fgcolor"].asInt()
             except KeyError: 0x07
+          var bgcolor = try: entity.params["bgcolor"].asInt()
+            except KeyError: 0x00
 
-          (col, ch)
+          (fgcolor, bgcolor, ch)
 
         else:
-          (0x07, int(' '))
-      discard col
+          (0x07, 0x00, int(' '))
       gfx.drawChar(
         x = x, y = y,
-        bg = defaultPalette[col shr 4],
-        fg = defaultPalette[col and 0xF],
+        bg = defaultPalette[bgcolor and 0xF],
+        fg = defaultPalette[fgcolor and 0xF],
         ch = ch,
       )
 

@@ -1,6 +1,6 @@
 # vim: sw=2 sts=2 et syntax= :
 
-param int @color 3
+param int @fgcolor 3
 param int @char 132
 param bool @physblock true
 global int $givecount

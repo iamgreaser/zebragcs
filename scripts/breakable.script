@@ -1,7 +1,8 @@
 # vim: sw=2 sts=2 et syntax= :
 
 param bool @physblock true
-param int @color 7
+param int @fgcolor 7
+param int @bgcolor 0
 param int @char 177
 param dir @hitdir idle
 global dir $shotdir

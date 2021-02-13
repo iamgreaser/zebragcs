@@ -2,7 +2,8 @@
 
 # Just a test while I currently don't have any board editing facilities. --GM
 
-param int @color 240
+param int @bgcolor 15
+param int @fgcolor 0
 param int @char 67
 
 on state init {
@@ -11,23 +12,23 @@ on state init {
   spawn at 30 15 ammo {
   }
   spawn at 29 12 lockkey {
-    set @color 12
+    set @fgcolor 12
   }
   spawn at 31 12 lockdoor {
-    set @color 12
+    set @fgcolor 12
   }
   spawn at 33 12 lockdoor {
-    set @color 12
+    set @fgcolor 12
   }
   spawn at 34 12 lockkey {
-    set @color 12
+    set @fgcolor 12
   }
   spawn at 31 11 box {
   }
   spawn at 31 10 box {
   }
   spawn at 31 9 lockkey {
-    set @color 13
+    set @fgcolor 13
   }
 
   spawn at 30 7 breakable {

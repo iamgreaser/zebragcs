@@ -1,6 +1,6 @@
 # vim: sw=2 sts=2 et syntax= :
 
-param int @color 10
+param int @fgcolor 10
 param int @char 10
 param bool @physblock true
 global int $invkey1
@@ -30,49 +30,49 @@ on state unlocked {
 
 on event touch {
   if eq @physblock true {
-    if eq @color 9 {
+    if eq @fgcolor 9 {
       if ge $invkey1 1 {
         dec $invkey1 1
         set @physblock false
         goto unlocked
       }
     }
-    if eq @color 10 {
+    if eq @fgcolor 10 {
       if ge $invkey2 1 {
         dec $invkey2 1
         set @physblock false
         goto unlocked
       }
     }
-    if eq @color 11 {
+    if eq @fgcolor 11 {
       if ge $invkey3 1 {
         dec $invkey3 1
         set @physblock false
         goto unlocked
       }
     }
-    if eq @color 12 {
+    if eq @fgcolor 12 {
       if ge $invkey4 1 {
         dec $invkey4 1
         set @physblock false
         goto unlocked
       }
     }
-    if eq @color 13 {
+    if eq @fgcolor 13 {
       if ge $invkey5 1 {
         dec $invkey5 1
         set @physblock false
         goto unlocked
       }
     }
-    if eq @color 14 {
+    if eq @fgcolor 14 {
       if ge $invkey6 1 {
         dec $invkey6 1
         set @physblock false
         goto unlocked
       }
     }
-    if eq @color 15 {
+    if eq @fgcolor 15 {
       if ge $invkey7 1 {
         dec $invkey7 1
         set @physblock false

@@ -1,6 +1,7 @@
 # vim: sw=2 sts=2 et syntax= :
 
-param int @color 79
+param int @fgcolor 15
+param int @bgcolor 4
 param int @char 2
 param int @health 100
 param int @ammo 2
@@ -29,9 +30,11 @@ on state main {
         }
       } else {
         # TODO: Post message and/or play sound --GM
-        set @color 244
+        set @fgcolor 4
+        set @bgcolor 15
         sleep 1
-        set @color 79
+        set @fgcolor 15
+        set @bgcolor 4
       }
       sleep 1
     } else {

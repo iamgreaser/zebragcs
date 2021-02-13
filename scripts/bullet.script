@@ -1,6 +1,6 @@
 # vim: sw=2 sts=2 et syntax= :
 
-param int @color 15
+param int @fgcolor 15
 param int @char 248
 param bool @harmenemy true
 param bool @harmplayer true
