@@ -14,102 +14,10 @@ proc tick*(board: Board)
 proc tickEvent*(execState: ScriptExecState, eventName: string)
 proc tickEvent*(entity: Entity, eventName: string)
 
+import scriptexprs
 import scriptnodes
 
 
-proc asBool(x: ScriptVal): bool =
-  case x.kind
-  of svkBool: x.boolVal
-  else:
-    raise newException(ScriptExecError, &"Expected bool, got {x} instead")
-
-proc asInt(x: ScriptVal): int =
-  case x.kind
-  of svkInt: x.intVal
-  else:
-    raise newException(ScriptExecError, &"Expected int, got {x} instead")
-
-proc defaultScriptVal(kind: ScriptValKind): ScriptVal =
-  case kind
-  of svkBool: ScriptVal(kind: kind, boolVal: false)
-  of svkDir: ScriptVal(kind: kind, dirValX: 0, dirValY: 0)
-  of svkInt: ScriptVal(kind: kind, intVal: 0)
-  of svkPos: ScriptVal(kind: kind, posValX: 0, posValY: 0) # TODO: Consider making pos not have a default, and throw an exception instead --GM
-
-proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
-  case expr.kind
-  of snkConst:
-    return expr.constVal
-
-  of snkFunc:
-    case expr.funcType
-
-    of sftThisPos:
-      var entity = execState.entity
-      assert entity != nil
-      return ScriptVal(kind: svkPos, posValX: entity.x, posValY: entity.y)
-
-    of sftEq, sftNe:
-      assert expr.funcArgs.len == 2
-      var v0 = execState.resolveExpr(expr.funcArgs[0])
-      var v1 = execState.resolveExpr(expr.funcArgs[1])
-      var iseq: bool = case v0.kind
-        of svkBool:
-          v1.kind == svkBool and v0.boolVal == v1.boolVal
-        of svkDir:
-          v1.kind == svkDir and v0.dirValX == v1.dirValX and v0.dirValY == v1.dirValY
-        else:
-          raise newException(ScriptExecError, &"Unhandled bool kind {v0.kind}")
-      return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == sftEq)))
-
-    of sftLt, sftLe, sftGt, sftGe:
-      assert expr.funcArgs.len == 2
-      var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
-      var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
-      var b0 = case expr.funcType
-        of sftLt: v0 < v1
-        of sftLe: v0 <= v1
-        of sftGt: v0 > v1
-        of sftGe: v0 >= v1
-        else:
-          raise newException(ScriptExecError, &"EDOOFUS: ScriptFuncType unknown for {expr}!")
-      return ScriptVal(kind: svkBool, boolVal: b0)
-
-    else:
-      raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
-
-  of snkGlobalVar:
-    var k0 = expr.globalVarName
-    var share = execState.share
-    assert share != nil
-    var d0 = try:
-        execState.execBase.globals[k0]
-      except KeyError:
-        raise newException(ScriptExecError, &"Undeclared global \"${k0}\" (TODO: make sure the types get synced and verified properly! --GM)")
-    var v0: ScriptVal = try:
-        share.globals[k0]
-      except KeyError:
-        var vd = defaultScriptVal(d0.varType)
-        share.globals[k0] = vd
-        vd
-    return v0
-
-  of snkParamVar:
-    var k0 = expr.paramVarName
-    var d0 = try:
-        execState.execBase.params[k0]
-      except KeyError:
-        raise newException(ScriptExecError, &"Undeclared parameter \"@{k0}\"")
-    var v0: ScriptVal = try:
-        execState.entity.params[k0]
-      except KeyError:
-        var vd = execState.resolveExpr(d0.varDefault)
-        execState.entity.params[k0] = vd
-        vd
-    return v0
-
-  else:
-    raise newException(ScriptExecError, &"Unhandled expr kind {expr.kind}")
 
 proc newScriptParseState(strm: Stream): ScriptParseState =
   ScriptParseState(
