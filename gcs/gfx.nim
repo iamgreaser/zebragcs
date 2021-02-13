@@ -36,9 +36,10 @@ import tables
 
 import types
 
-proc openGfx*(): GfxState
 proc close*(gfx: GfxState)
 proc draw*(gfx: GfxState, board: Board)
+proc getNextInput*(gfx: GfxState): InputEvent
+proc openGfx*(): GfxState
 
 import scriptexprs
 
@@ -111,6 +112,36 @@ proc close(gfx: GfxState) =
   gfx.renderer.destroy()
   gfx.window.destroy()
   sdl2.quit()
+
+proc getNextInput*(gfx: GfxState): InputEvent =
+  var sev: sdl2.Event
+  while sdl2.pollEvent(sev):
+    case sev.kind
+
+    of QuitEvent:
+      return InputEvent(kind: ievQuit)
+
+    of KeyDown, KeyUp:
+      var sevKey = cast[sdl2.KeyboardEventPtr](addr(sev))
+
+      var keyType = case sevKey.keysym.scancode
+        of SDL_SCANCODE_UP: ikUp
+        of SDL_SCANCODE_DOWN: ikDown
+        of SDL_SCANCODE_LEFT: ikLeft
+        of SDL_SCANCODE_RIGHT: ikRight
+        of SDL_SCANCODE_LSHIFT: ikShift
+        of SDL_SCANCODE_ESCAPE: ikEsc
+        else: continue
+
+      if sev.kind == KeyDown:
+        return InputEvent(kind: ievKeyPress, keyType: keyType)
+      else:
+        return InputEvent(kind: ievKeyRelease, keyType: keyType)
+
+    else:
+      discard # Continue through the loop
+
+  InputEvent(kind: ievNone)
 
 proc drawChar(gfx: GfxState, x: int, y: int, bg: tuple[r: uint8, g: uint8, b: uint8], fg: tuple[r: uint8, g: uint8, b: uint8], ch: int) =
   var renderer = gfx.renderer

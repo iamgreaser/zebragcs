@@ -26,6 +26,9 @@ on state init {
 }
 
 on state main {
+}
+
+on state oldmain {
   sleep 14
   broadcast enemyshot
   sleep 3

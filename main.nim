@@ -10,6 +10,8 @@ import gcs/types
 proc main() =
   var share = newScriptSharedExecState()
 
+  var gameRunning: bool = true
+
   var board = newBoard(share)
   var entity = board.newEntity(
     "draftcontroller",
@@ -18,12 +20,8 @@ proc main() =
   echo &"board: {board}\n"
   echo &"entity: {entity}\n"
   withOpenGfx gfx:
-    var ticksLeft: int = 20*15
-    var ticksDone: int = 0
-    while entity.alive and ticksLeft > 0:
+    while gameRunning and entity.alive:
       board.tick()
-      ticksLeft -= 1
-      ticksDone += 1
 
       #echo &"board: {board}"
 
@@ -31,5 +29,33 @@ proc main() =
       #var health = entity.params.getOrDefault("health", ScriptVal(kind: svkInt, intVal: 0))
       #var ammo = entity.params.getOrDefault("ammo", ScriptVal(kind: svkInt, intVal: 0))
       #echo &"entity pos: {entity.x}, {entity.y} / health: {health} / ammo: {ammo} / alive: {entity.alive}"
+
+      while true:
+        var ev = gfx.getNextInput()
+        case ev.kind
+        of ievNone: break
+
+        of ievQuit:
+          gameRunning = false
+          break
+
+        of ievKeyPress:
+          if ev.keyType == ikEsc:
+            # Wait for release
+            discard
+          else:
+            # TODO: Handle key repeat properly --GM
+            board.broadcastEvent(&"press{ev.keyType}")
+            board.broadcastEvent(&"type{ev.keyType}")
+
+        of ievKeyRelease:
+          if ev.keyType == ikEsc:
+            # Quit
+            gameRunning = false
+            break
+          else:
+            board.broadcastEvent(&"release{ev.keyType}")
+
+        else: discard
 
 main()

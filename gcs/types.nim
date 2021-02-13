@@ -96,6 +96,26 @@ type
     of stkParenOpen, stkParenClosed: discard
     of stkWord: strVal*: string
 
+  InputKeyType* = enum
+    ikUp = "up"
+    ikDown = "down"
+    ikLeft = "left"
+    ikRight = "right"
+    ikShift = "shift"
+    ikEsc = "esc"
+  InputEventType* = enum
+    ievKeyPress
+    ievKeyRelease
+    ievNone
+    ievQuit
+  InputEvent* = ref InputEventObj
+  InputEventObj = object
+    case kind*: InputEventType
+      of ievKeyPress, ievKeyRelease:
+        keyType*: InputKeyType
+      of ievNone: discard
+      of ievQuit: discard
+
   ScriptAssignType* = enum
     satDec,
     satFDiv,
