@@ -2,6 +2,7 @@
 
 param int @color 10
 param int @char 12
+param bool @physblock true
 global int $invkey1
 global int $invkey2
 global int $invkey3
@@ -13,33 +14,57 @@ global int $invkey7
 on state idle {
 }
 
+on state taken {
+  sleep 2
+  set @char 9
+  sleep 2
+  set @char 7
+  sleep 2
+  set @char 249
+  sleep 2
+  set @char 15
+  sleep 2
+  set @char 250
+  sleep 2
+  die
+}
+
 on event touch {
-  if eq @color 9 {
-    inc $invkey1 1
-    die
-  }
-  if eq @color 10 {
-    inc $invkey2 1
-    die
-  }
-  if eq @color 11 {
-    inc $invkey3 1
-    die
-  }
-  if eq @color 12 {
-    inc $invkey4 1
-    die
-  }
-  if eq @color 13 {
-    inc $invkey5 1
-    die
-  }
-  if eq @color 14 {
-    inc $invkey6 1
-    die
-  }
-  if eq @color 15 {
-    inc $invkey7 1
-    die
+  if eq @physblock true {
+    if eq @color 9 {
+      inc $invkey1 1
+      set @physblock false
+      goto taken
+    }
+    if eq @color 10 {
+      inc $invkey2 1
+      set @physblock false
+      goto taken
+    }
+    if eq @color 11 {
+      inc $invkey3 1
+      set @physblock false
+      goto taken
+    }
+    if eq @color 12 {
+      inc $invkey4 1
+      set @physblock false
+      goto taken
+    }
+    if eq @color 13 {
+      inc $invkey5 1
+      set @physblock false
+      goto taken
+    }
+    if eq @color 14 {
+      inc $invkey6 1
+      set @physblock false
+      goto taken
+    }
+    if eq @color 15 {
+      inc $invkey7 1
+      set @physblock false
+      goto taken
+    }
   }
 }

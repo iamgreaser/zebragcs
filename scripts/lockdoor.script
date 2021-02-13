@@ -2,7 +2,7 @@
 
 param int @color 10
 param int @char 10
-param bool @stateheld false
+param bool @physblock true
 global int $invkey1
 global int $invkey2
 global int $invkey3
@@ -15,7 +15,6 @@ on state idle {
 }
 
 on state unlocked {
-  set @stateheld true
   set @char 8
   sleep 2
   set @char 219
@@ -30,46 +29,55 @@ on state unlocked {
 }
 
 on event touch {
-  if eq @color 9 {
-    if ge $invkey1 1 {
-      dec $invkey1 1
-      die
+  if eq @physblock true {
+    if eq @color 9 {
+      if ge $invkey1 1 {
+        dec $invkey1 1
+        set @physblock false
+        goto unlocked
+      }
     }
-  }
-  if eq @color 10 {
-    if ge $invkey2 1 {
-      dec $invkey2 1
-      die
+    if eq @color 10 {
+      if ge $invkey2 1 {
+        dec $invkey2 1
+        set @physblock false
+        goto unlocked
+      }
     }
-  }
-  if eq @color 11 {
-    if ge $invkey3 1 {
-      dec $invkey3 1
-      die
+    if eq @color 11 {
+      if ge $invkey3 1 {
+        dec $invkey3 1
+        set @physblock false
+        goto unlocked
+      }
     }
-  }
-  if eq @color 12 {
-    if ge $invkey4 1 {
-      dec $invkey4 1
-      die
+    if eq @color 12 {
+      if ge $invkey4 1 {
+        dec $invkey4 1
+        set @physblock false
+        goto unlocked
+      }
     }
-  }
-  if eq @color 13 {
-    if ge $invkey5 1 {
-      dec $invkey5 1
-      die
+    if eq @color 13 {
+      if ge $invkey5 1 {
+        dec $invkey5 1
+        set @physblock false
+        goto unlocked
+      }
     }
-  }
-  if eq @color 14 {
-    if ge $invkey6 1 {
-      dec $invkey6 1
-      die
+    if eq @color 14 {
+      if ge $invkey6 1 {
+        dec $invkey6 1
+        set @physblock false
+        goto unlocked
+      }
     }
-  }
-  if eq @color 15 {
-    if ge $invkey7 1 {
-      dec $invkey7 1
-      die
+    if eq @color 15 {
+      if ge $invkey7 1 {
+        dec $invkey7 1
+        set @physblock false
+        goto unlocked
+      }
     }
   }
 }

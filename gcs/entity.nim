@@ -2,6 +2,7 @@ import tables
 
 import types
 
+proc hasPhysBlock*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int, dy: int): bool
 proc moveTo*(entity: Entity, x: int, y: int): bool
 proc newEntity*(board: Board, entityType: string, x, y: int): Entity
@@ -82,6 +83,12 @@ proc moveTo(entity: Entity, x: int, y: int): bool =
 
 proc moveBy(entity: Entity, dx: int, dy: int): bool =
   entity.moveTo(entity.x + dx, entity.y + dy)
+
+proc hasPhysBlock(entity: Entity): bool =
+  try:
+    entity.params["physblock"].asBool()
+  except KeyError:
+    true
 
 proc tick(entity: Entity) =
   entity.execState.tick()

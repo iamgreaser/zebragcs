@@ -24,8 +24,14 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int, y: int): bool =
     if gridseq.len == 0:
       return true
 
-    # TODO: Deal with physics constraints --GM
-    false
+    var i: int = gridseq.len-1
+    while i >= 0:
+      var other = gridseq[i]
+      if other.hasPhysBlock():
+        return false
+      i -= 1
+
+    true
 
 proc addEntityToGrid(board: Board, entity: Entity) =
   assert board.canAddEntityToGridPos(entity, entity.x, entity.y)
