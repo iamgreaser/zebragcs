@@ -1,8 +1,8 @@
 import strformat
 import strutils
 
-import types
-import unsorted
+import gcs/types
+import gcs/unsorted
 
 
 proc main() =
