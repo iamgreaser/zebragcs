@@ -59,6 +59,7 @@ type
   ScriptSharedExecStateObj = object
     globals*: Table[string, ScriptVal]
     entityTypes*: Table[string, ScriptExecBase]
+    scriptRootDir*: string
 
   ScriptExecState* = ref ScriptExecStateObj
   ScriptExecStateObj = object

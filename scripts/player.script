@@ -8,6 +8,16 @@ param bool @shiftpressed false
 param dir @nextdir idle
 global pos $playerpos
 
+on state init {
+  spawn w lockkey {
+    set @color 12
+  }
+  spawn e lockdoor {
+    set @color 12
+  }
+  goto main
+}
+
 on state main {
   if eq @nextdir idle {
     sleep 1

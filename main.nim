@@ -10,9 +10,6 @@ import gcs/types
 proc main() =
   var share = newScriptSharedExecState()
 
-  share.loadEntityTypeFromFile("player", "scripts/player.script")
-  share.loadEntityTypeFromFile("bullet", "scripts/bullet.script")
-
   var board = newBoard(share)
   var entity = board.newEntity(
     "player",

@@ -9,12 +9,17 @@ proc tick*(entity: Entity)
 proc tickEvent*(entity: Entity, eventName: string)
 
 import board
+import scriptcompile
 import scriptexprs
 import scriptexec
 
 
 proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExecBase =
-  share.entityTypes[entityName]
+  try:
+    share.entityTypes[entityName]
+  except KeyError:
+    share.loadEntityTypeFromFile(entityName, share.scriptRootDir)
+    share.entityTypes[entityName]
 
 proc newEntity(board: Board, entityType: string, x, y: int): Entity =
   var share = board.share
