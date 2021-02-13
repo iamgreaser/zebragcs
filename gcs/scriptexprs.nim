@@ -77,6 +77,24 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       assert entity != nil
       return ScriptVal(kind: svkPos, posValX: entity.x, posValY: entity.y)
 
+    of sftCw, sftOpp, sftCcw:
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      var (dx, dy) = case v0.kind
+        of svkDir:
+          (v0.dirValX, v0.dirValY)
+        else:
+          raise newException(ScriptExecError, &"Unhandled dir kind {v0.kind}")
+
+      (dx, dy) = case expr.funcType
+        of sftCw: (-dy, dx)
+        of sftOpp: (-dx, -dy)
+        of sftCcw: (dy, -dx)
+        else:
+          raise newException(ScriptExecError, &"EDOOFUS: Unhandled rotation function {expr.funcType}")
+
+      return ScriptVal(kind: svkDir, dirValX: dx, dirValY: dy)
+
     of sftEq, sftNe:
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0])
@@ -113,8 +131,7 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
       return ScriptVal(kind: svkPos, posValX: v0, posValY: v1)
 
-    else:
-      raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
+    #else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
 
   of snkGlobalVar:
     var k0 = expr.globalVarName

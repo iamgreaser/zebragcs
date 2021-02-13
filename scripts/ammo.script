@@ -1,0 +1,42 @@
+# vim: sw=2 sts=2 et syntax= :
+
+param int @color 3
+param int @char 132
+param bool @physblock true
+global int $givecount
+global dir $pushdir
+
+on state idle {
+}
+
+on state taken {
+  sleep 2
+  set @char 134
+  sleep 2
+  set @char 133
+  sleep 2
+  set @char 97
+  sleep 2
+  set @char 166
+  sleep 2
+  set @char 45
+  sleep 2
+  set @char 250
+  sleep 2
+  die
+}
+
+on event push {
+  send $pushdir push
+  move $pushdir
+}
+
+on event touch {
+  if eq @physblock true {
+    set @physblock false
+    set $givecount 5
+    send opp $pushdir giveammo
+    goto taken
+  }
+}
+

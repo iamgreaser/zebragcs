@@ -11,8 +11,8 @@ import entity
 import scriptexprs
 
 
-proc tickContinuations(execState: ScriptExecState) =
-  while execState.continuations.len >= 1:
+proc tickContinuations(execState: ScriptExecState, lowerBound: int) =
+  while execState.continuations.len > lowerBound:
     var cont = execState.continuations.pop()
     while cont.codePc < cont.codeBlock.len:
       var nodePc = cont.codePc
@@ -182,7 +182,7 @@ proc tick(execState: ScriptExecState) =
 
   # If we actually slept, then the next state wrap is instantaneous.
   if didSleep:
-    execState.tickContinuations()
+    execState.tickContinuations(lowerBound=0)
     if execState.continuations.len >= 1:
       return
     if execState.sleepTicksLeft >= 1:
@@ -198,7 +198,7 @@ proc tick(execState: ScriptExecState) =
       )
     )
 
-  execState.tickContinuations()
+  execState.tickContinuations(lowerBound=0)
 
 proc tickEvent(execState: ScriptExecState, eventName: string) =
   var execBase = execState.execBase
@@ -214,4 +214,4 @@ proc tickEvent(execState: ScriptExecState, eventName: string) =
       codePc: 0,
     )
   )
-  execState.tickContinuations()
+  execState.tickContinuations(lowerBound=execState.continuations.len-1)

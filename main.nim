@@ -56,6 +56,6 @@ proc main() =
           else:
             board.broadcastEvent(&"release{ev.keyType}")
 
-        else: discard
+        #else: discard
 
 main()

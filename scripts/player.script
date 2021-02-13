@@ -6,6 +6,7 @@ param int @health 100
 param int @ammo 2
 param bool @shiftpressed false
 param dir @nextdir idle
+global int $givecount
 global pos $playerpos
 global dir $pushdir
 
@@ -61,4 +62,8 @@ on event typeright {
 
 on event enemyshot {
   dec @health 10
+}
+
+on event giveammo {
+  inc @ammo $givecount
 }
