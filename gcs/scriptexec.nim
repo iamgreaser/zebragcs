@@ -3,110 +3,12 @@ import tables
 
 import types
 
-proc newBoard*(share: ScriptSharedExecState): Board
-proc newEntity*(board: Board, entityType: string, x, y: int): Entity
 proc tick*(execState: ScriptExecState)
-proc tick*(entity: Entity)
-proc tick*(board: Board)
 proc tickEvent*(execState: ScriptExecState, eventName: string)
-proc tickEvent*(entity: Entity, eventName: string)
 
+import entity
 import scriptexprs
 
-
-proc newBoard(share: ScriptSharedExecState): Board =
-  Board(
-    share: share,
-    entities: @[],
-  )
-
-proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExecBase =
-  share.entityTypes[entityName]
-
-proc canAddEntityToGridPos(board: Board, entity: Entity, x: int, y: int): bool =
-  if not (x >= 0 and x < 60 and y >= 0 and y < 25): # TODO: Put width/height into the Board --GM
-    false
-  else:
-    true
-
-proc addEntityToGrid(board: Board, entity: Entity) =
-  assert board.canAddEntityToGridPos(entity, entity.x, entity.y)
-  board.grid[entity.y][entity.x].add(entity)
-
-proc removeEntityFromGrid(board: Board, entity: Entity) =
-  var gridseq = board.grid[entity.y][entity.x]
-  var i: int = 0
-  while i < gridseq.len:
-    if gridseq[i] == entity:
-      gridseq.delete(i)
-    else:
-      i += 1
-    
-  board.grid[entity.y][entity.x] = gridseq
-  discard
-
-proc newEntity(board: Board, entityType: string, x, y: int): Entity =
-  var share = board.share
-  assert share != nil
-  var execBase = share.getEntityType(entityType)
-  var execState = ScriptExecState(
-    execBase: execBase,
-    activeState: execBase.initState,
-    entity: nil,
-    share: share,
-    sleepTicksLeft: 0,
-    alive: true,
-  )
-  var entity = Entity(
-    board: board,
-    x: x, y: y,
-    execState: execState,
-    params: Table[string, ScriptVal](),
-    alive: true,
-  )
-  execState.entity = entity
-  # Initialise!
-  for k0, v0 in execBase.params.pairs():
-    entity.params[k0] = execState.resolveExpr(v0.varDefault)
-
-  # Now attempt to see if we can add it
-  if board.canAddEntityToGridPos(entity, entity.x, entity.y):
-    # Yes - add and return it
-    board.addEntityToGrid(entity)
-    board.entities.add(entity)
-    entity
-  else:
-    # No - invalidate and return nil
-    entity.alive = false
-    execState.alive = false
-    nil
-    
-
-proc canMoveTo(entity: Entity, x: int, y: int): bool =
-  var board = entity.board
-  if board == nil:
-    false
-  elif x == entity.x and y == entity.y:
-    false
-  else:
-    board.canAddEntityToGridPos(entity, x, y)
-
-proc moveTo(entity: Entity, x: int, y: int): bool =
-  var canMove = entity.canMoveTo(x, y)
-  if canMove:
-    var board = entity.board
-    assert board != nil
-    if x != entity.x or y != entity.y:
-      board.removeEntityFromGrid(entity)
-      entity.x = x
-      entity.y = y
-      board.addEntityToGrid(entity)
-    true
-  else:
-    false
-
-proc moveBy(entity: Entity, dx: int, dy: int): bool =
-  entity.moveTo(entity.x + dx, entity.y + dy)
 
 proc tickContinuations(execState: ScriptExecState) =
   while execState.continuations.len >= 1:
@@ -283,7 +185,7 @@ proc tick(execState: ScriptExecState) =
       return
     if execState.sleepTicksLeft >= 1:
       return
-    
+
   if execState.continuations.len < 1:
     var activeState = execState.activeState
     var stateBlock = execBase.states[activeState]
@@ -311,25 +213,3 @@ proc tickEvent(execState: ScriptExecState, eventName: string) =
     )
   )
   execState.tickContinuations()
-
-proc tick(entity: Entity) =
-  entity.execState.tick()
-
-proc tickEvent(entity: Entity, eventName: string) =
-  entity.execState.tickEvent(eventName)
-
-proc tick(board: Board) =
-  var entitiesCopy: seq[Entity] = @[]
-  for entity in board.entities:
-    entitiesCopy.add(entity)
-  for entity in entitiesCopy:
-    entity.execState.tick()
-
-  # Remove dead entities
-  entitiesCopy = @[]
-  for entity in board.entities:
-    if entity.alive:
-      entitiesCopy.add(entity)
-    else:
-      board.removeEntityFromGrid(entity)
-  board.entities = entitiesCopy

@@ -1,9 +1,10 @@
 import strformat
 
+import gcs/board
+import gcs/entity
 import gcs/gfx
 import gcs/scriptcompile
 import gcs/types
-import gcs/unsorted
 
 
 proc main() =
