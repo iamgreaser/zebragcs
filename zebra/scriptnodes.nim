@@ -180,39 +180,56 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
       of "spawn":
         var posExpr = sps.parseExpr()
         var entityName = sps.readKeywordToken().toLowerAscii()
-        sps.expectToken(stkBraceOpen)
-        sps.expectToken(stkEol)
+        var braceToken = sps.readToken()
+        var (bodyExpr, elseExpr) = case braceToken.kind
+          of stkEol: (@[], @[])
 
-        var bodyExpr: seq[ScriptNode] = @[]
-        while true:
-          var tok = sps.readToken()
-          case tok.kind
-          of stkBraceClosed: break # Exit here.
-          of stkEol: discard
           of stkWord:
-            case tok.strVal.toLowerAscii()
-            of "set":
-              var dstExpr = sps.parseExpr()
-              if dstExpr.kind != snkParamVar:
-                raise newScriptParseError(sps, &"Expected param in spawn block set, got {dstExpr} instead")
-              var srcExpr = sps.parseExpr()
-              bodyExpr.add(ScriptNode(
-                kind: snkAssign,
-                assignType: satSet,
-                assignDstExpr: dstExpr,
-                assignSrcExpr: srcExpr,
-              ))
+            case braceToken.strVal
+            of "else":
+              sps.expectToken(stkBraceOpen)
+              sps.expectToken(stkEol)
+              (@[], sps.parseCodeBlock(stkBraceClosed))
             else:
-              raise newScriptParseError(sps, &"Unexpected spawn block keyword {tok}")
+              raise newScriptParseError(sps, &"Unexpected spawn block token {braceToken}")
+
+          of stkBraceOpen:
+            sps.expectToken(stkEol)
+            var bodyExpr: seq[ScriptNode] = @[]
+            while true:
+              var tok = sps.readToken()
+              case tok.kind
+              of stkBraceClosed: break # Exit here.
+              of stkEol: discard
+              of stkWord:
+                case tok.strVal.toLowerAscii()
+                of "set":
+                  var dstExpr = sps.parseExpr()
+                  if dstExpr.kind != snkParamVar:
+                    raise newScriptParseError(sps, &"Expected param in spawn block set, got {dstExpr} instead")
+                  var srcExpr = sps.parseExpr()
+                  bodyExpr.add(ScriptNode(
+                    kind: snkAssign,
+                    assignType: satSet,
+                    assignDstExpr: dstExpr,
+                    assignSrcExpr: srcExpr,
+                  ))
+                else:
+                  raise newScriptParseError(sps, &"Unexpected spawn block keyword {tok}")
+              else:
+                raise newScriptParseError(sps, &"Unexpected token {tok}")
+
+            (bodyExpr, sps.parseEolOrElse())
+
           else:
-            raise newScriptParseError(sps, &"Unexpected token {tok}")
+            raise newScriptParseError(sps, &"Unexpected spawn block token {braceToken}")
 
         nodes.add(ScriptNode(
           kind: snkSpawn,
           spawnEntityName: entityName,
           spawnPos: posExpr,
           spawnBody: bodyExpr,
-          spawnElse: sps.parseEolOrElse(),
+          spawnElse: elseExpr,
         ))
 
       of "while":
