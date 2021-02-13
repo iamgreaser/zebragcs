@@ -9,6 +9,7 @@ param dir @nextdir idle
 global int $givecount
 global pos $playerpos
 global dir $pushdir
+global dir $shotdir
 
 on state main {
   if eq @nextdir idle {
@@ -21,7 +22,10 @@ on state main {
           set @harmplayer false
           set @movedir @nextdir
         } else {
-          inc @ammo 1
+          set $shotdir @nextdir
+          send @nextdir shot
+          set $shotdir @nextdir
+          send @nextdir playershot
         }
       } else {
         # TODO: Post message and/or play sound --GM
