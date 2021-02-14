@@ -60,6 +60,13 @@ on event typedown { set @nextdir south }
 on event typeleft { set @nextdir west }
 on event typeright { set @nextdir east }
 
+on event typew {
+  set $pushdir n
+  send $pushdir push
+  spawn n ammo {
+  }
+}
+
 on event enemyshot {
   dec @health 10
   if ge @health 1 {
