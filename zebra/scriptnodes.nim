@@ -58,7 +58,6 @@ proc parseEolOrElse(sps: ScriptParseState): seq[ScriptNode] =
     case tok.strVal.toLowerAscii()
     of "else":
       sps.expectToken(stkBraceOpen)
-      sps.expectToken(stkEol)
       return sps.parseCodeBlock(stkBraceClosed)
     else:
       raise newScriptParseError(sps, &"Expected EOL or \"else\" keyword, got {tok} instead")
