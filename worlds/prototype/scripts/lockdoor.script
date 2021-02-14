@@ -16,15 +16,15 @@ on state idle {
 
 on state unlocked {
   set @char 8
-  sleep 2
+  sleep 1
   set @char 219
-  sleep 2
+  sleep 1
   set @char 178
-  sleep 2
+  sleep 1
   set @char 177
-  sleep 2
+  sleep 1
   set @char 176
-  sleep 2
+  sleep 1
   die
 }
 

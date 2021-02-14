@@ -16,17 +16,17 @@ on state idle {
 }
 
 on state taken {
-  sleep 2
+  sleep 1
   set @char 9
-  sleep 2
+  sleep 1
   set @char 7
-  sleep 2
+  sleep 1
   set @char 249
-  sleep 2
+  sleep 1
   set @char 15
-  sleep 2
+  sleep 1
   set @char 250
-  sleep 2
+  sleep 1
   die
 }
 

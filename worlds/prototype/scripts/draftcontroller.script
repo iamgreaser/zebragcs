@@ -7,6 +7,7 @@ param int @fgcolor 0
 param int @char 67
 
 local int %x 0
+local int %y 0
 
 on state init {
   spawn at 30 12 player
@@ -23,6 +24,16 @@ on state init {
   while lt %x 40 {
     spawn at %x 7 breakable
     inc %x 1
+  }
+
+  set %y 15
+  while lt %y 20 {
+    set %x 20
+    while lt %x 25 {
+      spawn at %x %y gem
+      inc %x 1
+    }
+    inc %y 1
   }
 
   goto main

@@ -5,6 +5,8 @@ param int @bgcolor 4
 param int @char 2
 param int @health 100
 param int @ammo 2
+param int @gems 0
+param int @score 0
 param bool @shiftpressed false
 param dir @nextdir idle
 global int $givecount
@@ -58,3 +60,6 @@ on event typeright { set @nextdir east }
 on event enemyshot { dec @health 10 }
 
 on event giveammo { inc @ammo $givecount }
+on event givegems { inc @gems $givecount }
+on event givehealth { inc @health $givecount }
+on event givescore { inc @score $givecount }
