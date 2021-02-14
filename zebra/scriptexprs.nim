@@ -4,7 +4,7 @@ import tables
 import types
 
 proc asBool*(x: ScriptVal): bool
-proc asInt*(x: ScriptVal): int
+proc asInt*(x: ScriptVal): int64
 proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
 proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 
@@ -15,7 +15,7 @@ proc asBool(x: ScriptVal): bool =
   else:
     raise newException(ScriptExecError, &"Expected bool, got {x} instead")
 
-proc asInt(x: ScriptVal): int =
+proc asInt(x: ScriptVal): int64 =
   case x.kind
   of svkInt: x.intVal
   else:

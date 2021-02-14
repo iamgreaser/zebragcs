@@ -143,7 +143,7 @@ proc getNextInput*(gfx: GfxState): InputEvent =
 
   InputEvent(kind: ievNone)
 
-proc drawChar(gfx: GfxState, x: int, y: int, bg: tuple[r: uint8, g: uint8, b: uint8], fg: tuple[r: uint8, g: uint8, b: uint8], ch: int) =
+proc drawChar(gfx: GfxState, x: int64, y: int64, bg: tuple[r: uint8, g: uint8, b: uint8], fg: tuple[r: uint8, g: uint8, b: uint8], ch: uint64) =
   var renderer = gfx.renderer
 
   var dstrect = rect(
@@ -185,17 +185,17 @@ proc draw(gfx: GfxState, board: Board) =
           var execBase = execState.execBase
           assert execBase != nil
 
-          var ch = try: entity.params["char"].asInt()
-            except KeyError: int('?')
-          var fgcolor = try: entity.params["fgcolor"].asInt()
-            except KeyError: 0x07
-          var bgcolor = try: entity.params["bgcolor"].asInt()
-            except KeyError: 0x00
+          var ch = try: uint64(entity.params["char"].asInt())
+            except KeyError: uint64('?')
+          var fgcolor = try: uint64(entity.params["fgcolor"].asInt())
+            except KeyError: 0x07'u64
+          var bgcolor = try: uint64(entity.params["bgcolor"].asInt())
+            except KeyError: 0x00'u64
 
           (fgcolor, bgcolor, ch)
 
         else:
-          (0x07, 0x00, int(' '))
+          (0x07'u64, 0x00'u64, uint64(' '))
       gfx.drawChar(
         x = x, y = y,
         bg = defaultPalette[bgcolor and 0xF],

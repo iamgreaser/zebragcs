@@ -20,7 +20,7 @@ type
   EntityObj = object
     board*: Board
     execState*: ScriptExecState
-    x*, y*: int
+    x*, y*: int64
     params*: Table[string, ScriptVal]
     locals*: Table[string, ScriptVal]
     alive*: bool
@@ -28,7 +28,7 @@ type
   ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
     strm*: Stream
-    row*, col*: int
+    row*, col*: int64
     tokenPushStack*: seq[ScriptToken]
 
   ScriptGlobalBase* = ref ScriptGlobalBaseObj
@@ -62,7 +62,7 @@ type
   ScriptContinuation* = ref ScriptContinuationObj
   ScriptContinuationObj = object
     codeBlock*: seq[ScriptNode]
-    codePc*: int
+    codePc*: int64
 
   ScriptSharedExecState* = ref ScriptSharedExecStateObj
   ScriptSharedExecStateObj = object
@@ -77,7 +77,7 @@ type
     execBase*: ScriptExecBase
     activeState*: string
     continuations*: seq[ScriptContinuation]
-    sleepTicksLeft*: int
+    sleepTicksLeft*: int64
     alive*: bool
 
   ScriptTokenKind* = enum
@@ -99,7 +99,7 @@ type
     of stkEof: discard
     of stkEol: discard
     of stkGlobalVar: globalName*: string
-    of stkInt: intVal*: int
+    of stkInt: intVal*: int64
     of stkLocalVar: localName*: string
     of stkParamVar: paramName*: string
     of stkParenOpen, stkParenClosed: discard
@@ -240,9 +240,9 @@ type
   ScriptValObj = object
     case kind*: ScriptValKind
     of svkBool: boolVal*: bool
-    of svkDir: dirValX*, dirValY*: int
-    of svkInt: intVal*: int
-    of svkPos: posValX*, posValY*: int
+    of svkDir: dirValX*, dirValY*: int64
+    of svkInt: intVal*: int64
+    of svkPos: posValX*, posValY*: int64
 
 proc `$`*(x: ScriptVal): string =
   case x.kind

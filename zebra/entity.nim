@@ -3,9 +3,9 @@ import tables
 import types
 
 proc hasPhysBlock*(entity: Entity): bool
-proc moveBy*(entity: Entity, dx: int, dy: int): bool
-proc moveTo*(entity: Entity, x: int, y: int): bool
-proc newEntity*(board: Board, entityType: string, x, y: int): Entity
+proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
+proc moveTo*(entity: Entity, x: int64, y: int64): bool
+proc newEntity*(board: Board, entityType: string, x, y: int64): Entity
 proc tick*(entity: Entity)
 proc tickEvent*(entity: Entity, eventName: string)
 
@@ -22,7 +22,7 @@ proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExec
     share.loadEntityTypeFromFile(entityName)
     share.entityTypes[entityName]
 
-proc newEntity(board: Board, entityType: string, x, y: int): Entity =
+proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
   var share = board.share
   assert share != nil
   var execBase = share.getEntityType(entityType)
@@ -61,7 +61,7 @@ proc newEntity(board: Board, entityType: string, x, y: int): Entity =
     execState.alive = false
     nil
 
-proc canMoveTo(entity: Entity, x: int, y: int): bool =
+proc canMoveTo(entity: Entity, x: int64, y: int64): bool =
   var board = entity.board
   if board == nil:
     false
@@ -70,7 +70,7 @@ proc canMoveTo(entity: Entity, x: int, y: int): bool =
   else:
     board.canAddEntityToGridPos(entity, x, y)
 
-proc moveTo(entity: Entity, x: int, y: int): bool =
+proc moveTo(entity: Entity, x: int64, y: int64): bool =
   var canMove = entity.canMoveTo(x, y)
   if canMove:
     var board = entity.board
@@ -84,7 +84,7 @@ proc moveTo(entity: Entity, x: int, y: int): bool =
   else:
     false
 
-proc moveBy(entity: Entity, dx: int, dy: int): bool =
+proc moveBy(entity: Entity, dx: int64, dy: int64): bool =
   entity.moveTo(entity.x + dx, entity.y + dy)
 
 proc hasPhysBlock(entity: Entity): bool =

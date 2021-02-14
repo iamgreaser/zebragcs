@@ -37,7 +37,7 @@ proc skipBytes(sps: ScriptParseState, count: int) =
 proc readTokenDirect(sps: ScriptParseState): ScriptToken =
   var s = peekStr(sps.strm, maxPeekDist)
   var mid, post: string
-  var midInt: int
+  var midInt: int # FIXME: We need a 64-bit version of this --GM
 
   # Skip comments
   if scanf(s, "$s#$*", post):
