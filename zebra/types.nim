@@ -108,12 +108,54 @@ type
     of stkWord: wordVal*: string
 
   InputKeyType* = enum
+    ikNone = ""
     ikUp = "up"
     ikDown = "down"
     ikLeft = "left"
     ikRight = "right"
     ikShift = "shift"
+    ikCtrl = "ctrl"
     ikEsc = "esc"
+
+    ik0 = "0",
+    ik1 = "1",
+    ik2 = "2",
+    ik3 = "3",
+    ik4 = "4",
+    ik5 = "5",
+    ik6 = "6",
+    ik7 = "7",
+    ik8 = "8",
+    ik9 = "9",
+
+    ikA = "a",
+    ikB = "b",
+    ikC = "c",
+    ikD = "d",
+    ikE = "e",
+    ikF = "f",
+    ikG = "g",
+    ikH = "h",
+    ikI = "i",
+    ikJ = "j",
+    ikK = "k",
+    ikL = "l",
+    ikM = "m",
+    ikN = "n",
+    ikO = "o",
+    ikP = "p",
+    ikQ = "q",
+    ikR = "r",
+    ikS = "s",
+    ikT = "t",
+    ikU = "u",
+    ikV = "v",
+    ikW = "w",
+    ikX = "x",
+    ikY = "y",
+    ikZ = "z",
+
+
   InputEventType* = enum
     ievKeyPress
     ievKeyRelease

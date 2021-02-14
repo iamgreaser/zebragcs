@@ -130,7 +130,47 @@ proc getNextInput*(gfx: GfxState): InputEvent =
         of SDL_SCANCODE_LEFT: ikLeft
         of SDL_SCANCODE_RIGHT: ikRight
         of SDL_SCANCODE_LSHIFT: ikShift
+        of SDL_SCANCODE_LCTRL: ikCtrl
         of SDL_SCANCODE_ESCAPE: ikEsc
+
+        of SDL_SCANCODE_0: ik0
+        of SDL_SCANCODE_1: ik1
+        of SDL_SCANCODE_2: ik2
+        of SDL_SCANCODE_3: ik3
+        of SDL_SCANCODE_4: ik4
+        of SDL_SCANCODE_5: ik5
+        of SDL_SCANCODE_6: ik6
+        of SDL_SCANCODE_7: ik7
+        of SDL_SCANCODE_8: ik8
+        of SDL_SCANCODE_9: ik9
+
+        of SDL_SCANCODE_A: ikA
+        of SDL_SCANCODE_B: ikB
+        of SDL_SCANCODE_C: ikC
+        of SDL_SCANCODE_D: ikD
+        of SDL_SCANCODE_E: ikE
+        of SDL_SCANCODE_F: ikF
+        of SDL_SCANCODE_G: ikG
+        of SDL_SCANCODE_H: ikH
+        of SDL_SCANCODE_I: ikI
+        of SDL_SCANCODE_J: ikJ
+        of SDL_SCANCODE_K: ikK
+        of SDL_SCANCODE_L: ikL
+        of SDL_SCANCODE_M: ikM
+        of SDL_SCANCODE_N: ikN
+        of SDL_SCANCODE_O: ikO
+        of SDL_SCANCODE_P: ikP
+        of SDL_SCANCODE_Q: ikQ
+        of SDL_SCANCODE_R: ikR
+        of SDL_SCANCODE_S: ikS
+        of SDL_SCANCODE_T: ikT
+        of SDL_SCANCODE_U: ikU
+        of SDL_SCANCODE_V: ikV
+        of SDL_SCANCODE_W: ikW
+        of SDL_SCANCODE_X: ikX
+        of SDL_SCANCODE_Y: ikY
+        of SDL_SCANCODE_Z: ikZ
+
         else: continue
 
       if sev.kind == KeyDown:
