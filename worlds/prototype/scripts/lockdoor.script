@@ -29,7 +29,7 @@ on state unlocked {
 }
 
 on event touch {
-  if eq @physblock true {
+  if @physblock {
     if eq @fgcolor 9 {
       if ge $invkey1 1 {
         dec $invkey1 1

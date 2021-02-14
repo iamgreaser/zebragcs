@@ -19,7 +19,7 @@ on state shot {
 }
 
 on event shot {
-  if eq @physblock true {
+  if @physblock {
     set @physblock false
     set @hitdir $shotdir
     goto shot

@@ -32,7 +32,7 @@ on event push {
 }
 
 on event touch {
-  if eq @physblock true {
+  if @physblock {
     set @physblock false
     set $givecount 5
     send opp $pushdir giveammo

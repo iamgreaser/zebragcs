@@ -126,6 +126,11 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         #  raise newException(ScriptExecError, &"Unhandled bool kind {v0.kind}")
       return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == sftEq)))
 
+    of sftNot:
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      return ScriptVal(kind: svkBool, boolVal: not v0.asBool())
+
     of sftLt, sftLe, sftGt, sftGe:
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()

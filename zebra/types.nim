@@ -142,6 +142,7 @@ type
     sftLe,
     sftLt,
     sftNe,
+    sftNot,
     sftOpp,
     sftThispos,
 

@@ -36,7 +36,7 @@ on event push {
 }
 
 on event touch {
-  if eq @physblock true {
+  if @physblock {
     if eq @fgcolor 9 {
       inc $invkey1 1
       set @physblock false

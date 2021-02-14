@@ -38,6 +38,8 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
     of "gt": return ScriptNode(kind: snkFunc, funcType: sftGt, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
     of "ge": return ScriptNode(kind: snkFunc, funcType: sftGe, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
 
+    of "not": return ScriptNode(kind: snkFunc, funcType: sftNot, funcArgs: @[sps.parseExpr()])
+
     of "thispos": return ScriptNode(kind: snkFunc, funcType: sftThispos, funcArgs: @[])
 
     of "at": return ScriptNode(kind: snkFunc, funcType: sftAt, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
