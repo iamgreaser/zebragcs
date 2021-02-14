@@ -24,8 +24,10 @@ on state taken {
 }
 
 on event push {
-  send $pushdir push
-  move $pushdir else { die }
+  if @physblock {
+    send $pushdir push
+    move $pushdir else { die }
+  }
 }
 
 on event shot { die }

@@ -31,8 +31,10 @@ on state taken {
 }
 
 on event push {
-  send $pushdir push
-  move $pushdir
+  if @physblock {
+    send $pushdir push
+    move $pushdir
+  }
 }
 
 on event touch {
