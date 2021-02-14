@@ -68,7 +68,7 @@ type
   ScriptSharedExecStateObj = object
     globals*: Table[string, ScriptVal]
     entityTypes*: Table[string, ScriptExecBase]
-    scriptRootDir*: string
+    rootDir*: string
 
   ScriptExecState* = ref ScriptExecStateObj
   ScriptExecStateObj = object
@@ -300,7 +300,7 @@ proc `$`*(x: ScriptEventBase): string =
   &"Event({x.eventBody})"
 
 proc `$`*(x: ScriptSharedExecState): string =
-  &"SharedExecState(globals={x.globals})"
+  &"SharedExecState(globals={x.globals}, rootDir={x.rootDir})"
 
 proc `$`*(x: ScriptExecBase): string =
   &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, locals={x.locals}, states={x.states}, events={x.events})"

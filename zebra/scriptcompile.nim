@@ -6,8 +6,8 @@ import tables
 import types
 
 proc newScriptParseState*(strm: Stream): ScriptParseState
-proc newScriptSharedExecState*(): ScriptSharedExecState
-proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string, fdirroot: string)
+proc newScriptSharedExecState*(rootDir: string): ScriptSharedExecState
+proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
 
 import scriptnodes
 
@@ -18,10 +18,10 @@ proc newScriptParseState(strm: Stream): ScriptParseState =
     row: 1, col: 1,
   )
 
-proc newScriptSharedExecState(): ScriptSharedExecState =
+proc newScriptSharedExecState(rootDir: string): ScriptSharedExecState =
   ScriptSharedExecState(
     globals: initTable[string, ScriptVal](),
-    scriptRootDir: "scripts/",
+    rootDir: (rootDir & "/").replace("//", "/"),
   )
 
 proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
@@ -88,8 +88,8 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   #echo &"exec base: {execBase}\n"
   share.entityTypes[entityName] = execBase
 
-proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string, fdirroot: string) =
-  var fname = (&"{fdirroot}/{entityName}.script").replace("//", "/")
+proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
+  var fname = (&"{share.rootDir}/scripts/{entityName}.script").replace("//", "/")
   var strm = newFileStream(fname, fmRead)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")

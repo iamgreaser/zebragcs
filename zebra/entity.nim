@@ -19,7 +19,7 @@ proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExec
   try:
     share.entityTypes[entityName]
   except KeyError:
-    share.loadEntityTypeFromFile(entityName, share.scriptRootDir)
+    share.loadEntityTypeFromFile(entityName)
     share.entityTypes[entityName]
 
 proc newEntity(board: Board, entityType: string, x, y: int): Entity =

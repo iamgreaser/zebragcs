@@ -8,7 +8,9 @@ import zebra/types
 
 
 proc main() =
-  var share = newScriptSharedExecState()
+  var share = newScriptSharedExecState(
+    rootDir="worlds/prototype/",
+  )
 
   var gameRunning: bool = true
 
