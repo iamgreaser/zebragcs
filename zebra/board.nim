@@ -50,7 +50,10 @@ proc removeEntityFromGrid(board: Board, entity: Entity) =
   discard
 
 proc broadcastEvent(board: Board, eventName: string) =
+  var entitiesCopy: seq[Entity] = @[]
   for entity in board.entities:
+    entitiesCopy.add(entity)
+  for entity in entitiesCopy:
     entity.tickEvent(eventName)
 
 proc sendEventToPos(board: Board, eventName: string, x: int64, y: int64) =
