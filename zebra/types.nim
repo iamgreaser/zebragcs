@@ -91,6 +91,7 @@ type
     stkParamVar,
     stkParenClosed,
     stkParenOpen,
+    stkString,
     stkWord,
   ScriptToken* = ref ScriptTokenObj
   ScriptTokenObj = object
@@ -103,7 +104,8 @@ type
     of stkLocalVar: localName*: string
     of stkParamVar: paramName*: string
     of stkParenOpen, stkParenClosed: discard
-    of stkWord: strVal*: string
+    of stkString: strVal*: string
+    of stkWord: wordVal*: string
 
   InputKeyType* = enum
     ikUp = "up"
@@ -164,6 +166,7 @@ type
     snkParamDef,
     snkParamVar,
     snkRootBlock,
+    snkSay,
     snkSend,
     snkSleep,
     snkSpawn,
@@ -203,6 +206,8 @@ type
       sleepTimeExpr*: ScriptNode
     of snkBroadcast:
       broadcastEventName*: string
+    of snkSay:
+      sayExpr*: ScriptNode
     of snkSend:
       sendEventName*: string
       sendPos*: ScriptNode
@@ -236,6 +241,7 @@ type
     svkDir,
     svkInt,
     svkPos,
+    svkStr,
   ScriptVal* = ref ScriptValObj
   ScriptValObj = object
     case kind*: ScriptValKind
@@ -243,6 +249,7 @@ type
     of svkDir: dirValX*, dirValY*: int64
     of svkInt: intVal*: int64
     of svkPos: posValX*, posValY*: int64
+    of svkStr: strVal*: string
 
 proc `$`*(x: ScriptVal): string =
   case x.kind
@@ -250,6 +257,7 @@ proc `$`*(x: ScriptVal): string =
   of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
   of svkInt: &"IntV({x.intVal})"
   of svkPos: &"PosV({x.posValX}, {x.posValY})"
+  of svkStr: &"StrV({x.strVal})"
 
 proc `$`*(x: ScriptNode): string =
   case x.kind
@@ -270,6 +278,7 @@ proc `$`*(x: ScriptNode): string =
   of snkParamDef: return &"ParamDef(@{x.paramDefName}: {x.paramDefType} := {x.paramDefInitValue})"
   of snkParamVar: return &"ParamVar(@{x.paramVarName})"
   of snkRootBlock: return &"Root({x.rootBody})"
+  of snkSay: return &"Say({x.sayExpr})"
   of snkSend: return &"Send({x.sendEventName} -> {x.sendPos})"
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
   of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
@@ -287,6 +296,7 @@ proc `$`*(x: ScriptToken): string =
   of stkParamVar: return &"ParamT({x.paramName})"
   of stkParenClosed: return ")T"
   of stkParenOpen: return "(T"
+  of stkString: return &"StringT({x.strVal})"
   of stkWord: return &"WordT({x.strVal})"
 
 proc `$`*(x: ScriptGlobalBase): string =

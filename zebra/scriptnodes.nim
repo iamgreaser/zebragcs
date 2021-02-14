@@ -13,11 +13,12 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
   var tok = sps.readToken()
   case tok.kind
   of stkInt: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkInt, intVal: tok.intVal))
+  of stkString: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkStr, strVal: tok.strVal))
   of stkGlobalVar: return ScriptNode(kind: snkGlobalVar, globalVarName: tok.globalName)
   of stkParamVar: return ScriptNode(kind: snkParamVar, paramVarName: tok.paramName)
   of stkLocalVar: return ScriptNode(kind: snkLocalVar, localVarName: tok.localName)
   of stkWord:
-    case tok.strVal.toLowerAscii()
+    case tok.wordVal.toLowerAscii()
     of "false": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: false))
     of "true": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: true))
 
@@ -55,7 +56,7 @@ proc parseEolOrElse(sps: ScriptParseState): seq[ScriptNode] =
   case tok.kind
   of stkEol: return @[]
   of stkWord:
-    case tok.strVal.toLowerAscii()
+    case tok.wordVal.toLowerAscii()
     of "else":
       sps.expectToken(stkBraceOpen)
       return sps.parseCodeBlock(stkBraceClosed)
@@ -104,7 +105,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
       if awaitingEol:
         raise newScriptParseError(sps, &"Expected EOL, got {tok} instead")
 
-      case tok.strVal.toLowerAscii()
+      case tok.wordVal.toLowerAscii()
 
       of "goto":
         var stateName = sps.readKeywordToken()
@@ -123,7 +124,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         ))
 
       of "dec", "fdiv", "inc", "mul", "set":
-        var assignType = case tok.strVal.toLowerAscii()
+        var assignType = case tok.wordVal.toLowerAscii()
         of "dec": satDec
         of "fdiv": satFDiv
         of "inc": satInc
@@ -169,6 +170,14 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           moveElse: sps.parseEolOrElse(),
         ))
 
+      of "say":
+        var sayExpr = sps.parseExpr()
+        awaitingEol = true
+        nodes.add(ScriptNode(
+          kind: snkSay,
+          sayExpr: sayExpr,
+        ))
+
       of "send":
         var posExpr = sps.parseExpr()
         var eventName = sps.readKeywordToken().toLowerAscii()
@@ -195,7 +204,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           of stkEol: (@[], @[])
 
           of stkWord:
-            case braceToken.strVal
+            case braceToken.wordVal
             of "else":
               sps.expectToken(stkBraceOpen)
               (@[], sps.parseCodeBlock(stkBraceClosed))
@@ -210,7 +219,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
               of stkBraceClosed: break # Exit here.
               of stkEol: discard
               of stkWord:
-                case tok.strVal.toLowerAscii()
+                case tok.wordVal.toLowerAscii()
                 of "set":
                   var dstExpr = sps.parseExpr()
                   if dstExpr.kind != snkParamVar:
@@ -265,7 +274,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
     case tok.kind
     of stkEol: discard
     of stkWord:
-      case tok.strVal.toLowerAscii()
+      case tok.wordVal.toLowerAscii()
 
       of "on":
         nodes.add(sps.parseOnBlock())

@@ -5,6 +5,7 @@ param int @char 4
 param bool @physblock true
 global int $givecount
 global dir $pushdir
+global bool $didmsggemget
 
 on state idle {
 }
@@ -32,6 +33,10 @@ on event shot { die }
 on event touch {
   if @physblock {
     set @physblock false
+    if not $didmsggemget {
+      set $didmsggemget true
+      say "Gems give you health!"
+    }
     set $givecount 1
     send opp $pushdir givegems
     set $givecount 1

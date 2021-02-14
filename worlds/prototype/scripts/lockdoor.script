@@ -34,50 +34,57 @@ on event touch {
       if ge $invkey1 1 {
         dec $invkey1 1
         set @physblock false
+        say "The Blue door is now open."
         goto unlocked
-      }
+      } else { say "The Blue door is locked!" }
     }
     if eq @fgcolor 10 {
       if ge $invkey2 1 {
         dec $invkey2 1
         set @physblock false
+        say "The Green door is now open."
         goto unlocked
-      }
+      } else { say "The Green door is locked!" }
     }
     if eq @fgcolor 11 {
       if ge $invkey3 1 {
         dec $invkey3 1
         set @physblock false
+        say "The Cyan door is now open."
         goto unlocked
-      }
+      } else { say "The Cyan door is locked!" }
     }
     if eq @fgcolor 12 {
       if ge $invkey4 1 {
         dec $invkey4 1
         set @physblock false
+        say "The Red door is now open."
         goto unlocked
-      }
+      } else { say "The Red door is locked!" }
     }
     if eq @fgcolor 13 {
       if ge $invkey5 1 {
         dec $invkey5 1
         set @physblock false
+        say "The Purple door is now open."
         goto unlocked
-      }
+      } else { say "The Purple door is locked!" }
     }
     if eq @fgcolor 14 {
       if ge $invkey6 1 {
         dec $invkey6 1
         set @physblock false
+        say "The Yellow door is now open."
         goto unlocked
-      }
+      } else { say "The Yellow door is locked!" }
     }
     if eq @fgcolor 15 {
       if ge $invkey7 1 {
         dec $invkey7 1
         set @physblock false
+        say "The White door is now open."
         goto unlocked
-      }
+      } else { say "The White door is locked!" }
     }
   }
 }

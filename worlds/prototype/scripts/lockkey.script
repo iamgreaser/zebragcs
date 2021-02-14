@@ -40,36 +40,43 @@ on event touch {
     if eq @fgcolor 9 {
       inc $invkey1 1
       set @physblock false
+      say "You now have the Blue key."
       goto taken
     }
     if eq @fgcolor 10 {
       inc $invkey2 1
       set @physblock false
+      say "You now have the Green key."
       goto taken
     }
     if eq @fgcolor 11 {
       inc $invkey3 1
       set @physblock false
+      say "You now have the Cyan key."
       goto taken
     }
     if eq @fgcolor 12 {
       inc $invkey4 1
       set @physblock false
+      say "You now have the Red key."
       goto taken
     }
     if eq @fgcolor 13 {
       inc $invkey5 1
       set @physblock false
+      say "You now have the Purple key."
       goto taken
     }
     if eq @fgcolor 14 {
       inc $invkey6 1
       set @physblock false
+      say "You now have the Yellow key."
       goto taken
     }
     if eq @fgcolor 15 {
       inc $invkey7 1
       set @physblock false
+      say "You now have the White key."
       goto taken
     }
   }

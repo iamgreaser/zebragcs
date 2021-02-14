@@ -95,6 +95,22 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         var eventName: string = node.broadcastEventName
         board.broadcastEvent(eventName)
 
+      of snkSay:
+        var sayExpr = execState.resolveExpr(node.sayExpr)
+        var sayStr: string = case sayExpr.kind
+          of svkBool:
+            if sayExpr.boolVal:
+              "true"
+            else:
+              "false"
+          of svkInt: $sayExpr.intVal
+          of svkStr: sayExpr.strVal
+          of svkDir: &"rel {sayExpr.dirValX} {sayExpr.dirValY}"
+          of svkPos: &"at {sayExpr.posValX} {sayExpr.posValY}"
+
+        # TODO: Actually put it in the window somewhere --GM
+        echo &"SAY: [{sayStr}]"
+
       of snkSend:
         var entity = execState.entity
         assert entity != nil

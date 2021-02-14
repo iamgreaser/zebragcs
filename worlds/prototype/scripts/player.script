@@ -13,6 +13,7 @@ global int $givecount
 global pos $playerpos
 global dir $pushdir
 global dir $shotdir
+global bool $didmsgoutofammo
 
 on state main {
   if eq @nextdir idle {
@@ -31,12 +32,11 @@ on state main {
           send @nextdir playershot
         }
       } else {
-        # TODO: Post message and/or play sound --GM
-        set @fgcolor 4
-        set @bgcolor 15
-        sleep 1
-        set @fgcolor 15
-        set @bgcolor 4
+        # TODO: Play sound --GM
+        if not $didmsgoutofammo {
+          set $didmsgoutofammo true
+          say "You don't have any ammo!"
+        }
       }
       sleep 1
     } else {
@@ -49,6 +49,9 @@ on state main {
   set $playerpos thispos
 }
 
+on state dead {
+}
+
 on event pressshift { set @shiftpressed true }
 on event releaseshift { set @shiftpressed false }
 
@@ -57,7 +60,15 @@ on event typedown { set @nextdir south }
 on event typeleft { set @nextdir west }
 on event typeright { set @nextdir east }
 
-on event enemyshot { dec @health 10 }
+on event enemyshot {
+  dec @health 10
+  if ge @health 1 {
+    say "Ouch!"
+  } else {
+    say "Game over - Press ESCAPE"
+    goto dead
+  }
+}
 
 on event giveammo { inc @ammo $givecount }
 on event givegems { inc @gems $givecount }

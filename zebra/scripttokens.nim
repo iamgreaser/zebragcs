@@ -44,7 +44,7 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
     skipBytes(sps, s.len - post.len)
     s = peekStr(sps.strm, maxPeekDist)
     if scanf(s, "$*\n$*", mid, post):
-      echo &"Comment: [#{mid}]"
+      #echo &"Comment: [#{mid}]"
       skipBytes(sps, s.len - post.len)
       return ScriptToken(kind: stkEol)
     else:
@@ -58,6 +58,10 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
   if scanf(s, "$*\n$s$*", mid, post) and scanf(mid, "$s$."):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkEol)
+  elif scanf(s, "$s\"$*\"$*", mid, post):
+    # TODO: Support interpolation somehow --GM
+    skipBytes(sps, s.len - post.len)
+    return ScriptToken(kind: stkString, strVal: mid)
   elif scanf(s, "$s$i$*", midInt, post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkInt, intVal: midInt)
@@ -72,7 +76,7 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
     return ScriptToken(kind: stkLocalVar, localName: mid)
   elif scanf(s, "$s$w$*", mid, post):
     skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkWord, strVal: mid)
+    return ScriptToken(kind: stkWord, wordVal: mid)
   elif scanf(s, "$s{$*", post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkBraceOpen)
@@ -111,7 +115,7 @@ proc expectToken(sps: ScriptParseState, kind: ScriptTokenKind) =
 proc readKeywordToken(sps: ScriptParseState): string =
   var tok = sps.readToken()
   if tok.kind == stkWord:
-    return tok.strVal.toLowerAscii()
+    return tok.wordVal.toLowerAscii()
   else:
     raise newScriptParseError(sps, &"Expected keyword token, got {tok} instead")
 

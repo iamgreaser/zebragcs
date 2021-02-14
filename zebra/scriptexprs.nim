@@ -27,6 +27,7 @@ proc defaultScriptVal(kind: ScriptValKind): ScriptVal =
   of svkDir: ScriptVal(kind: kind, dirValX: 0, dirValY: 0)
   of svkInt: ScriptVal(kind: kind, intVal: 0)
   of svkPos: ScriptVal(kind: kind, posValX: 0, posValY: 0) # TODO: Consider making pos not have a default, and throw an exception instead --GM
+  of svkStr: ScriptVal(kind: kind, strVal: "")
 
 proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
   var execBase = execState.execBase
@@ -122,6 +123,8 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
           v1.kind == svkDir and v0.dirValX == v1.dirValX and v0.dirValY == v1.dirValY
         of svkPos:
           v1.kind == svkPos and v0.posValX == v1.posValX and v0.posValY == v1.posValY
+        of svkStr:
+          v1.kind == svkStr and v0.strVal == v1.strVal
         #else:
         #  raise newException(ScriptExecError, &"Unhandled bool kind {v0.kind}")
       return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == sftEq)))
