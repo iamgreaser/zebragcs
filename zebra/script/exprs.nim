@@ -8,6 +8,17 @@ proc asInt*(x: ScriptVal): int64
 proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
 proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 
+method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[x: int64, y: int64] {.base, locks: "unknown".}
+method resolvePos*(entity: Entity, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".}
+
+method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[x: int64, y: int64] {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
+method resolvePos*(entity: Entity, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".} =
+  case val.kind:
+    of svkDir: (entity.x + val.dirValX, entity.y + val.dirValY)
+    of svkPos: (val.posValX, val.posValY)
+    else:
+      raise newException(ScriptExecError, &"Expected dir or pos, got {val} instead")
 
 proc asBool(x: ScriptVal): bool =
   case x.kind
@@ -49,35 +60,34 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
   of snkParamVar:
-    var entity = execState.entity
-    assert entity != nil
-
     var expectedType = try:
         execBase.params[dst.paramVarName].varType
       except KeyError:
         raise newException(ScriptExecError, &"Undeclared param \"@{dst.paramVarName}\"")
 
     if expectedType == val.kind:
-      entity.params[dst.paramVarName] = val
+      execState.params[dst.paramVarName] = val
     else:
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
   of snkLocalVar:
-    var entity = execState.entity
-    assert entity != nil
-
     var expectedType = try:
         execBase.locals[dst.localVarName].varType
       except KeyError:
         raise newException(ScriptExecError, &"Undeclared local \"%{dst.localVarName}\"")
 
     if expectedType == val.kind:
-      entity.locals[dst.localVarName] = val
+      execState.locals[dst.localVarName] = val
     else:
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
   else:
     raise newException(ScriptExecError, &"Unhandled assignment destination {dst}")
+
+method funcThisPos(execState: ScriptExecState): ScriptVal {.base.} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for thispos")
+method funcThisPos(entity: Entity): ScriptVal =
+  return ScriptVal(kind: svkPos, posValX: entity.x, posValY: entity.y)
 
 proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
   case expr.kind
@@ -88,9 +98,7 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     case expr.funcType
 
     of sftThisPos:
-      var entity = execState.entity
-      assert entity != nil
-      return ScriptVal(kind: svkPos, posValX: entity.x, posValY: entity.y)
+      return execState.funcThisPos()
 
     of sftCw, sftOpp, sftCcw:
       assert expr.funcArgs.len == 1
@@ -178,10 +186,10 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       except KeyError:
         raise newException(ScriptExecError, &"Undeclared parameter \"@{k0}\"")
     var v0: ScriptVal = try:
-        execState.entity.params[k0]
+        execState.params[k0]
       except KeyError:
         var vd = execState.resolveExpr(d0.varDefault)
-        execState.entity.params[k0] = vd
+        execState.params[k0] = vd
         vd
     return v0
 
@@ -192,10 +200,10 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       except KeyError:
         raise newException(ScriptExecError, &"Undeclared local \"%{k0}\"")
     var v0: ScriptVal = try:
-        execState.entity.locals[k0]
+        execState.locals[k0]
       except KeyError:
         var vd = execState.resolveExpr(d0.varDefault)
-        execState.entity.locals[k0] = vd
+        execState.locals[k0] = vd
         vd
     return v0
 

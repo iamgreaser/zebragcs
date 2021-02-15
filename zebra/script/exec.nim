@@ -11,6 +11,66 @@ import ../entity
 import ./exprs
 
 
+method stmtDie(execState: ScriptExecState) {.base, locks: "unknown".} =
+  execState.alive = false
+  execState.continuations = @[]
+method stmtDie(entity: Entity) =
+  var board = entity.board
+  assert board != nil
+  board.removeEntityFromGrid(entity)
+  procCall stmtDie(ScriptExecState(entity))
+
+method stmtMovePerformRel(execState: ScriptExecState, dx, dy: int64): bool {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for move")
+method stmtMovePerformRel(entity: Entity, dx, dy: int64): bool =
+  entity.moveBy(dx, dy)
+
+method stmtBroadcast(execState: ScriptExecState, eventName: string) {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for broadcast")
+method stmtBroadcast(entity: Entity, eventName: string) =
+  var board = entity.board
+  assert board != nil
+  board.broadcastEvent(eventName)
+
+method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventName: string) {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for send")
+method stmtSend(entity: Entity, dirOrPos: ScriptVal, eventName: string) =
+  var board = entity.board
+  assert board != nil
+  var (x, y) = entity.resolvePos(dirOrPos)
+  board.sendEventToPos(eventName, x, y)
+
+method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): bool {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for spawn")
+method stmtSpawn(entity: Entity, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): bool =
+  var (x, y) = entity.resolvePos(dirOrPos)
+  var board = entity.board
+  assert board != nil
+
+  var newEntity = board.newEntity(entityName, x, y)
+  if newEntity == nil:
+    return false
+  else:
+    for spawnNode in spawnBody:
+      case spawnNode.kind
+      of snkAssign:
+        var spawnNodeDstExpr = spawnNode.assignDstExpr
+        var spawnNodeSrc = entity.resolveExpr(spawnNode.assignSrcExpr)
+        case spawnNode.assignType
+        of satSet:
+          case spawnNodeDstExpr.kind
+          of snkParamVar:
+            # TODO: Confirm types --GM
+            newEntity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
+          else:
+            raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
+        else:
+          raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
+      else:
+        raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
+
+    return true
+
 proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
   while uint64(execState.continuations.len) > lowerBound:
     var cont = execState.continuations.pop()
@@ -36,14 +96,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         execState.storeAtExpr(assignDstExpr, assignResult)
 
       of snkDie:
-        var entity = execState.entity
-        assert entity != nil
-        execState.alive = false;
-        entity.alive = false;
-        var board = entity.board
-        assert board != nil
-        board.removeEntityFromGrid(entity)
-        execState.continuations = @[]
+        execState.stmtDie()
         return
 
       of snkGoto:
@@ -72,15 +125,10 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
 
       of snkMove:
         var moveDir = execState.resolveExpr(node.moveDirExpr)
-        if moveDir.kind != svkDir:
-          raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
-
-        var entity = execState.entity
-        assert entity != nil
-        var didMove = entity.moveBy(
-          moveDir.dirValX,
-          moveDir.dirValY,
-        )
+        var didMove = case moveDir.kind
+          of svkDir: execState.stmtMovePerformRel(moveDir.dirValX, moveDir.dirValY)
+          else:
+            raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
 
         if not didMove:
           var body = node.moveElse
@@ -88,12 +136,8 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           cont = ScriptContinuation(codeBlock: body, codePc: 0)
 
       of snkBroadcast:
-        var entity = execState.entity
-        assert entity != nil
-        var board = entity.board
-        assert board != nil
         var eventName: string = node.broadcastEventName
-        board.broadcastEvent(eventName)
+        execState.stmtBroadcast(eventName)
 
       of snkSay:
         var sayExpr = execState.resolveExpr(node.sayExpr)
@@ -112,24 +156,9 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         echo &"SAY: [{sayStr}]"
 
       of snkSend:
-        var entity = execState.entity
-        assert entity != nil
-        var board = entity.board
-        assert board != nil
-        var eventName: string = node.sendEventName
         var dirOrPos = execState.resolveExpr(node.sendPos)
-        var pos = case dirOrPos.kind:
-          of svkDir:
-            var entity = execState.entity
-            assert entity != nil
-            ScriptVal(kind: svkPos,
-              posValX: entity.x + dirOrPos.dirValX,
-              posValY: entity.y + dirOrPos.dirValY,
-            )
-          of svkPos: dirOrPos
-          else:
-            raise newException(ScriptExecError, &"Expected dir or pos, got {dirOrPos} instead")
-        board.sendEventToPos(eventName, pos.posValX, pos.posValY)
+        var eventName: string = node.sendEventName
+        execState.stmtSend(dirOrPos, eventName)
 
       of snkSleep:
         var sleepTime = execState.resolveExpr(node.sleepTimeExpr).asInt()
@@ -139,48 +168,13 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           return
 
       of snkSpawn:
-        var entityName: string = node.spawnEntityName
         var dirOrPos = execState.resolveExpr(node.spawnPos)
+        var entityName: string = node.spawnEntityName
         var spawnBody = node.spawnBody
-        var pos = case dirOrPos.kind:
-          of svkDir:
-            var entity = execState.entity
-            assert entity != nil
-            ScriptVal(kind: svkPos,
-              posValX: entity.x + dirOrPos.dirValX,
-              posValY: entity.y + dirOrPos.dirValY,
-            )
-          of svkPos: dirOrPos
-          else:
-            raise newException(ScriptExecError, &"Expected dir or pos, got {dirOrPos} instead")
-
-        var srcEntity = execState.entity
-        assert srcEntity != nil
-        var board = srcEntity.board
-        assert board != nil
-
-        var newEntity = board.newEntity(entityName, pos.posValX, pos.posValY)
-        if newEntity == nil:
+        var spawnElse = node.spawnElse
+        if not execState.stmtSpawn(entityName, dirOrPos, spawnBody, spawnElse):
           execState.continuations.add(cont)
           cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
-        else:
-          for spawnNode in spawnBody:
-            case spawnNode.kind
-            of snkAssign:
-              var spawnNodeDstExpr = spawnNode.assignDstExpr
-              var spawnNodeSrc = execState.resolveExpr(spawnNode.assignSrcExpr)
-              case spawnNode.assignType
-              of satSet:
-                case spawnNodeDstExpr.kind
-                of snkParamVar:
-                  # TODO: Confirm types --GM
-                  newEntity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
-                else:
-                  raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
-              else:
-                raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
-            else:
-              raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
 
       else:
         raise newException(ScriptExecError, &"Unhandled statement/block kind {node.kind}")

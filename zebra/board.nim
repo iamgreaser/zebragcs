@@ -9,6 +9,7 @@ proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc tick*(board: Board)
 
 import ./entity
+import ./script/exec
 
 proc newBoard(share: ScriptSharedExecState): Board =
   Board(

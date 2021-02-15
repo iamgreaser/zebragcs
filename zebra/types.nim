@@ -16,15 +16,6 @@ type
     entities*: seq[Entity]
     share*: ScriptSharedExecState
 
-  Entity* = ref EntityObj
-  EntityObj = object
-    board*: Board
-    execState*: ScriptExecState
-    x*, y*: int64
-    params*: Table[string, ScriptVal]
-    locals*: Table[string, ScriptVal]
-    alive*: bool
-
   ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
     strm*: Stream
@@ -70,15 +61,21 @@ type
     entityTypes*: Table[string, ScriptExecBase]
     rootDir*: string
 
-  ScriptExecState* = ref ScriptExecStateObj
-  ScriptExecStateObj = object
+  ScriptExecStateObj = object of RootObj
     share*: ScriptSharedExecState
-    entity*: Entity
     execBase*: ScriptExecBase
     activeState*: string
+    locals*: Table[string, ScriptVal]
+    params*: Table[string, ScriptVal]
     continuations*: seq[ScriptContinuation]
     sleepTicksLeft*: int64
     alive*: bool
+  ScriptExecState* = ref ScriptExecStateObj
+
+  EntityObj = object of ScriptExecStateObj
+    board*: Board
+    x*, y*: int64
+  Entity* = ref EntityObj
 
   ScriptTokenKind* = enum
     stkBraceClosed,
@@ -367,7 +364,7 @@ proc `$`*(x: ScriptExecState): string =
   &"ExecState(activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Entity): string =
-  &"Entity(pos=({x.x}, {x.y}), execState={x.execState}, params={x.params}, locals={x.locals}, alive={x.alive})"
+  &"Entity(pos=({x.x}, {x.y}), activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
 
 proc `$`*(x: Board): string =
   &"Board(entities={x.entities}, share={x.share})"

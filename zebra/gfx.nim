@@ -220,9 +220,7 @@ proc draw(gfx: GfxState, board: Board) =
       var gridseq = board.grid[y][x]
       var (fgcolor, bgcolor, ch) = if gridseq.len >= 1:
           var entity = gridseq[gridseq.len-1]
-          var execState = entity.execState
-          assert execState != nil
-          var execBase = execState.execBase
+          var execBase = entity.execBase
           assert execBase != nil
 
           var ch = try: uint64(entity.params["char"].asInt())

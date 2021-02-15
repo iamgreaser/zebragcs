@@ -6,13 +6,10 @@ proc hasPhysBlock*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
 proc moveTo*(entity: Entity, x: int64, y: int64): bool
 proc newEntity*(board: Board, entityType: string, x, y: int64): Entity
-proc tick*(entity: Entity)
-proc tickEvent*(entity: Entity, eventName: string)
 
 import ./board
 import ./script/compile
 import ./script/exprs
-import ./script/exec
 
 
 proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExecBase =
@@ -26,28 +23,23 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
   var share = board.share
   assert share != nil
   var execBase = share.getEntityType(entityType)
-  var execState = ScriptExecState(
+  var entity = Entity(
     execBase: execBase,
     activeState: execBase.initState,
-    entity: nil,
-    share: share,
-    sleepTicksLeft: 0,
-    alive: true,
-  )
-  var entity = Entity(
     board: board,
     x: x, y: y,
-    execState: execState,
     params: Table[string, ScriptVal](),
     locals: Table[string, ScriptVal](),
     alive: true,
+    share: share,
+    sleepTicksLeft: 0,
   )
-  execState.entity = entity
+
   # Initialise!
   for k0, v0 in execBase.params.pairs():
-    entity.params[k0] = execState.resolveExpr(v0.varDefault)
+    entity.params[k0] = entity.resolveExpr(v0.varDefault)
   for k0, v0 in execBase.locals.pairs():
-    entity.locals[k0] = execState.resolveExpr(v0.varDefault)
+    entity.locals[k0] = entity.resolveExpr(v0.varDefault)
 
   # Now attempt to see if we can add it
   if board.canAddEntityToGridPos(entity, entity.x, entity.y):
@@ -58,7 +50,6 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
   else:
     # No - invalidate and return nil
     entity.alive = false
-    execState.alive = false
     nil
 
 proc canMoveTo(entity: Entity, x: int64, y: int64): bool =
@@ -92,9 +83,3 @@ proc hasPhysBlock(entity: Entity): bool =
     entity.params["physblock"].asBool()
   except KeyError:
     true
-
-proc tick(entity: Entity) =
-  entity.execState.tick()
-
-proc tickEvent(entity: Entity, eventName: string) =
-  entity.execState.tickEvent(eventName)
