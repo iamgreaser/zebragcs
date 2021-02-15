@@ -1,10 +1,10 @@
 import strformat
 
-import zebra/board
-import zebra/entity
-import zebra/gfx
-import zebra/script/compile
-import zebra/types
+import ./zebra/board
+import ./zebra/entity
+import ./zebra/gfx
+import ./zebra/script/compile
+import ./zebra/types
 
 
 proc main() =
