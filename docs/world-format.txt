@@ -1,0 +1,149 @@
+WARNING: PRELIMINARY. INCOMPLETE. ALL THAT JAZZ. YOU HAVE BEEN WARNED. --GM
+
+We're gonna vim: set sts=2 sw=2 et : like it's 1999... wait, that doesn't make sense.
+
+The general directory structure:
+
+- entities.info
+- globalvars.info
+- players.info
+- spawns.info
+- boards/
+  - boardname/
+    - board.info
+    - layername.layer
+- scripts/
+  - entityname.script
+
+----------------------------------------------------------------------------
+
+entities.info:
+
+Active entities.
+
+    # entity <entityid:int> <type:entityname> <board:boardname> <x:int> <y:int>
+    entity 0 player entryboard 30 12 {
+      # activestate <state:statename>
+      activestate main
+
+      set @steps 40
+
+      # continuations <:continuationblock>
+      # First continuation to execute is at the end of the list.
+      continuations {
+
+        # continuation <nextnodeindex:int> <:codeblock>
+        continuation 1 {
+          if ne @movedir idle {
+            send @movedir touch
+            move @movedir
+            set @movedir nil
+            sleep 1
+            inc @steps 1
+          }
+          sleep 1
+          set @movedir idle
+        }
+
+        continuation 4 {
+          send @movedir touch
+          move @movedir
+          set @movedir nil
+          sleep 1
+          inc @steps 1
+        }
+      }
+    }
+
+
+----------------------------------------------------------------------------
+
+globalvars.info
+
+Global variables.
+
+    # global <type:typename> <dst:globalvarname> <value:constexpr>
+    global pos $playerpos atboard entryboard 30 12
+
+----------------------------------------------------------------------------
+
+spawns.info:
+
+Spawn points for players.
+
+    spawnpoint default entryboard 0 player
+    spawnpoint team1 team1entry 32 player {
+      set @team 1
+      set @fgcolor 12
+      set @bgcolor 4
+    }
+    spawnpoint team2 team2entry 43 player {
+      set @team 2
+      set @fgcolor 9
+      set @bgcolor 1
+    }
+
+Format is `spawn <spawnkey:spawnkey> <boardname:boardname> <entityid:int> <:spawncodeblock>`.
+
+----------------------------------------------------------------------------
+
+players.info:
+
+    player 0 {
+      entityid 103
+      spawnkey default
+    }
+
+Let's explain things...
+
+- entityid <id:int>:
+    Optional, indicates the ID and type of the currently bound entity.
+
+- spawnkey <key:spawnkey>:
+    Optional, indicates a key to be used for respawning.
+    Defaults to "default".
+
+----------------------------------------------------------------------------
+
+boards/boardname/board.info:
+
+    # cell <x:int> <y:int> { <entityid:int>* }
+    cell 30 12 { 0 1 }
+
+    layer floor {
+      solid false
+    }
+    layer walls {
+      solid true
+    }
+    layer water {
+      solid not @physwaterwalk
+    }
+    layer trackbounds {
+      solid @istrain
+    }
+    layer teampass {
+      solid ne @fgcolor %fgcolor
+    }
+    layer teamblock {
+      solid eq @fgcolor %fgcolor
+    }
+
+----------------------------------------------------------------------------
+
+boards/boardname/layername.layer:
+
+    # row <y:int> <xbeg:int> <xlen:int> <:rowblock>
+    row 10 30 1 { { 219 7 0 } }
+    row 12 28 5 { { 219 7 0 } s { 2 15 1 } s { 219 7 0 } }
+    row 14 30 1 { { 219 7 0 } }
+
+A rowblock contains entries of either:
+
+- s: Skips this cell
+- { ch fg bg }: Puts something into this cell - any field which is "s" is skipped.
+
+The default value for a cell is { 0 0 0 }.
+
+Any cell which is { 0 0 0 } is not present on this layer.
+

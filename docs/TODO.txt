@@ -1,0 +1,99 @@
+This is a basic TODO list of some stuff that needs to be done.
+
+As always, vim: set sts=2 sw=2 et : .
+
+Also this document isn't actually Markdown.
+
+- [ ] Make it possible to load and save boards.
+      This will be in a text format as well, which should make it reasonably Git-friendly.
+  - [ ] Add an incrementing ID counter for all entities.
+  - [ ] Come up with a board file format.
+  - [ ] Serialise (save) and deserialise a board state.
+    - [ ] Serialise and deserialise entity continuations.
+      - [ ] Add an incrementing ID counter for all script nodes.
+      - [ ] Add a "de-tree'd script node" format.
+      - [ ] Actually serialise and parse this stuff.
+    - [ ] Serialise and deserialise everything else.
+
+- [ ] Add layers to boards.
+      While to some extent this is to cut down on entity spam, I do have every intention to have a floor layer.
+  - [ ] Come up with a layer file format.
+  - [ ] Add a floor layer.
+  - [ ] Add a wall layer.
+  - [ ] Add custom layer support and produce the following layers to demonstrate it:
+    - [ ] Water layer
+    - [ ] Forest layer?
+
+- [ ] Combine multiple boards into a world.
+
+- [ ] Virtual FS support.
+      This will also support the Actual FS, but the Virtual FS system will be used for that.
+  - [ ] ActualFS (R/W, random-access)
+  - [ ] RamFS (R/W, random-access)
+  - [ ] ZipFS (R/W, non-random-access archive)
+
+- [ ] Replicate most ZZT entities to a reasonable degree.
+      This is so we can prove that the scripting language is capable enough, and will also be useful for a standard library although there's a chance that a lot of it will be modified to be more intuitive.
+
+  - [x] Player
+  - [ ] Items:
+    - [x] Ammo
+    - [-] Torch
+      - Probably not. I'm not that interested in emulating darkness.
+    - [x] Gem
+    - [x] Key
+    - [x] Door
+    - [-] Scroll
+      - Provide your own entities for this.
+    - [ ] Passage
+    - [-] Duplicator
+      - This could be quite ugly. Better to spawn stuff cleanly.
+    - [ ] Bomb
+    - [ ] Energizer
+    - [ ] Conveyor
+
+  - [ ] Creatures
+    - [ ] Bear
+    - [ ] Ruffian
+    - [-] Object
+      - Provide your own entities for this.
+      - I REFUSE TO EMULATE ZZT-OOP HERE DON'T ASK ME TO DO THIS AAAAAAAAAAAAAAAAAAA
+    - [ ] Slime
+    - [ ] Shark
+    - [ ] Spinning gun
+    - [ ] Pusher
+    - [ ] Lion
+    - [ ] Tiger
+    - [ ] Head
+    - [ ] Segment
+
+  - [ ] Terrain
+    - [ ] Water
+      - This would ideally be a water layer.
+    - [ ] Forest
+      - This would ideally be a forest layer.
+    - [x] Breakable
+    - [x] Boulder
+    - [ ] Sliderns
+    - [ ] Sliderew
+    - [ ] Fake
+      - I intend to have a floor layer, but if someone wants the "A fake wall - secret passage!" text then that can possibly be tracked on a layer by the player entity.
+    - [ ] Invisible
+    - [ ] Blink wall
+    - [ ] Transporter
+    - [ ] Ricochet
+    - [ ] Various unbreakable walls which will probably be the same entity type and/or a wall layer:
+      - [ ] Solid
+      - [ ] Normal
+      - [ ] Line
+      - [ ] Text
+
+  - [ ] Other
+    - [-] Various hacks I probably won't be supporting:
+      - [-] Edge
+      - [-] Message timer
+      - [-] Monitor
+    - [ ] Star
+    - [x] Bullet
+    - [ ] Blink wall ray
+      - This might end up being a layer.
