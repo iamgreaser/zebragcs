@@ -82,6 +82,7 @@ proc broadcastEvent(board: Board, eventName: string) =
   var entitiesCopy: seq[Entity] = @[]
   for entity in board.entities:
     entitiesCopy.add(entity)
+  board.tickEvent(eventName)
   for entity in entitiesCopy:
     entity.tickEvent(eventName)
 
