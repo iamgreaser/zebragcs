@@ -24,10 +24,10 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
   assert share != nil
   var execBase = share.getEntityType(entityType)
   var entity = Entity(
-    execBase: execBase,
-    activeState: execBase.initState,
     board: board,
     x: x, y: y,
+    execBase: execBase,
+    activeState: execBase.initState,
     params: Table[string, ScriptVal](),
     locals: Table[string, ScriptVal](),
     alive: true,

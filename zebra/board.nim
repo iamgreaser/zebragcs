@@ -1,21 +1,49 @@
+import tables
+
 import ./types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
 proc broadcastEvent*(board: Board, eventName: string)
 proc sendEventToPos*(board: Board, eventName: string, x: int64, y: int64)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
-proc newBoard*(share: ScriptSharedExecState): Board
+proc newBoard*(share: ScriptSharedExecState, controllerName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
-proc tick*(board: Board)
+
+import ./script/exec
+method tick*(board: Board)
 
 import ./entity
-import ./script/exec
+import ./script/compile
+import ./script/exprs
 
-proc newBoard(share: ScriptSharedExecState): Board =
-  Board(
-    share: share,
+proc getBoardController(share: ScriptSharedExecState, controllerName: string): ScriptExecBase =
+  try:
+    share.boardControllers[controllerName]
+  except KeyError:
+    share.loadBoardControllerFromFile(controllerName)
+    share.boardControllers[controllerName]
+
+proc newBoard(share: ScriptSharedExecState, controllerName: string): Board =
+  var execBase = share.getBoardController(controllerName)
+
+  var board = Board(
     entities: @[],
+    execBase: execBase,
+    activeState: execBase.initState,
+    params: Table[string, ScriptVal](),
+    locals: Table[string, ScriptVal](),
+    alive: true,
+    share: share,
+    sleepTicksLeft: 0,
   )
+
+  # Initialise!
+  for k0, v0 in execBase.params.pairs():
+    board.params[k0] = board.resolveExpr(v0.varDefault)
+  for k0, v0 in execBase.locals.pairs():
+    board.locals[k0] = board.resolveExpr(v0.varDefault)
+
+  board
 
 proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bool =
   if not (x >= 0 and x < boardWidth and y >= 0 and y < boardHeight):
@@ -64,7 +92,9 @@ proc sendEventToPos(board: Board, eventName: string, x: int64, y: int64) =
       var entity = entseq[entseq.len-1]
       entity.tickEvent(eventName)
 
-proc tick(board: Board) =
+method tick(board: Board) =
+  procCall tick(ScriptExecState(board))
+
   var entitiesCopy: seq[Entity] = @[]
   for entity in board.entities:
     entitiesCopy.add(entity)

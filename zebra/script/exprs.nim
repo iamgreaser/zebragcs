@@ -13,6 +13,11 @@ method resolvePos*(entity: Entity, val: ScriptVal): tuple[x: int64, y: int64] {.
 
 method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[x: int64, y: int64] {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
+method resolvePos*(board: Board, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".} =
+  case val.kind:
+    of svkPos: (val.posValX, val.posValY)
+    else:
+      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
 method resolvePos*(entity: Entity, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
     of svkDir: (entity.x + val.dirValX, entity.y + val.dirValY)

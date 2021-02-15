@@ -1,7 +1,7 @@
 import strformat
 
 import ./zebra/board
-import ./zebra/entity
+#import ./zebra/entity
 import ./zebra/gfx
 import ./zebra/script/compile
 import ./zebra/types
@@ -14,15 +14,14 @@ proc main() =
 
   var gameRunning: bool = true
 
-  var board = newBoard(share)
-  var entity = board.newEntity(
-    "draftcontroller",
-    0, 0,
-  )
+  # TODO: Add spawn points and reinstate the player entity --GM
+  var board = share.newBoard("draftcontroller")
+  #var entity = board.newEntity("player", 0, 0)
   echo &"board: {board}\n"
-  echo &"entity: {entity}\n"
+  #echo &"entity: {entity}\n"
   withOpenGfx gfx:
-    while gameRunning and entity.alive:
+    #while gameRunning and board.alive and entity.alive:
+    while gameRunning and board.alive:
       board.tick()
 
       #echo &"board: {board}"

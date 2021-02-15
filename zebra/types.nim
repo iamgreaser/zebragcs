@@ -10,12 +10,6 @@ type
   ScriptExecError* = object of CatchableError
   ScriptParseError* = object of CatchableError
 
-  Board* = ref BoardObj
-  BoardObj = object
-    grid*: array[0..(boardHeight-1), array[0..(boardWidth-1), seq[Entity]]]
-    entities*: seq[Entity]
-    share*: ScriptSharedExecState
-
   ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
     strm*: Stream
@@ -59,6 +53,7 @@ type
   ScriptSharedExecStateObj = object
     globals*: Table[string, ScriptVal]
     entityTypes*: Table[string, ScriptExecBase]
+    boardControllers*: Table[string, ScriptExecBase]
     rootDir*: string
 
   ScriptExecStateObj = object of RootObj
@@ -71,6 +66,11 @@ type
     sleepTicksLeft*: int64
     alive*: bool
   ScriptExecState* = ref ScriptExecStateObj
+
+  BoardObj = object of ScriptExecStateObj
+    grid*: array[0..(boardHeight-1), array[0..(boardWidth-1), seq[Entity]]]
+    entities*: seq[Entity]
+  Board* = ref BoardObj
 
   EntityObj = object of ScriptExecStateObj
     board*: Board
@@ -361,10 +361,10 @@ proc `$`*(x: ScriptContinuation): string =
 proc `$`*(x: ScriptExecState): string =
   #&"ExecState(execBase={x.execBase}, activeState={x.activeState}, continuations={x.continuations})"
   #&"ExecState(activeState={x.activeState}, continuations={x.continuations})"
-  &"ExecState(activeState={x.activeState}, alive={x.alive})"
+  &"ExecState(activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
 
 proc `$`*(x: Entity): string =
   &"Entity(pos=({x.x}, {x.y}), activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
 
 proc `$`*(x: Board): string =
-  &"Board(entities={x.entities}, share={x.share})"
+  &"Board(entities={x.entities}, share={x.share}, activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"

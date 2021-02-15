@@ -3,7 +3,7 @@ import tables
 
 import ../types
 
-proc tick*(execState: ScriptExecState)
+method tick*(execState: ScriptExecState) {.base, locks: "unknown".}
 proc tickEvent*(execState: ScriptExecState, eventName: string)
 
 import ../board
@@ -40,36 +40,20 @@ method stmtSend(entity: Entity, dirOrPos: ScriptVal, eventName: string) =
   var (x, y) = entity.resolvePos(dirOrPos)
   board.sendEventToPos(eventName, x, y)
 
-method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): bool {.base, locks: "unknown".} =
+method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for spawn")
-method stmtSpawn(entity: Entity, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): bool =
+method stmtSpawn(board: Board, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
+  var (x, y) = board.resolvePos(dirOrPos)
+
+  var newEntity = board.newEntity(entityName, x, y)
+  return newEntity
+method stmtSpawn(entity: Entity, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
   var (x, y) = entity.resolvePos(dirOrPos)
   var board = entity.board
   assert board != nil
 
   var newEntity = board.newEntity(entityName, x, y)
-  if newEntity == nil:
-    return false
-  else:
-    for spawnNode in spawnBody:
-      case spawnNode.kind
-      of snkAssign:
-        var spawnNodeDstExpr = spawnNode.assignDstExpr
-        var spawnNodeSrc = entity.resolveExpr(spawnNode.assignSrcExpr)
-        case spawnNode.assignType
-        of satSet:
-          case spawnNodeDstExpr.kind
-          of snkParamVar:
-            # TODO: Confirm types --GM
-            newEntity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
-          else:
-            raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
-        else:
-          raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
-      else:
-        raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
-
-    return true
+  return newEntity
 
 proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
   while uint64(execState.continuations.len) > lowerBound:
@@ -172,16 +156,35 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         var entityName: string = node.spawnEntityName
         var spawnBody = node.spawnBody
         var spawnElse = node.spawnElse
-        if not execState.stmtSpawn(entityName, dirOrPos, spawnBody, spawnElse):
+        var newEntity = execState.stmtSpawn(entityName, dirOrPos, spawnBody, spawnElse)
+        if newEntity == nil:
           execState.continuations.add(cont)
           cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
+        else:
+          for spawnNode in spawnBody:
+            case spawnNode.kind
+            of snkAssign:
+              var spawnNodeDstExpr = spawnNode.assignDstExpr
+              var spawnNodeSrc = execState.resolveExpr(spawnNode.assignSrcExpr)
+              case spawnNode.assignType
+              of satSet:
+                case spawnNodeDstExpr.kind
+                of snkParamVar:
+                  # TODO: Confirm types --GM
+                  newEntity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
+                else:
+                  raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
+              else:
+                raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
+            else:
+              raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
 
       else:
         raise newException(ScriptExecError, &"Unhandled statement/block kind {node.kind}")
 
     assert cont.codePc == cont.codeBlock.len
 
-proc tick(execState: ScriptExecState) =
+method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
   var execBase = execState.execBase
 
   # Handle sleep first

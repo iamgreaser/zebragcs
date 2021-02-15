@@ -8,6 +8,7 @@ import ../types
 proc newScriptParseState*(strm: Stream): ScriptParseState
 proc newScriptSharedExecState*(rootDir: string): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
+proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string)
 
 import ./nodes
 
@@ -89,11 +90,29 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   share.entityTypes[entityName] = execBase
 
 proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
-  var fname = (&"{share.rootDir}/scripts/{entityName}.script").replace("//", "/")
+  var fname = (&"{share.rootDir}/scripts/entities/{entityName}.script").replace("//", "/")
   var strm = newFileStream(fname, fmRead)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
     share.loadEntityType(entityName, strm)
+  finally:
+    strm.close()
+
+proc loadBoardController(share: ScriptSharedExecState, controllerName: string, strm: Stream) =
+  var sps = newScriptParseState(strm)
+  var node = sps.parseRoot(stkEof)
+  #echo &"node: {node}\n"
+  var execBase = node.compileRoot(controllerName)
+  #echo &"exec base: {execBase}\n"
+  share.boardControllers[controllerName] = execBase
+
+proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string) =
+  var fname = (&"{share.rootDir}/scripts/boards/{controllerName}.script").replace("//", "/")
+  var strm = newFileStream(fname, fmRead)
+  if strm == nil:
+    raise newException(IOError, &"\"{fname}\" could not be opened")
+  try:
+    share.loadBoardController(controllerName, strm)
   finally:
     strm.close()
