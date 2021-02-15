@@ -3,7 +3,7 @@ import strformat
 import strscans
 import strutils
 
-import types
+import ./types
 
 proc expectToken*(sps: ScriptParseState, kind: ScriptTokenKind)
 proc newScriptParseError*(sps: ScriptParseState, message: string): ref ScriptParseError

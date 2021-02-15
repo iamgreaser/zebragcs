@@ -1,6 +1,6 @@
 import tables
 
-import types
+import ./types
 
 proc hasPhysBlock*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
@@ -9,10 +9,10 @@ proc newEntity*(board: Board, entityType: string, x, y: int64): Entity
 proc tick*(entity: Entity)
 proc tickEvent*(entity: Entity, eventName: string)
 
-import board
-import scriptcompile
-import scriptexprs
-import scriptexec
+import ./board
+import ./scriptcompile
+import ./scriptexprs
+import ./scriptexec
 
 
 proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExecBase =

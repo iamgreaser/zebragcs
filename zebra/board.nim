@@ -1,4 +1,4 @@
-import types
+import ./types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
 proc broadcastEvent*(board: Board, eventName: string)
@@ -8,7 +8,7 @@ proc newBoard*(share: ScriptSharedExecState): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc tick*(board: Board)
 
-import entity
+import ./entity
 
 proc newBoard(share: ScriptSharedExecState): Board =
   Board(

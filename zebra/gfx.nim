@@ -34,14 +34,14 @@ type
 import strformat
 import tables
 
-import types
+import ./types
 
 proc close*(gfx: GfxState)
 proc draw*(gfx: GfxState, board: Board)
 proc getNextInput*(gfx: GfxState): InputEvent
 proc openGfx*(): GfxState
 
-import scriptexprs
+import ./scriptexprs
 
 template withOpenGfx*(gfx: untyped, body: untyped): untyped =
   block:

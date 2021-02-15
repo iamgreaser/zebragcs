@@ -1,12 +1,12 @@
 import strformat
 import strutils
 
-import types
+import ./types
 
 proc parseCodeBlock*(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode]
 proc parseRoot*(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode
 
-import scripttokens
+import ./scripttokens
 
 
 proc parseExpr(sps: ScriptParseState): ScriptNode =

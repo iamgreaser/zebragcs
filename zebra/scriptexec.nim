@@ -1,14 +1,14 @@
 import strformat
 import tables
 
-import types
+import ./types
 
 proc tick*(execState: ScriptExecState)
 proc tickEvent*(execState: ScriptExecState, eventName: string)
 
-import board
-import entity
-import scriptexprs
+import ./board
+import ./entity
+import ./scriptexprs
 
 
 proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
