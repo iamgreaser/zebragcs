@@ -10,9 +10,9 @@ proc tick*(entity: Entity)
 proc tickEvent*(entity: Entity, eventName: string)
 
 import ./board
-import ./scriptcompile
-import ./scriptexprs
-import ./scriptexec
+import ./script/compile
+import ./script/exprs
+import ./script/exec
 
 
 proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExecBase =

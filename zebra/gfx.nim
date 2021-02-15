@@ -41,7 +41,7 @@ proc draw*(gfx: GfxState, board: Board)
 proc getNextInput*(gfx: GfxState): InputEvent
 proc openGfx*(): GfxState
 
-import ./scriptexprs
+import ./script/exprs
 
 template withOpenGfx*(gfx: untyped, body: untyped): untyped =
   block:

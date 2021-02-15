@@ -1,7 +1,7 @@
 import strformat
 import tables
 
-import ./types
+import ../types
 
 proc asBool*(x: ScriptVal): bool
 proc asInt*(x: ScriptVal): int64

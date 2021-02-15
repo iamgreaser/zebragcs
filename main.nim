@@ -3,7 +3,7 @@ import strformat
 import zebra/board
 import zebra/entity
 import zebra/gfx
-import zebra/scriptcompile
+import zebra/script/compile
 import zebra/types
 
 

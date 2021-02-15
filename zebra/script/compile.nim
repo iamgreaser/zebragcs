@@ -3,13 +3,13 @@ import strformat
 import strutils
 import tables
 
-import ./types
+import ../types
 
 proc newScriptParseState*(strm: Stream): ScriptParseState
 proc newScriptSharedExecState*(rootDir: string): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
 
-import ./scriptnodes
+import ./nodes
 
 
 proc newScriptParseState(strm: Stream): ScriptParseState =
