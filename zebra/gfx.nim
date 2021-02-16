@@ -62,6 +62,7 @@ proc blitToScreen*(gfx: GfxState)
 template withOpenGfx*(gfx: untyped, body: untyped): untyped =
   block:
     var gfx: GfxState = openGfx()
+    assert gfx != nil
     try:
       body
     finally:
@@ -122,6 +123,7 @@ proc openGfx(): GfxState =
     fontTex: fontTex,
   )
 
+  # Return the gfx object
   gfx
 
 proc close(gfx: GfxState) =
