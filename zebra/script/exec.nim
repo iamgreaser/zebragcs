@@ -25,6 +25,11 @@ method stmtMovePerformRel(execState: ScriptExecState, dx, dy: int64): bool {.bas
 method stmtMovePerformRel(entity: Entity, dx, dy: int64): bool =
   entity.moveBy(dx, dy)
 
+method stmtMovePerformAbs(execState: ScriptExecState, boardName: string, dx, dy: int64): bool {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for move")
+method stmtMovePerformAbs(entity: Entity, boardName: string, dx, dy: int64): bool =
+  entity.moveTo(entity.board.world.boards[boardName], dx, dy)
+
 method stmtBroadcast(execState: ScriptExecState, eventName: string) {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for broadcast")
 method stmtBroadcast(entity: Entity, eventName: string) =
@@ -35,21 +40,32 @@ method stmtBroadcast(entity: Entity, eventName: string) =
 method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventName: string) {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for send")
 method stmtSend(entity: Entity, dirOrPos: ScriptVal, eventName: string) =
-  var board = entity.board
+  var (boardName, x, y) = entity.resolvePos(dirOrPos)
+  var board = try:
+      entity.board.world.boards[boardName]
+    except KeyError:
+      raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
   assert board != nil
-  var (x, y) = entity.resolvePos(dirOrPos)
   board.sendEventToPos(eventName, x, y)
 
 method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for spawn")
 method stmtSpawn(board: Board, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
-  var (x, y) = board.resolvePos(dirOrPos)
+  var (boardName, x, y) = board.resolvePos(dirOrPos)
+  var otherBoard = try:
+      board.world.boards[boardName]
+    except KeyError:
+      raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
+  assert otherBoard != nil
 
-  var newEntity = board.newEntity(entityName, x, y)
+  var newEntity = otherBoard.newEntity(entityName, x, y)
   return newEntity
 method stmtSpawn(entity: Entity, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
-  var (x, y) = entity.resolvePos(dirOrPos)
-  var board = entity.board
+  var (boardName, x, y) = entity.resolvePos(dirOrPos)
+  var board = try:
+      entity.board.world.boards[boardName]
+    except KeyError:
+      raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
   assert board != nil
 
   var newEntity = board.newEntity(entityName, x, y)
@@ -111,6 +127,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         var moveDir = execState.resolveExpr(node.moveDirExpr)
         var didMove = case moveDir.kind
           of svkDir: execState.stmtMovePerformRel(moveDir.dirValX, moveDir.dirValY)
+          of svkPos: execState.stmtMovePerformAbs(moveDir.posBoardName, moveDir.posValX, moveDir.posValY)
           else:
             raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
 
@@ -223,6 +240,7 @@ method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
 
 proc tickEvent(execState: ScriptExecState, eventName: string) =
   var execBase = execState.execBase
+  assert execBase != nil
   var eventBlock = try:
       execBase.events[eventName]
     except KeyError:

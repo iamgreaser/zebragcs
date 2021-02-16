@@ -1,0 +1,28 @@
+# vim: sw=2 sts=2 et syntax= :
+
+# Just a test while I currently don't have any board editing facilities. --GM
+
+local int %x 0
+local int %y 0
+
+on event initworld {
+  #spawn at 30 12 player
+
+  set %y 15
+  while lt %y 20 {
+    set %x 20
+    while lt %x 25 {
+      spawn at %x %y ammo
+      inc %x 1
+    }
+    inc %y 1
+  }
+
+  spawn at 40 14 passage {
+    set @targetpos atboard "entry" 40 14
+    set @bgcolor 2
+  }
+}
+
+on state main {
+}

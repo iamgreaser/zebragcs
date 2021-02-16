@@ -5,23 +5,21 @@ import ../types
 
 proc asBool*(x: ScriptVal): bool
 proc asInt*(x: ScriptVal): int64
+proc asStr*(x: ScriptVal): string
 proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
 proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 
-method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[x: int64, y: int64] {.base, locks: "unknown".}
-method resolvePos*(entity: Entity, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".}
-
-method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[x: int64, y: int64] {.base, locks: "unknown".} =
+method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
-method resolvePos*(board: Board, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".} =
+method resolvePos*(board: Board, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
-    of svkPos: (val.posValX, val.posValY)
+    of svkPos: (val.posBoardName, val.posValX, val.posValY)
     else:
       raise newException(ScriptExecError, &"Expected pos, got {val} instead")
-method resolvePos*(entity: Entity, val: ScriptVal): tuple[x: int64, y: int64] {.locks: "unknown".} =
+method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
-    of svkDir: (entity.x + val.dirValX, entity.y + val.dirValY)
-    of svkPos: (val.posValX, val.posValY)
+    of svkDir: (entity.board.boardName, entity.x + val.dirValX, entity.y + val.dirValY)
+    of svkPos: (val.posBoardName, val.posValX, val.posValY)
     else:
       raise newException(ScriptExecError, &"Expected dir or pos, got {val} instead")
 
@@ -37,12 +35,39 @@ proc asInt(x: ScriptVal): int64 =
   else:
     raise newException(ScriptExecError, &"Expected int, got {x} instead")
 
-proc defaultScriptVal(kind: ScriptValKind): ScriptVal =
+proc asStr(x: ScriptVal): string =
+  case x.kind
+  of svkStr: x.strVal
+  else:
+    raise newException(ScriptExecError, &"Expected str, got {x} instead")
+
+method funcThisPos(execState: ScriptExecState): ScriptVal {.base.} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func thispos")
+method funcThisPos(entity: Entity): ScriptVal =
+  return ScriptVal(kind: svkPos, posBoardName: entity.board.boardName, posValX: entity.x, posValY: entity.y)
+
+method funcAt(execState: ScriptExecState, x: int64, y: int64): ScriptVal {.base.} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func at")
+method funcAt(board: Board, x: int64, y: int64): ScriptVal =
+  return ScriptVal(kind: svkPos, posBoardName: board.boardName, posValX: x, posValY: y)
+method funcAt(entity: Entity, x: int64, y: int64): ScriptVal =
+  return entity.board.funcAt(x, y)
+
+method funcAtBoard(execState: ScriptExecState, boardName: string, x: int64, y: int64): ScriptVal {.base.} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func atboard")
+method funcAtBoard(world: World, boardName: string, x: int64, y: int64): ScriptVal =
+  return ScriptVal(kind: svkPos, posBoardName: boardName, posValX: x, posValY: y)
+method funcAtBoard(board: Board, boardName: string, x: int64, y: int64): ScriptVal =
+  return board.world.funcAtBoard(boardName, x, y)
+method funcAtBoard(entity: Entity, boardName: string, x: int64, y: int64): ScriptVal =
+  return entity.board.funcAtBoard(boardName, x, y)
+
+proc defaultScriptVal(execState: ScriptExecState, kind: ScriptValKind): ScriptVal =
   case kind
   of svkBool: ScriptVal(kind: kind, boolVal: false)
   of svkDir: ScriptVal(kind: kind, dirValX: 0, dirValY: 0)
   of svkInt: ScriptVal(kind: kind, intVal: 0)
-  of svkPos: ScriptVal(kind: kind, posValX: 0, posValY: 0) # TODO: Consider making pos not have a default, and throw an exception instead --GM
+  of svkPos: execState.funcAt(0, 0) # TODO: Consider making pos not have a default, and throw an exception instead --GM
   of svkStr: ScriptVal(kind: kind, strVal: "")
 
 proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
@@ -88,11 +113,6 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
 
   else:
     raise newException(ScriptExecError, &"Unhandled assignment destination {dst}")
-
-method funcThisPos(execState: ScriptExecState): ScriptVal {.base.} =
-  raise newException(ScriptExecError, &"Unexpected type {execState} for thispos")
-method funcThisPos(entity: Entity): ScriptVal =
-  return ScriptVal(kind: svkPos, posValX: entity.x, posValY: entity.y)
 
 proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
   case expr.kind
@@ -164,7 +184,14 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
-      return ScriptVal(kind: svkPos, posValX: v0, posValY: v1)
+      return execState.funcAt(v0, v1)
+
+    of sftAtBoard:
+      assert expr.funcArgs.len == 3
+      var boardName = execState.resolveExpr(expr.funcArgs[0]).asStr()
+      var v0 = execState.resolveExpr(expr.funcArgs[1]).asInt()
+      var v1 = execState.resolveExpr(expr.funcArgs[2]).asInt()
+      return execState.funcAtBoard(boardName, v0, v1)
 
     #else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
 
@@ -179,7 +206,7 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     var v0: ScriptVal = try:
         share.globals[k0]
       except KeyError:
-        var vd = defaultScriptVal(d0.varType)
+        var vd = execState.defaultScriptVal(d0.varType)
         share.globals[k0] = vd
         vd
     return v0

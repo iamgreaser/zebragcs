@@ -126,6 +126,7 @@ proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
   of "dir": svkDir
   of "int": svkInt
   of "pos": svkPos
+  of "str": svkStr
   else:
     raise newScriptParseError(sps, &"Expected type keyword, got \"{varTypeName}\" instead")
 

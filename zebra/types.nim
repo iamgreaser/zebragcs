@@ -54,6 +54,8 @@ type
     globals*: Table[string, ScriptVal]
     entityTypes*: Table[string, ScriptExecBase]
     boardControllers*: Table[string, ScriptExecBase]
+    worldController*: ScriptExecBase
+    world*: World
     rootDir*: string
 
   ScriptExecStateObj = object of RootObj
@@ -67,7 +69,13 @@ type
     alive*: bool
   ScriptExecState* = ref ScriptExecStateObj
 
+  WorldObj = object of ScriptExecStateObj
+    boards*: Table[string, Board]
+  World* = ref WorldObj
+
   BoardObj = object of ScriptExecStateObj
+    world*: World
+    boardName*: string
     grid*: array[0..(boardHeight-1), array[0..(boardWidth-1), seq[Entity]]]
     entities*: seq[Entity]
   Board* = ref BoardObj
@@ -175,6 +183,7 @@ type
 
   ScriptFuncType* = enum
     sftAt,
+    sftAtBoard,
     sftCcw,
     sftCw,
     sftEq,
@@ -287,7 +296,9 @@ type
     of svkBool: boolVal*: bool
     of svkDir: dirValX*, dirValY*: int64
     of svkInt: intVal*: int64
-    of svkPos: posValX*, posValY*: int64
+    of svkPos:
+      posBoardName*: string
+      posValX*, posValY*: int64
     of svkStr: strVal*: string
 
 proc `$`*(x: ScriptVal): string =
@@ -295,7 +306,7 @@ proc `$`*(x: ScriptVal): string =
   of svkBool: &"BoolV({x.boolVal})"
   of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
   of svkInt: &"IntV({x.intVal})"
-  of svkPos: &"PosV({x.posValX}, {x.posValY})"
+  of svkPos: &"PosV({x.posBoardName}, {x.posValX}, {x.posValY})"
   of svkStr: &"StrV({x.strVal})"
 
 proc `$`*(x: ScriptNode): string =
@@ -336,7 +347,7 @@ proc `$`*(x: ScriptToken): string =
   of stkParenClosed: return ")T"
   of stkParenOpen: return "(T"
   of stkString: return &"StringT({x.strVal})"
-  of stkWord: return &"WordT({x.strVal})"
+  of stkWord: return &"WordT({x.wordVal})"
 
 proc `$`*(x: ScriptGlobalBase): string =
   &"Global({x.varType})"

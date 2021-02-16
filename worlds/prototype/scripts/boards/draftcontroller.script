@@ -9,8 +9,8 @@
 local int %x 0
 local int %y 0
 
-on state init {
-  spawn at 30 12 player
+on event initworld {
+  #spawn at 30 12 player
   spawn at 30 15 ammo
   spawn at 29 12 lockkey { set @fgcolor 12 }
   spawn at 31 12 lockdoor { set @fgcolor 12 }
@@ -19,6 +19,11 @@ on state init {
   spawn at 31 11 box
   spawn at 31 10 box
   spawn at 31 9 lockkey { set @fgcolor 13 }
+
+  spawn at 40 14 passage {
+    set @targetpos atboard "second" 40 14
+    set @bgcolor 2
+  }
 
   set %x 20
   while lt %x 40 {
@@ -35,8 +40,6 @@ on state init {
     }
     inc %y 1
   }
-
-  goto main
 }
 
 on state main {

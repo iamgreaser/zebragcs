@@ -2,11 +2,14 @@ when defined(profiler):
   import nimprof
 
 import strformat
+import tables
 
+import ./zebra/world
 import ./zebra/board
-#import ./zebra/entity
+import ./zebra/entity
 import ./zebra/gfx
 import ./zebra/script/compile
+import ./zebra/script/exec
 import ./zebra/types
 import ./zebra/ui
 
@@ -18,28 +21,33 @@ proc main() =
 
   var gameRunning: bool = true
 
-  # TODO: Add spawn points and reinstate the player entity --GM
-  var board = share.newBoard("draftcontroller")
-  #var entity = board.newEntity("player", 0, 0)
-  echo &"board: {board}\n"
-  #echo &"entity: {entity}\n"
+  var world = share.newWorld()
+
   withOpenGfx gfx:
+    # TEST: Create 2 boards
+    discard world.newBoard("entry", "draftcontroller")
+    discard world.newBoard("second", "second")
+
+    world.broadcastEvent("initworld")
+
+    var playerEntity = world.boards["entry"].newEntity("player", 30, 12)
+    echo &"player entity: {playerEntity}\n"
+
     var
       boardViewWidget = UiBoardView(
         x: 0, y: 0, w: 60, h: 25,
-        board: board,
+        board: playerEntity.board,
       )
       statusBarWidget = UiStatusBar(
         x: 60, y: 0, w: 20, h: 25,
       )
 
-    #while gameRunning and board.alive and entity.alive:
-    while gameRunning and board.alive:
-      board.tick()
+    while gameRunning and playerEntity.alive:
+      world.tick()
+      playerEntity.board.tick()
+      assert playerEntity.board.entities.contains(playerEntity)
 
-      #echo &"board: {board}"
-
-      #gfx.draw(board)
+      boardViewWidget.board = playerEntity.board
       gfx.drawWidget(boardViewWidget)
       gfx.drawWidget(statusBarWidget)
       gfx.blitToScreen()
@@ -62,8 +70,8 @@ proc main() =
             discard
           else:
             # TODO: Handle key repeat properly --GM
-            board.broadcastEvent(&"press{ev.keyType}")
-            board.broadcastEvent(&"type{ev.keyType}")
+            playerEntity.board.broadcastEvent(&"press{ev.keyType}")
+            playerEntity.board.broadcastEvent(&"type{ev.keyType}")
 
         of ievKeyRelease:
           if ev.keyType == ikEsc:
@@ -71,7 +79,7 @@ proc main() =
             gameRunning = false
             break
           else:
-            board.broadcastEvent(&"release{ev.keyType}")
+            playerEntity.board.broadcastEvent(&"release{ev.keyType}")
 
         #else: discard
 

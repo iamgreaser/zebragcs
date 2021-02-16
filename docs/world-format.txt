@@ -12,8 +12,16 @@ The general directory structure:
   - boardname/
     - board.info
     - layername.layer
+  - entry/ - Start board
+    - ...
+  - title/ - Title screen board
+    - ...
 - scripts/
-  - entityname.script
+  - world.script
+  - boards/
+    - boardcontrollername.script
+  - entities/
+    - entitytypename.script
 
 ----------------------------------------------------------------------------
 
@@ -109,6 +117,8 @@ boards/boardname/board.info:
 
     # cell <x:int> <y:int> { <entityid:int>* }
     cell 30 12 { 0 1 }
+    # controller <controllername:boardcontrollername>
+    controller daycycle
 
     layer floor {
       solid false

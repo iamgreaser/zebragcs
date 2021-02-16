@@ -24,7 +24,7 @@ Also this document isn't actually Markdown.
     - [ ] Water layer
     - [ ] Forest layer?
 
-- [ ] Combine multiple boards into a world.
+- [x] Combine multiple boards into a world.
 
 - [ ] Virtual FS support.
       This will also support the Actual FS, but the Virtual FS system will be used for that.
@@ -45,7 +45,7 @@ Also this document isn't actually Markdown.
     - [x] Door
     - [-] Scroll
       - Provide your own entities for this.
-    - [ ] Passage
+    - [x] Passage
     - [-] Duplicator
       - This could be quite ugly. Better to spawn stuff cleanly.
     - [ ] Bomb

@@ -1,13 +1,16 @@
+import strformat
 import tables
 
 import ./types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
+proc addEntityToList*(board: Board, entity: Entity)
 proc broadcastEvent*(board: Board, eventName: string)
 proc sendEventToPos*(board: Board, eventName: string, x: int64, y: int64)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
-proc newBoard*(share: ScriptSharedExecState, controllerName: string): Board
+proc newBoard*(world: World, boardName: string, controllerName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
+proc removeEntityFromList*(board: Board, entity: Entity)
 
 import ./script/exec
 method tick*(board: Board)
@@ -23,10 +26,18 @@ proc getBoardController(share: ScriptSharedExecState, controllerName: string): S
     share.loadBoardControllerFromFile(controllerName)
     share.boardControllers[controllerName]
 
-proc newBoard(share: ScriptSharedExecState, controllerName: string): Board =
+proc newBoard(world: World, boardName: string, controllerName: string): Board =
+  var share = world.share
+  assert share != nil
   var execBase = share.getBoardController(controllerName)
+  assert execBase != nil
+  
+  if world.boards.contains(boardName):
+    raise newException(Exception, &"board \"{boardName}\" already assigned")
 
   var board = Board(
+    boardName: boardName,
+    world: world,
     entities: @[],
     execBase: execBase,
     activeState: execBase.initState,
@@ -43,6 +54,7 @@ proc newBoard(share: ScriptSharedExecState, controllerName: string): Board =
   for k0, v0 in execBase.locals.pairs():
     board.locals[k0] = board.resolveExpr(v0.varDefault)
 
+  world.boards[boardName] = board
   board
 
 proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bool =
@@ -66,6 +78,10 @@ proc addEntityToGrid(board: Board, entity: Entity) =
   assert board.canAddEntityToGridPos(entity, entity.x, entity.y)
   board.grid[entity.y][entity.x].add(entity)
 
+proc addEntityToList(board: Board, entity: Entity) =
+  if not board.entities.contains(entity):
+    board.entities.add(entity)
+
 proc removeEntityFromGrid(board: Board, entity: Entity) =
   var gridseq = board.grid[entity.y][entity.x]
   var i: int64 = 0
@@ -77,6 +93,15 @@ proc removeEntityFromGrid(board: Board, entity: Entity) =
 
   board.grid[entity.y][entity.x] = gridseq
   discard
+
+proc removeEntityFromList(board: Board, entity: Entity) =
+  var i: int64 = 0
+  while i < board.entities.len:
+    if board.entities[i] == entity:
+      board.entities.delete(i)
+    else:
+      i += 1
+
 
 proc broadcastEvent(board: Board, eventName: string) =
   var entitiesCopy: seq[Entity] = @[]

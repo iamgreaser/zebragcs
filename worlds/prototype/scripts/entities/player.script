@@ -14,6 +14,8 @@ global pos $playerpos
 global dir $pushdir
 global dir $shotdir
 global bool $didmsgoutofammo
+global pos $teleportpos
+local pos %prevpos thispos
 
 on state main {
   if eq @nextdir idle {
@@ -41,8 +43,11 @@ on state main {
       sleep 1
     } else {
       set $pushdir @nextdir
+      set %prevpos thispos
       send @nextdir touch
-      move @nextdir
+      if eq %prevpos thispos {
+        move @nextdir
+      }
     }
     set @nextdir idle
   }
@@ -50,6 +55,10 @@ on state main {
 }
 
 on state dead {
+}
+
+on event teleport {
+  move $teleportpos
 }
 
 on event pressshift { set @shiftpressed true }

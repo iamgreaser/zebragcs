@@ -4,7 +4,7 @@ import ./types
 
 proc hasPhysBlock*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
-proc moveTo*(entity: Entity, x: int64, y: int64): bool
+proc moveTo*(entity: Entity, board: Board, x: int64, y: int64): bool
 proc newEntity*(board: Board, entityType: string, x, y: int64): Entity
 
 import ./board
@@ -52,7 +52,7 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
     entity.alive = false
     nil
 
-proc canMoveTo(entity: Entity, x: int64, y: int64): bool =
+proc canMoveTo(entity: Entity, board: Board, x: int64, y: int64): bool =
   var board = entity.board
   if board == nil:
     false
@@ -61,22 +61,29 @@ proc canMoveTo(entity: Entity, x: int64, y: int64): bool =
   else:
     board.canAddEntityToGridPos(entity, x, y)
 
-proc moveTo(entity: Entity, x: int64, y: int64): bool =
-  var canMove = entity.canMoveTo(x, y)
+proc moveTo(entity: Entity, board: Board, x: int64, y: int64): bool =
+  assert board != nil
+  var canMove = entity.canMoveTo(board, x, y)
   if canMove:
-    var board = entity.board
-    assert board != nil
-    if x != entity.x or y != entity.y:
-      board.removeEntityFromGrid(entity)
+    var srcBoard = entity.board
+    assert srcBoard != nil
+    var dstBoard = board
+    assert dstBoard != nil
+    if x != entity.x or y != entity.y or srcBoard != dstBoard:
+      srcBoard.removeEntityFromGrid(entity)
       entity.x = x
       entity.y = y
-      board.addEntityToGrid(entity)
+      if srcBoard != dstBoard:
+        srcBoard.removeEntityFromList(entity)
+        dstBoard.addEntityToList(entity)
+        entity.board = dstBoard
+      dstBoard.addEntityToGrid(entity)
     true
   else:
     false
 
 proc moveBy(entity: Entity, dx: int64, dy: int64): bool =
-  entity.moveTo(entity.x + dx, entity.y + dy)
+  entity.moveTo(entity.board, entity.x + dx, entity.y + dy)
 
 proc hasPhysBlock(entity: Entity): bool =
   try:

@@ -1,0 +1,9 @@
+# vim: sw=2 sts=2 et syntax= :
+
+on event initworld {
+}
+
+on state main {
+  say "World tick."
+  sleep 20
+}
