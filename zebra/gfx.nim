@@ -84,7 +84,8 @@ proc openGfx(): GfxState =
   )
   let renderer = window.createRenderer(
     index = -1,
-    flags = 0,
+    flags = sdl2.Renderer_Software,
+    #flags = sdl2.Renderer_Accelerated,
   )
 
   # Now load the font
