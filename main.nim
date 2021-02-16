@@ -39,7 +39,7 @@ proc main() =
       #gfx.draw(board)
       gfx.drawWidget(boardViewWidget)
       gfx.drawWidget(statusBarWidget)
-      gfx.present()
+      gfx.blitToScreen()
       #var health = entity.params.getOrDefault("health", ScriptVal(kind: svkInt, intVal: 0))
       #var ammo = entity.params.getOrDefault("ammo", ScriptVal(kind: svkInt, intVal: 0))
       #echo &"entity pos: {entity.x}, {entity.y} / health: {health} / ammo: {ammo} / alive: {entity.alive}"

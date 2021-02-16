@@ -57,7 +57,7 @@ proc drawCharArray*(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs
 proc drawCharArray*(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs: string)
 proc getNextInput*(gfx: GfxState): InputEvent
 proc openGfx*(): GfxState
-proc present*(gfx: GfxState)
+proc blitToScreen*(gfx: GfxState)
 
 template withOpenGfx*(gfx: untyped, body: untyped): untyped =
   block:
@@ -199,31 +199,6 @@ proc getNextInput*(gfx: GfxState): InputEvent =
 
   InputEvent(kind: ievNone)
 
-proc drawCharDirect(gfx: GfxState, x: int64, y: int64, bg: tuple[r: uint8, g: uint8, b: uint8], fg: tuple[r: uint8, g: uint8, b: uint8], ch: uint16) =
-  var renderer = gfx.renderer
-
-  var dstrect = rect(
-    x = cint(x*8),
-    y = cint(y*14),
-    w = cint(8), h = cint(14),
-  )
-
-  renderer.setDrawColor(bg.r, bg.g, bg.b, 255)
-  renderer.fillRect(dstrect)
-  renderer.setDrawColor(fg.r, fg.g, fg.b, 255)
-  var srcrect = rect(
-    x = cint(ch and 0xF)*8,
-    y = cint(ch shr 4)*14,
-    w = cint(8), h = cint(14),
-  )
-  discard gfx.fontTex.setTextureBlendMode(BlendMode_Blend)
-  discard gfx.fontTex.setTextureColorMod(fg.r, fg.g, fg.b)
-  renderer.copy(
-    texture = gfx.fontTex,
-    srcrect = addr(srcrect),
-    dstrect = addr(dstrect),
-  )
-
 proc drawChar(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint16) =
   # Clip out-of-range coordinates
   if y < low(gfx.grid) or y > high(gfx.grid):
@@ -276,19 +251,56 @@ proc clearToState(crop: GfxCrop, bg: uint8, fg: uint8, ch: uint16) =
         ch = ch,
       )
 
-proc present(gfx: GfxState) =
+proc blitToScreen(gfx: GfxState) =
   # TODO: Not hardcode the width and height --GM
   var renderer = gfx.renderer
 
   # Draw the grid for real
+
+  var
+    dstrect = rect(
+      x = cint(0*8),
+      y = cint(0*14),
+      w = cint(8), h = cint(14),
+    )
+    srcrect = rect(
+      x = cint(0 and 0xF)*8,
+      y = cint(0 shr 4)*14,
+      w = cint(8), h = cint(14),
+    )
+
+  # Draw backgrounds
   for y in 0..(gfxHeight-1):
     for x in 0..(gfxWidth-1):
       var cell = gfx.grid[y][x]
-      gfx.drawCharDirect(
-        x = x, y = y,
-        bg = defaultPalette[cell.bg and 0xF],
-        fg = defaultPalette[cell.fg and 0xF],
-        ch = cell.ch,
+
+      var
+        bg = defaultPalette[cell.bg and 0xF]
+
+      dstrect.x = cint(x*8)
+      dstrect.y = cint(y*14)
+      renderer.setDrawColor(bg.r, bg.g, bg.b, 255)
+      renderer.fillRect(dstrect)
+
+  # Draw foregrounds
+  for y in 0..(gfxHeight-1):
+    for x in 0..(gfxWidth-1):
+      var cell = gfx.grid[y][x]
+      var
+        fg = defaultPalette[cell.fg and 0xF]
+        ch = cell.ch
+
+      dstrect.x = cint(x*8)
+      dstrect.y = cint(y*14)
+      srcrect.x = cint(ch and 0xF)*8
+      srcrect.y = cint(ch shr 4)*14
+
+      discard gfx.fontTex.setTextureBlendMode(BlendMode_Blend)
+      discard gfx.fontTex.setTextureColorMod(fg.r, fg.g, fg.b)
+      renderer.copy(
+        texture = gfx.fontTex,
+        srcrect = addr(srcrect),
+        dstrect = addr(dstrect),
       )
 
   renderer.present()
