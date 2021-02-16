@@ -31,28 +31,33 @@ type
   GfxCell = object
     ch: uint16
     fg, bg: uint8
-  GfxState* = ref GfxStateObj
   GfxStateObj = object
     renderer: sdl2.RendererPtr
     window: sdl2.WindowPtr
     fontTex: sdl2.TexturePtr
     grid: array[0..(gfxHeight-1), array[0..(gfxWidth-1), GfxCell]]
+  GfxState* = ref GfxStateObj
+
+  GfxCropObj = object
+    gfx*: GfxState
+    parent*: GfxCrop
+    x*, y*: int64
+    w*, h*: int64
+  GfxCrop* = ref GfxCropObj
 
 import strformat
-import tables
 
 import ./types
 
+proc clearToState*(crop: GfxCrop, bg: uint8, fg: uint8, ch: uint16)
 proc close*(gfx: GfxState)
-proc draw*(gfx: GfxState, board: Board)
+proc drawChar*(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint16)
 proc drawChar*(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint16)
-proc drawCharArray*(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, chs: openArray[uint16])
-proc drawCharArray*(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, chs: string)
-proc present*(gfx: GfxState)
+proc drawCharArray*(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs: openArray[uint16])
+proc drawCharArray*(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs: string)
 proc getNextInput*(gfx: GfxState): InputEvent
 proc openGfx*(): GfxState
-
-import ./script/exprs
+proc present*(gfx: GfxState)
 
 template withOpenGfx*(gfx: untyped, body: untyped): untyped =
   block:
@@ -232,79 +237,43 @@ proc drawChar(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint1
     bg: bg,
   )
 
-proc drawCharArray(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, chs: openArray[uint16]) =
+proc drawChar(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint16) =
+  # Clip out-of-range coordinates
+  if y < 0 or y >= crop.h:
+    return
+  if x < 0 or x >= crop.w:
+    return
+
+  if crop.parent != nil:
+    assert crop.gfx == nil
+    drawChar(crop.parent, x + crop.x, y + crop.y, bg, fg, ch)
+  else:
+    assert crop.gfx != nil
+    drawChar(crop.gfx, x + crop.x, y + crop.y, bg, fg, ch)
+
+proc drawCharArray(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs: openArray[uint16]) =
   for i in low(chs)..high(chs):
-    gfx.drawChar(
+    crop.drawChar(
       x = x+i-low(chs), y = y,
       bg = bg, fg = fg,
       ch = chs[i],
     )
 
-proc drawCharArray(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, chs: string) =
+proc drawCharArray(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs: string) =
   for i in low(chs)..high(chs):
-    gfx.drawChar(
+    crop.drawChar(
       x = x+i-low(chs), y = y,
       bg = bg, fg = fg,
       ch = uint16(chs[i]),
     )
 
-proc draw(gfx: GfxState, board: Board) =
-  # TODO: Not hardcode the width and height --GM
-
-  # Fill the screen with blue
-  for y in 0..(gfxHeight-1):
-    for x in 0..(gfxWidth-1):
-      gfx.drawChar(
+proc clearToState(crop: GfxCrop, bg: uint8, fg: uint8, ch: uint16) =
+  for y in 0..(crop.h-1):
+    for x in 0..(crop.w-1):
+      crop.drawChar(
         x = x, y = y,
-        bg = uint8(1),
-        fg = uint8(14),
-        ch = uint16(' '),
-      )
-
-  # Draw a status bar
-  gfx.drawCharArray(x = 66, y =  0, bg =  1, fg =  8, chs = "\xDC\xDC\xDC\xDC\xDC\xDC\xDC")
-  gfx.drawCharArray(x = 63, y =  1, bg =  1, fg =  8, chs = "\xDC 123456789 \xDC")
-  gfx.drawCharArray(x = 62, y =  2, bg =  1, fg =  7, chs = "\xDE  123456789  \xDD")
-  gfx.drawCharArray(x = 62, y =  4, bg =  1, fg =  7, chs = "\xDE  123456789  \xDD")
-  gfx.drawCharArray(x = 64, y =  1, bg =  8, fg = 15, chs = " Z E B R A ")
-  gfx.drawCharArray(x = 63, y =  2, bg =  7, fg =  0, chs = " \xDA\xC4\xC4\xC4\xDA\xC4\xC4\xDA\xC4\xC4\xBF ")
-  gfx.drawCharArray(x = 62, y =  3, bg =  7, fg =  0, chs = "  \xB3 \xC4\xBF\xB3  \xC0\xC4\xC4\xBF  ")
-  gfx.drawCharArray(x = 63, y =  4, bg =  7, fg =  0, chs = " \xC0\xC4\xC4\xD9\xC0\xC4\xC4\xD9\xC4\xC4\xD9 ")
-  gfx.drawCharArray(x = 64, y =  5, bg =  1, fg =  8, chs = "\xDF\xDF\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDF\xDF")
-
-  gfx.drawCharArray(x = 63, y =  7, bg =  1, fg = 14, chs = "Score:")
-  gfx.drawCharArray(x = 63, y =  8, bg =  1, fg = 14, chs = "             0")
-  gfx.drawCharArray(x = 63, y = 10, bg =  1, fg = 14, chs = "Health:    100")
-  gfx.drawCharArray(x = 63, y = 11, bg =  1, fg = 14, chs = "Ammo:        0")
-  gfx.drawCharArray(x = 63, y = 12, bg =  1, fg = 14, chs = "Gems:        0")
-  gfx.drawCharArray(x = 63, y = 14, bg =  1, fg = 14, chs = "Status Bar    ")
-  gfx.drawCharArray(x = 63, y = 15, bg =  1, fg = 14, chs = "Fakeness: 100%")
-
-  # Draw the board
-  for y in 0..(boardHeight-1):
-    for x in 0..(boardWidth-1):
-      var gridseq = board.grid[y][x]
-      var (fgcolor, bgcolor, ch) = if gridseq.len >= 1:
-          var entity = gridseq[gridseq.len-1]
-          var execBase = entity.execBase
-          assert execBase != nil
-
-          var ch = try: uint64(entity.params["char"].asInt())
-            except KeyError: uint64('?')
-          var fgcolor = try: uint64(entity.params["fgcolor"].asInt())
-            except KeyError: 0x07'u64
-          var bgcolor = try: uint64(entity.params["bgcolor"].asInt())
-            except KeyError: 0x00'u64
-
-          (fgcolor, bgcolor, ch)
-
-        else:
-          (0x07'u64, 0x00'u64, uint64(' '))
-      gfx.drawChar(
-        x = x, y = y,
-        bg = uint8(bgcolor),
-        fg = uint8(fgcolor),
-        ch = uint16(ch),
+        bg = bg, fg = fg,
+        ch = ch,
       )
 
 proc present(gfx: GfxState) =

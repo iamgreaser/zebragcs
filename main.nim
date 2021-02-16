@@ -5,6 +5,7 @@ import ./zebra/board
 import ./zebra/gfx
 import ./zebra/script/compile
 import ./zebra/types
+import ./zebra/ui
 
 
 proc main() =
@@ -20,13 +21,24 @@ proc main() =
   echo &"board: {board}\n"
   #echo &"entity: {entity}\n"
   withOpenGfx gfx:
+    var
+      boardViewWidget = UiBoardView(
+        x: 0, y: 0, w: 60, h: 25,
+        board: board,
+      )
+      statusBarWidget = UiStatusBar(
+        x: 60, y: 0, w: 20, h: 25,
+      )
+
     #while gameRunning and board.alive and entity.alive:
     while gameRunning and board.alive:
       board.tick()
 
       #echo &"board: {board}"
 
-      gfx.draw(board)
+      #gfx.draw(board)
+      gfx.drawWidget(boardViewWidget)
+      gfx.drawWidget(statusBarWidget)
       gfx.present()
       #var health = entity.params.getOrDefault("health", ScriptVal(kind: svkInt, intVal: 0))
       #var ammo = entity.params.getOrDefault("ammo", ScriptVal(kind: svkInt, intVal: 0))
