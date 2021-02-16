@@ -1,3 +1,6 @@
+when defined(profiler):
+  import nimprof
+
 import strformat
 
 import ./zebra/board
