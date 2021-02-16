@@ -261,42 +261,40 @@ proc blitToScreen(gfx: GfxState) =
   # Draw the grid for real
 
   var
-    dstrect = rect(
-      x = cint(0*8),
-      y = cint(0*14),
-      w = cint(8), h = cint(14),
-    )
-    srcrect = rect(
-      x = cint(0 and 0xF)*8,
-      y = cint(0 shr 4)*14,
-      w = cint(8), h = cint(14),
-    )
+    dstrect: sdl2.Rect
+    srcrect: sdl2.Rect
+
+  dstrect.w = cint(8)
+  dstrect.h = cint(14)
+  srcrect.w = cint(8)
+  srcrect.h = cint(14)
 
   # Draw backgrounds
   for y in 0..(gfxHeight-1):
+    dstrect.y = cint(y*14)
     for x in 0..(gfxWidth-1):
+      dstrect.x = cint(x*8)
       var cell = gfx.grid[y][x]
 
       var
         bg = defaultPalette[cell.bg and 0xF]
 
-      dstrect.x = cint(x*8)
-      dstrect.y = cint(y*14)
       renderer.setDrawColor(bg.r, bg.g, bg.b, 255)
       renderer.fillRect(dstrect)
 
   # Draw foregrounds
   for y in 0..(gfxHeight-1):
+    dstrect.y = cint(y*14)
     for x in 0..(gfxWidth-1):
+      dstrect.x = cint(x*8)
+
       var cell = gfx.grid[y][x]
       var
         fg = defaultPalette[cell.fg and 0xF]
         ch = cell.ch
 
-      dstrect.x = cint(x*8)
-      dstrect.y = cint(y*14)
-      srcrect.x = cint(ch and 0xF)*8
       srcrect.y = cint(ch shr 4)*14
+      srcrect.x = cint(ch and 0xF)*8
 
       discard gfx.fontTex.setTextureBlendMode(BlendMode_Blend)
       discard gfx.fontTex.setTextureColorMod(fg.r, fg.g, fg.b)
