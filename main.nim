@@ -1,7 +1,9 @@
 when defined(profiler):
   import nimprof
 
+import os
 import strformat
+import strutils
 
 import ./zebra/world
 import ./zebra/board
@@ -17,16 +19,19 @@ const boardVisWidth = 60
 const boardVisHeight = 25
 
 proc main() =
-  var share = newScriptSharedExecState(
-    rootDir="worlds/prototype/",
-  )
-
+  var worldName = "prototype"
   var gameRunning: bool = true
 
+  var share = newScriptSharedExecState(
+    rootDir = &"worlds/{worldName}/",
+  )
   var world = share.loadWorld()
-  discard world.loadBoardFromFile("title")
-  discard world.loadBoardFromFile("entry")
-  discard world.loadBoardFromFile("second")
+  for dirName in walkDirs((&"{share.rootDir}/boards/*/").replace("//", "/")):
+    var componentList = dirName.split("/")
+    var boardName = componentList[componentList.len-2]
+    echo &"Loading board \"{boardName}\""
+    discard world.loadBoardFromFile(boardName)
+
 
   withOpenGfx gfx:
     world.broadcastEvent("initworld")
