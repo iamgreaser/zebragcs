@@ -15,7 +15,7 @@ proc readParamName*(sps: ScriptParseState): string
 proc readToken*(sps: ScriptParseState): ScriptToken
 proc readVarTypeKeyword*(sps: ScriptParseState): ScriptValKind
 
-const maxPeekDist = 100
+const maxPeekDist = 200
 
 
 proc newScriptParseError(sps: ScriptParseState, message: string): ref ScriptParseError =
