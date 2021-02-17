@@ -3,7 +3,7 @@ import tables
 import ./types
 
 proc broadcastEvent*(world: World, eventName: string)
-proc newWorld*(share: ScriptSharedExecState): World
+proc loadWorld*(share: ScriptSharedExecState): World
 
 import ./board
 import ./script/compile
@@ -16,7 +16,7 @@ proc getWorldController(share: ScriptSharedExecState): ScriptExecBase =
 
   share.worldController
 
-proc newWorld(share: ScriptSharedExecState): World =
+proc loadWorld(share: ScriptSharedExecState): World =
   assert share != nil
   assert share.world == nil
   var execBase = share.getWorldController()
@@ -42,5 +42,8 @@ proc newWorld(share: ScriptSharedExecState): World =
 
 proc broadcastEvent(world: World, eventName: string) =
   world.tickEvent(eventName)
+  var boardsCopy: seq[Board] = @[]
   for board in world.boards.values():
+    boardsCopy.add(board)
+  for board in boardsCopy:
     board.broadcastEvent(eventName)

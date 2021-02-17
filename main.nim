@@ -2,7 +2,6 @@ when defined(profiler):
   import nimprof
 
 import strformat
-import tables
 
 import ./zebra/world
 import ./zebra/board
@@ -24,17 +23,16 @@ proc main() =
 
   var gameRunning: bool = true
 
-  var world = share.newWorld()
+  var world = share.loadWorld()
+  discard world.loadBoardFromFile("title")
+  discard world.loadBoardFromFile("entry")
+  discard world.loadBoardFromFile("second")
 
   withOpenGfx gfx:
-    # TEST: Create 2 boards
-    discard world.newBoard("entry", "draftcontroller", 56, 23)
-    discard world.newBoard("second", "second", 60, 25)
-
     world.broadcastEvent("initworld")
 
     var playerEntity = block:
-      var board = world.boards["entry"]
+      var board = world.getBoard("entry")
       board.newEntity("player", board.grid.w div 2, board.grid.h div 2)
     echo &"player entity: {playerEntity}\n"
 

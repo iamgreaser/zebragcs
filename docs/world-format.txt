@@ -29,7 +29,7 @@ entities.info:
 
 Active entities.
 
-    # entity <entityid:int> <type:entityname> <board:boardname> <x:int> <y:int>
+    # entity <entityid:int> <type:entitytypename> <board:boardname> <x:int> <y:int>
     entity 0 player entryboard 30 12 {
       # activestate <state:statename>
       activestate main
@@ -115,27 +115,37 @@ Let's explain things...
 
 boards/boardname/board.info:
 
-    # cell <x:int> <y:int> { <entityid:int>* }
-    cell 30 12 { 0 1 }
+    # size <w:int> <h:int>
+    size 60 25
+
     # controller <controllername:boardcontrollername>
     controller daycycle
 
-    layer floor {
+    # entity <type:entitytypename> <x:int> <y:int> <:spawncodeblock>
+    entity passage 30 10 {
+      set @targetpos atboard "other" 30 12
+      set @bgcolor 2
+    }
+    entity boulder 30 10
+
+    # layer <name:layername> <x:int> <y:int> <:layerconfigblock>
+    layer floor 0 0 {
+      # solid <:deferredexpr>
       solid false
     }
-    layer walls {
+    layer walls 0 0 {
       solid true
     }
-    layer water {
+    layer water 0 0 {
       solid not @physwaterwalk
     }
-    layer trackbounds {
+    layer trackbounds 0 0 {
       solid @istrain
     }
-    layer teampass {
+    layer teampass 0 0 {
       solid ne @fgcolor %fgcolor
     }
-    layer teamblock {
+    layer teamblock 0 0 {
       solid eq @fgcolor %fgcolor
     }
 
@@ -143,10 +153,20 @@ boards/boardname/board.info:
 
 boards/boardname/layername.layer:
 
-    # row <y:int> <xbeg:int> <xlen:int> <:rowblock>
-    row 10 30 1 { { 219 7 0 } }
-    row 12 28 5 { { 219 7 0 } s { 2 15 1 } s { 219 7 0 } }
-    row 14 30 1 { { 219 7 0 } }
+    # size <w:int> <h:int>
+    size 60 25
+
+    # cursor <x:int> <y:int>
+    # row <:rowblock>
+    # ... y autoadvances
+    cursor 30 9
+    row { { 219 7 0 } }
+    row { { 219 7 0 } }
+    cursor 28 12
+    row { { 219 7 0 } s { 2 15 1 } s { 219 7 0 } }
+    cursor 30 14
+    row { { 219 7 0 } }
+    row { { 219 7 0 } }
 
 A rowblock contains entries of either:
 

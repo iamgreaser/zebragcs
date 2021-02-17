@@ -52,8 +52,12 @@ method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: Scrip
   raise newException(ScriptExecError, &"Unexpected type {execState} for spawn")
 method stmtSpawn(board: Board, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
   var (boardName, x, y) = board.resolvePos(dirOrPos)
+  var world = board.world
+  assert world != nil
   var otherBoard = try:
-      board.world.boards[boardName]
+      # FIXME getBoard causes a crash under some circumstances, need to fix this --GM
+      #world.getBoard(boardName)
+      world.boards[boardName]
     except KeyError:
       raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
   assert otherBoard != nil

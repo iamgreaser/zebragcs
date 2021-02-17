@@ -5,9 +5,11 @@ import strutils
 
 import ../types
 
+proc expectEolOrEof*(sps: ScriptParseState)
 proc expectToken*(sps: ScriptParseState, kind: ScriptTokenKind)
 proc newScriptParseError*(sps: ScriptParseState, message: string): ref ScriptParseError
 proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
+proc readExpectedToken*(sps: ScriptParseState, kind: ScriptTokenKind): ScriptToken
 proc readGlobalName*(sps: ScriptParseState): string
 proc readKeywordToken*(sps: ScriptParseState): string
 proc readLocalName*(sps: ScriptParseState): string
@@ -111,6 +113,11 @@ proc expectToken(sps: ScriptParseState, kind: ScriptTokenKind) =
   var tok = sps.readToken()
   if tok.kind != kind:
     raise newScriptParseError(sps, &"Expected {kind} token, got {tok} instead")
+
+proc expectEolOrEof(sps: ScriptParseState) =
+  var tok = sps.readToken()
+  if tok.kind != stkEol and tok.kind != stkEof:
+    raise newScriptParseError(sps, &"Expected EOL or EOF, got {tok} instead")
 
 proc readKeywordToken(sps: ScriptParseState): string =
   var tok = sps.readToken()

@@ -7,6 +7,8 @@ type
   ScriptExecError* = object of CatchableError
   ScriptParseError* = object of CatchableError
 
+  BoardLoadError* = object of CatchableError
+
   GridObj[T] = object
     w*, h*: int64
     body*: seq[T]
@@ -74,6 +76,12 @@ type
   WorldObj = object of ScriptExecStateObj
     boards*: Table[string, Board]
   World* = ref WorldObj
+
+  BoardInfoObj = object
+    boardName*: string
+    controllerName*: string
+    w*, h*: int64
+  BoardInfo* = ref BoardInfoObj
 
   BoardObj = object of ScriptExecStateObj
     world*: World
