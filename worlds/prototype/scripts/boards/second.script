@@ -17,11 +17,6 @@ on event initworld {
     }
     inc %y 1
   }
-
-  spawn at 40 14 passage {
-    set @targetpos atboard "entry" 40 14
-    set @bgcolor 2
-  }
 }
 
 on state main {

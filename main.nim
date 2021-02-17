@@ -14,6 +14,9 @@ import ./zebra/types
 import ./zebra/ui
 
 
+const boardVisWidth = 60
+const boardVisHeight = 25
+
 proc main() =
   var share = newScriptSharedExecState(
     rootDir="worlds/prototype/",
@@ -25,12 +28,14 @@ proc main() =
 
   withOpenGfx gfx:
     # TEST: Create 2 boards
-    discard world.newBoard("entry", "draftcontroller")
-    discard world.newBoard("second", "second")
+    discard world.newBoard("entry", "draftcontroller", 56, 23)
+    discard world.newBoard("second", "second", 60, 25)
 
     world.broadcastEvent("initworld")
 
-    var playerEntity = world.boards["entry"].newEntity("player", 30, 12)
+    var playerEntity = block:
+      var board = world.boards["entry"]
+      board.newEntity("player", board.grid.w div 2, board.grid.h div 2)
     echo &"player entity: {playerEntity}\n"
 
     var
@@ -42,14 +47,29 @@ proc main() =
         x: 60, y: 0, w: 20, h: 25,
       )
 
+      rootWidget = UiBag(
+        x: 0, y: 0, w: 80, h: 25,
+        ch: uint16(' '), bg: 8, fg: 15,
+        widgets: @[],
+      )
+
+    rootWidget.widgets.add(statusBarWidget)
+    rootWidget.widgets.add(boardViewWidget)
+
     while gameRunning and playerEntity.alive:
       world.tick()
       playerEntity.board.tick()
       assert playerEntity.board.entities.contains(playerEntity)
 
-      boardViewWidget.board = playerEntity.board
-      gfx.drawWidget(boardViewWidget)
-      gfx.drawWidget(statusBarWidget)
+      block:
+        var board = playerEntity.board
+        boardViewWidget.board = board
+        boardViewWidget.x = max(0, (boardVisWidth - board.grid.w) div 2)
+        boardViewWidget.y = max(0, (boardVisHeight - board.grid.h) div 2)
+        boardViewWidget.w = min(boardVisWidth, board.grid.w)
+        boardViewWidget.h = min(boardVisHeight, board.grid.h)
+
+      gfx.drawWidget(rootWidget)
       gfx.blitToScreen()
       #var health = entity.params.getOrDefault("health", ScriptVal(kind: svkInt, intVal: 0))
       #var ammo = entity.params.getOrDefault("ammo", ScriptVal(kind: svkInt, intVal: 0))

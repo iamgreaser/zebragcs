@@ -8,7 +8,7 @@ proc addEntityToList*(board: Board, entity: Entity)
 proc broadcastEvent*(board: Board, eventName: string)
 proc sendEventToPos*(board: Board, eventName: string, x: int64, y: int64)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
-proc newBoard*(world: World, boardName: string, controllerName: string): Board
+proc newBoard*(world: World, boardName: string, controllerName: string, w: int64, h: int64): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
 
@@ -16,6 +16,7 @@ import ./script/exec
 method tick*(board: Board)
 
 import ./entity
+import ./grid
 import ./script/compile
 import ./script/exprs
 
@@ -26,7 +27,7 @@ proc getBoardController(share: ScriptSharedExecState, controllerName: string): S
     share.loadBoardControllerFromFile(controllerName)
     share.boardControllers[controllerName]
 
-proc newBoard(world: World, boardName: string, controllerName: string): Board =
+proc newBoard(world: World, boardName: string, controllerName: string, w: int64, h: int64): Board =
   var share = world.share
   assert share != nil
   var execBase = share.getBoardController(controllerName)
@@ -38,6 +39,7 @@ proc newBoard(world: World, boardName: string, controllerName: string): Board =
   var board = Board(
     boardName: boardName,
     world: world,
+    grid: newGrid[seq[Entity]](w = w, h = h, default = (proc(): seq[Entity] = newSeq[Entity]())),
     entities: @[],
     execBase: execBase,
     activeState: execBase.initState,
@@ -58,16 +60,16 @@ proc newBoard(world: World, boardName: string, controllerName: string): Board =
   board
 
 proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bool =
-  if not (x >= 0 and x < boardWidth and y >= 0 and y < boardHeight):
+  if not (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
     false
   else:
-    var gridseq = board.grid[y][x]
-    if gridseq.len == 0:
+    var entseq = board.grid[x, y]
+    if entseq.len == 0:
       return true
 
-    var i: int64 = gridseq.len-1
+    var i: int64 = entseq.len-1
     while i >= 0:
-      var other = gridseq[i]
+      var other = entseq[i]
       if other.hasPhysBlock():
         return false
       i -= 1
@@ -76,22 +78,22 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bo
 
 proc addEntityToGrid(board: Board, entity: Entity) =
   assert board.canAddEntityToGridPos(entity, entity.x, entity.y)
-  board.grid[entity.y][entity.x].add(entity)
+  board.grid[entity.x, entity.y].add(entity)
 
 proc addEntityToList(board: Board, entity: Entity) =
   if not board.entities.contains(entity):
     board.entities.add(entity)
 
 proc removeEntityFromGrid(board: Board, entity: Entity) =
-  var gridseq = board.grid[entity.y][entity.x]
+  var entseq = board.grid[entity.x, entity.y]
   var i: int64 = 0
-  while i < gridseq.len:
-    if gridseq[i] == entity:
-      gridseq.delete(i)
+  while i < entseq.len:
+    if entseq[i] == entity:
+      entseq.delete(i)
     else:
       i += 1
 
-  board.grid[entity.y][entity.x] = gridseq
+  board.grid[entity.x, entity.y] = entseq
   discard
 
 proc removeEntityFromList(board: Board, entity: Entity) =
@@ -112,8 +114,8 @@ proc broadcastEvent(board: Board, eventName: string) =
     entity.tickEvent(eventName)
 
 proc sendEventToPos(board: Board, eventName: string, x: int64, y: int64) =
-  if (x >= 0 and x < boardWidth and y >= 0 and y < boardHeight):
-    var entseq = board.grid[y][x]
+  if (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
+    var entseq = board.grid[x, y]
     if entseq.len >= 1:
       var entity = entseq[entseq.len-1]
       entity.tickEvent(eventName)

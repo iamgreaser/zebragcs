@@ -1,4 +1,3 @@
-
 import tables
 
 import ./types
@@ -10,11 +9,22 @@ type
     w*, h*: int64
   UiWidget* = ref UiWidgetObj
 
+  UiBagObj = object of UiWidgetObj
+    widgets*: seq[UiWidget]
+    ch*: uint16
+    bg*, fg*: uint8
+  UiBag* = ref UiBagObj
+
   UiBoardViewObj = object of UiWidgetObj
     board*: Board
   UiBoardView* = ref UiBoardViewObj
   UiStatusBarObj = object of UiWidgetObj
   UiStatusBar* = ref UiStatusBarObj
+
+  UiSolidObj = object of UiWidgetObj
+    ch*: uint16
+    bg*, fg*: uint8
+  UiSolid* = ref UiSolidObj
 
   UiWindowObj = object of UiWidgetObj
   UiWindow* = ref UiWindowObj
@@ -22,9 +32,12 @@ type
 proc drawWidget*(gfx: GfxState, widget: UiWidget)
 proc drawWidget*(crop: GfxCrop, widget: UiWidget)
 method drawWidgetBase*(widget: UiWidget, crop: GfxCrop) {.base.}
+method drawWidgetBase*(widget: UiBag, crop: GfxCrop)
+method drawWidgetBase*(widget: UiSolid, crop: GfxCrop)
 method drawWidgetBase*(widget: UiBoardView, crop: GfxCrop)
 method drawWidgetBase*(widget: UiStatusBar, crop: GfxCrop)
 
+import ./grid
 import ./script/exprs
 
 proc drawWidget(gfx: GfxState, widget: UiWidget) =
@@ -57,15 +70,44 @@ method drawWidgetBase(widget: UiWidget, crop: GfxCrop) {.base.} =
             0xDF),
       )
 
+method drawWidgetBase(widget: UiBag, crop: GfxCrop) =
+  var
+    ch = widget.ch
+    bg = widget.bg
+    fg = widget.fg
+
+  for y in 0..(crop.h-1):
+    for x in 0..(crop.w-1):
+      crop.drawChar(
+        x = x, y = y,
+        bg = bg, fg = fg, ch = ch,
+      )
+
+  for innerWidget in widget.widgets:
+    crop.drawWidget(innerWidget)
+
+method drawWidgetBase(widget: UiSolid, crop: GfxCrop) =
+  var
+    ch = widget.ch
+    bg = widget.bg
+    fg = widget.fg
+
+  for y in 0..(crop.h-1):
+    for x in 0..(crop.w-1):
+      crop.drawChar(
+        x = x, y = y,
+        bg = bg, fg = fg, ch = ch,
+      )
+
 method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
   var board = widget.board
   assert board != nil
 
-  for y in 0..(boardHeight-1):
-    for x in 0..(boardWidth-1):
-      var gridseq = board.grid[y][x]
-      var (fgcolor, bgcolor, ch) = if gridseq.len >= 1:
-          var entity = gridseq[gridseq.len-1]
+  for y in 0..(min(crop.h, board.grid.h)-1):
+    for x in 0..(min(crop.w, board.grid.w)-1):
+      var entseq = board.grid[x, y]
+      var (fgcolor, bgcolor, ch) = if entseq.len >= 1:
+          var entity = entseq[entseq.len-1]
           var execBase = entity.execBase
           assert execBase != nil
 

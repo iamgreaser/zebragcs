@@ -2,13 +2,15 @@ import streams
 import strformat
 import tables
 
-const boardWidth* = 60
-const boardHeight* = 25
-
 type
   ScriptCompileError* = object of CatchableError
   ScriptExecError* = object of CatchableError
   ScriptParseError* = object of CatchableError
+
+  GridObj[T] = object
+    w*, h*: int64
+    body*: seq[T]
+  Grid*[T] = ref GridObj[T]
 
   ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
@@ -76,7 +78,7 @@ type
   BoardObj = object of ScriptExecStateObj
     world*: World
     boardName*: string
-    grid*: array[0..(boardHeight-1), array[0..(boardWidth-1), seq[Entity]]]
+    grid*: Grid[seq[Entity]]
     entities*: seq[Entity]
   Board* = ref BoardObj
 
