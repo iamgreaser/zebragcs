@@ -49,6 +49,8 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
       sps.parseExpr(), sps.parseExpr(),
     ])
 
+    of "dirx": return ScriptNode(kind: snkFunc, funcType: sftDirX, funcArgs: @[sps.parseExpr()])
+    of "diry": return ScriptNode(kind: snkFunc, funcType: sftDirY, funcArgs: @[sps.parseExpr()])
     of "random": return ScriptNode(kind: snkFunc, funcType: sftRandom, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
     of "randomdir": return ScriptNode(kind: snkFunc, funcType: sftRandomDir, funcArgs: @[])
     of "seek": return ScriptNode(kind: snkFunc, funcType: sftSeek, funcArgs: @[sps.parseExpr()])

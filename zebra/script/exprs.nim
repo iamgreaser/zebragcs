@@ -83,6 +83,20 @@ method funcAtBoard(board: Board, boardName: string, x: int64, y: int64): ScriptV
 method funcAtBoard(entity: Entity, boardName: string, x: int64, y: int64): ScriptVal =
   return entity.board.funcAtBoard(boardName, x, y)
 
+method funcDirComponents(execState: ScriptExecState, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base.} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
+method funcDirComponents(board: Board, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] =
+  case dir.kind:
+    of svkDir: (dir.dirValX, dir.dirValY)
+    else:
+      raise newException(ScriptExecError, &"Expected dir, got {dir} instead")
+method funcDirComponents(entity: Entity, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] =
+  case dir.kind:
+    of svkDir: (dir.dirValX, dir.dirValY)
+    of svkPos: (dir.posValX - entity.x, dir.posValY - entity.y)
+    else:
+      raise newException(ScriptExecError, &"Expected dir or pos, got {dir} instead")
+
 method funcSeek(execState: ScriptExecState, pos: ScriptVal): ScriptVal {.base.} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
 method funcSeek(entity: Entity, pos: ScriptVal): ScriptVal =
@@ -236,6 +250,18 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       var v0 = execState.resolveExpr(expr.funcArgs[1]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[2]).asInt()
       return execState.funcAtBoard(boardName, v0, v1)
+
+    of sftDirX:
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      var (dx, _) = execState.funcDirComponents(expr.funcType, v0)
+      return ScriptVal(kind: svkInt, intVal: dx)
+
+    of sftDirY:
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      var (_, dy) = execState.funcDirComponents(expr.funcType, v0)
+      return ScriptVal(kind: svkInt, intVal: dy)
 
     of sftRandom:
       assert expr.funcArgs.len == 2

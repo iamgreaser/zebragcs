@@ -197,6 +197,8 @@ type
     sftAtBoard,
     sftCcw,
     sftCw,
+    sftDirX,
+    sftDirY,
     sftEq,
     sftGe,
     sftGt,

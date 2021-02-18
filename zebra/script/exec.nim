@@ -116,6 +116,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           of satSet: assignSrc
           of satDec: ScriptVal(kind: svkInt, intVal: assignDst.asInt() - assignSrc.asInt())
           of satInc: ScriptVal(kind: svkInt, intVal: assignDst.asInt() + assignSrc.asInt())
+          of satMul: ScriptVal(kind: svkInt, intVal: assignDst.asInt() * assignSrc.asInt())
           else:
             raise newException(ScriptExecError, &"Unhandled assignment type {assignType}")
 

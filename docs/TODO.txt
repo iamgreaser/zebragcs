@@ -62,8 +62,8 @@ Also this document isn't actually Markdown.
     - [ ] Shark
     - [ ] Spinning gun
     - [ ] Pusher
-    - [ ] Lion
-    - [ ] Tiger
+    - [x] Lion
+    - [x] Tiger
     - [ ] Head
     - [ ] Segment
 

@@ -1,15 +1,22 @@
 # vim: sw=2 sts=2 et syntax= :
 
-param int @fgcolor 12
-param int @char 234
+param int @fgcolor 11
+param int @char 227
 param bool @physblock true
 
 param int @intelligence 4
+param int @firingrate 4
 
 global int $givecount
 global dir $pushdir
 global bool $didmsgammoget
 global pos $playerpos
+
+local dir %bulletdir idle
+local int %playerdirx 0
+local int %playerdiry 0
+local int %playerdirax 0
+local int %playerdiray 0
 
 on state main {
   sleep 2
@@ -27,6 +34,40 @@ on state main {
     if @physblock {
       send $pushdir push
       move $pushdir
+
+      # Now attempt the shot
+      if le random 0 26 @firingrate {
+        set %playerdirx dirx $playerpos
+        set %playerdiry diry $playerpos
+        set %playerdirax %playerdirx
+        set %playerdiray %playerdiry
+        if lt %playerdirax 0 { mul %playerdirax -1 }
+        if lt %playerdiray 0 { mul %playerdiray -1 }
+
+        set %bulletdir idle
+        if le %playerdirax 2 {
+          if gt %playerdiry 0 {
+            set %bulletdir south
+          } else {
+            set %bulletdir north
+          }
+        } else {
+          if le %playerdiray 2 {
+            if gt %playerdirx 0 {
+              set %bulletdir east
+            } else {
+              set %bulletdir west
+            }
+          }
+        }
+
+        if ne %bulletdir idle {
+          spawn %bulletdir bullet {
+            set @movedir %bulletdir
+            set @harmenemy false
+          }
+        }
+      }
     } else {
       say "...wait, what?"
     }

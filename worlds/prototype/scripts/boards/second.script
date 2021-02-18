@@ -4,6 +4,7 @@
 
 local int %x 0
 local int %y 0
+local int %rnd 0
 
 on event initworld {
   #spawn at 30 12 player
@@ -12,7 +13,9 @@ on event initworld {
   while lt %y 22 {
     set %x 20
     while lt %x 25 {
-      spawn at %x %y lion
+      set %rnd random 0 1
+      if eq %rnd 0 { spawn at %x %y lion {} }
+      if eq %rnd 1 { spawn at %x %y tiger {} }
       inc %x 1
     }
 
