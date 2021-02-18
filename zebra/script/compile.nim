@@ -6,7 +6,7 @@ import times
 
 import ../types
 
-proc newScriptParseState*(strm: Stream): ScriptParseState
+proc newScriptParseState*(strm: Stream, fname: string): ScriptParseState
 proc newScriptSharedExecState*(rootDir: string): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
 proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string)
@@ -15,9 +15,10 @@ proc loadWorldControllerFromFile*(share: ScriptSharedExecState)
 import ./nodes
 
 
-proc newScriptParseState(strm: Stream): ScriptParseState =
+proc newScriptParseState(strm: Stream, fname: string): ScriptParseState =
   ScriptParseState(
     strm: strm,
+    fname: fname,
     row: 1, col: 1,
   )
 
@@ -85,8 +86,8 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
 
   return execBase
 
-proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stream) =
-  var sps = newScriptParseState(strm)
+proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stream, fname: string) =
+  var sps = newScriptParseState(strm, fname)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot(entityName)
@@ -99,12 +100,12 @@ proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadEntityType(entityName, strm)
+    share.loadEntityType(entityName, strm, fname)
   finally:
     strm.close()
 
-proc loadBoardController(share: ScriptSharedExecState, controllerName: string, strm: Stream) =
-  var sps = newScriptParseState(strm)
+proc loadBoardController(share: ScriptSharedExecState, controllerName: string, strm: Stream, fname: string) =
+  var sps = newScriptParseState(strm, fname)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot(controllerName)
@@ -117,12 +118,12 @@ proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: 
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadBoardController(controllerName, strm)
+    share.loadBoardController(controllerName, strm, fname)
   finally:
     strm.close()
 
-proc loadWorldController(share: ScriptSharedExecState, strm: Stream) =
-  var sps = newScriptParseState(strm)
+proc loadWorldController(share: ScriptSharedExecState, strm: Stream, fname: string) =
+  var sps = newScriptParseState(strm, fname)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot("world")
@@ -136,6 +137,6 @@ proc loadWorldControllerFromFile*(share: ScriptSharedExecState) =
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadWorldController(strm)
+    share.loadWorldController(strm, fname)
   finally:
     strm.close()

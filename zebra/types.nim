@@ -17,6 +17,7 @@ type
   ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
     strm*: Stream
+    fname*: string
     row*, col*: int64
     tokenPushStack*: seq[ScriptToken]
 

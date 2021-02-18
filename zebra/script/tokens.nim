@@ -21,7 +21,7 @@ const maxPeekDist = 200
 
 
 proc newScriptParseError(sps: ScriptParseState, message: string): ref ScriptParseError =
-  newException(ScriptParseError, &"{sps.row}:{sps.col}: {message}")
+  newException(ScriptParseError, &"{sps.fname}:{sps.row}:{sps.col}: {message}")
 
 proc skipBytes(sps: ScriptParseState, count: int) =
   var skipped = sps.strm.readstr(count)
