@@ -162,7 +162,9 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bo
     true
 
 proc addEntityToGrid(board: Board, entity: Entity) =
-  assert board.canAddEntityToGridPos(entity, entity.x, entity.y)
+  # May be useful for safety, but clashes with forcemove. --GM
+  #assert board.canAddEntityToGridPos(entity, entity.x, entity.y)
+
   board.grid[entity.x, entity.y].add(entity)
 
 proc addEntityToList(board: Board, entity: Entity) =

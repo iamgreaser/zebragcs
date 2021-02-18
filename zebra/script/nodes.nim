@@ -154,6 +154,14 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           kind: snkDie,
         ))
 
+      of "forcemove":
+        var dirExpr = sps.parseExpr()
+        nodes.add(ScriptNode(
+          kind: snkForceMove,
+          forceMoveDirExpr: dirExpr,
+        ))
+
+
       of "if":
         var ifTest = sps.parseExpr()
         sps.expectToken(stkBraceOpen)
@@ -264,7 +272,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         awaitingEol = true
 
       else:
-        raise newScriptParseError(sps, &"Unexpected word token \"{tok.strval}\"")
+        raise newScriptParseError(sps, &"Unexpected word token \"{tok.wordVal}\"")
     else:
       if tok.kind == endKind:
         return nodes

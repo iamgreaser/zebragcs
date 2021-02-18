@@ -211,6 +211,7 @@ type
     snkBroadcast,
     snkConst,
     snkDie,
+    snkForceMove,
     snkFunc,
     snkGlobalDef,
     snkGlobalVar,
@@ -253,6 +254,8 @@ type
       assignType*: ScriptAssignType
       assignDstExpr*: ScriptNode
       assignSrcExpr*: ScriptNode
+    of snkForceMove:
+      forceMoveDirExpr*: ScriptNode
     of snkFunc:
       funcType*: ScriptFuncType
       funcArgs*: seq[ScriptNode]
@@ -325,6 +328,7 @@ proc `$`*(x: ScriptNode): string =
   of snkBroadcast: return &"Broadcast({x.broadcastEventName})"
   of snkConst: return &"Const({x.constVal})"
   of snkDie: return &"Die"
+  of snkForceMove: return &"ForceMove({x.moveDirExpr})"
   of snkFunc: return &"Func:{x.funcType}({x.funcArgs})"
   of snkGlobalDef: return &"GlobalDef(${x.globalDefName}: {x.globalDefType})"
   of snkGlobalVar: return &"GlobalVar(${x.globalVarName})"
@@ -332,7 +336,7 @@ proc `$`*(x: ScriptNode): string =
   of snkIfBlock: return &"If({x.ifTest}, then {x.ifBody}, else {x.ifElse})"
   of snkLocalDef: return &"LocalDef(@{x.localDefName}: {x.localDefType} := {x.localDefInitValue})"
   of snkLocalVar: return &"LocalVar(@{x.localVarName})"
-  of snkMove: return &"Move({x.moveDirExpr})"
+  of snkMove: return &"Move({x.moveDirExpr} else {x.moveElse})"
   of snkOnEventBlock: return &"OnEvent({x.onEventName}: {x.onEventBody})"
   of snkOnStateBlock: return &"OnState({x.onStateName}: {x.onStateBody})"
   of snkParamDef: return &"ParamDef(@{x.paramDefName}: {x.paramDefType} := {x.paramDefInitValue})"

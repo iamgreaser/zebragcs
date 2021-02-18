@@ -20,6 +20,16 @@ method stmtDie(entity: Entity) =
   board.removeEntityFromGrid(entity)
   procCall stmtDie(ScriptExecState(entity))
 
+method stmtForceMovePerformRel(execState: ScriptExecState, dx, dy: int64): bool {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for move")
+method stmtForceMovePerformRel(entity: Entity, dx, dy: int64): bool =
+  entity.forceMoveBy(dx, dy)
+
+method stmtForceMovePerformAbs(execState: ScriptExecState, boardName: string, dx, dy: int64): bool {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for move")
+method stmtForceMovePerformAbs(entity: Entity, boardName: string, dx, dy: int64): bool =
+  entity.forceMoveTo(entity.board.world.boards[boardName], dx, dy)
+
 method stmtMovePerformRel(execState: ScriptExecState, dx, dy: int64): bool {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for move")
 method stmtMovePerformRel(entity: Entity, dx, dy: int64): bool =
@@ -114,6 +124,14 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
       of snkDie:
         execState.stmtDie()
         return
+
+      of snkForceMove:
+        var moveDir = execState.resolveExpr(node.forceMoveDirExpr)
+        case moveDir.kind
+          of svkDir: execState.stmtForceMovePerformRel(moveDir.dirValX, moveDir.dirValY)
+          of svkPos: execState.stmtForceMovePerformAbs(moveDir.posBoardName, moveDir.posValX, moveDir.posValY)
+          else:
+            raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
 
       of snkGoto:
         var stateName: string = node.gotoStateName

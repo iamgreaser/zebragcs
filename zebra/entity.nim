@@ -2,6 +2,8 @@ import tables
 
 import ./types
 
+proc forceMoveBy*(entity: Entity, dx: int64, dy: int64)
+proc forceMoveTo*(entity: Entity, board: Board, x: int64, y: int64)
 proc hasPhysBlock*(entity: Entity): bool
 proc hasPhysGhost*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
@@ -61,6 +63,25 @@ proc canMoveTo(entity: Entity, board: Board, x: int64, y: int64): bool =
     false
   else:
     board.canAddEntityToGridPos(entity, x, y)
+
+proc forceMoveTo(entity: Entity, board: Board, x: int64, y: int64) =
+  assert board != nil
+  var srcBoard = entity.board
+  assert srcBoard != nil
+  var dstBoard = board
+  assert dstBoard != nil
+  if x != entity.x or y != entity.y or srcBoard != dstBoard:
+    srcBoard.removeEntityFromGrid(entity)
+    entity.x = x
+    entity.y = y
+    if srcBoard != dstBoard:
+      srcBoard.removeEntityFromList(entity)
+      dstBoard.addEntityToList(entity)
+      entity.board = dstBoard
+    dstBoard.addEntityToGrid(entity)
+
+proc forceMoveBy(entity: Entity, dx: int64, dy: int64) =
+  entity.forceMoveTo(entity.board, entity.x + dx, entity.y + dy)
 
 proc moveTo(entity: Entity, board: Board, x: int64, y: int64): bool =
   assert board != nil
