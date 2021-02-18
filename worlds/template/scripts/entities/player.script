@@ -1,0 +1,20 @@
+param int @char 2
+param int @fgcolor 15
+param int @bgcolor 4
+
+local dir %movedir idle
+
+on state main {
+  sleep 1
+  if ne %movedir idle {
+    send %movedir touch
+    send %movedir push
+    move %movedir
+    set %movedir idle
+  }
+}
+
+on event typeup { set %movedir north }
+on event typedown { set %movedir south }
+on event typeleft { set %movedir west }
+on event typeright { set %movedir east }

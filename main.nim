@@ -19,7 +19,13 @@ const boardVisWidth = 60
 const boardVisHeight = 25
 
 proc main() =
+  var args = commandLineParams()
   var worldName = "prototype"
+  case args.len
+  of 0: discard
+  of 1: worldName = args[0]
+  else:
+    raise newException(Exception, &"{args} not valid for command-line arguments")
   var gameRunning: bool = true
 
   var share = newScriptSharedExecState(
