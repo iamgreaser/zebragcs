@@ -4,6 +4,4 @@ on event initworld {
 }
 
 on state main {
-  say "World tick."
-  sleep 20
 }
