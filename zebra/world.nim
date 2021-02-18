@@ -7,12 +7,15 @@ import ./types
 
 proc broadcastEvent*(world: World, eventName: string)
 proc loadWorld*(worldName: string): World
-proc spawnPlayer*(world: World): Entity
+proc spawnPlayer*(world: World): Player
+
+import ./script/exec
+
+method tick*(world: World)
 
 import ./board
 import ./entity
 import ./script/compile
-import ./script/exec
 import ./script/exprs
 
 proc getWorldController(share: ScriptSharedExecState): ScriptExecBase =
@@ -61,10 +64,14 @@ proc loadWorld(worldName: string): World =
   # Return
   world
 
-proc spawnPlayer(world: World): Entity =
+proc spawnPlayer(world: World): Player =
   var board = world.getBoard("entry")
   var playerEntity = board.newEntity("player", board.grid.w div 2, board.grid.h div 2)
-  playerEntity
+  var player = Player(
+    entity: playerEntity,
+  )
+  world.players.add(player)
+  player
 
 proc broadcastEvent(world: World, eventName: string) =
   world.tickEvent(eventName)
@@ -73,3 +80,17 @@ proc broadcastEvent(world: World, eventName: string) =
     boardsCopy.add(board)
   for board in boardsCopy:
     board.broadcastEvent(eventName)
+
+method tick(world: World) =
+  procCall tick(ScriptExecState(world))
+
+  var boardsToTick: seq[Board] = @[]
+  for player in world.players:
+    var entity = player.entity
+    if entity != nil:
+      var board = entity.board
+      assert entity.board != nil
+      boardsToTick.add(board)
+
+  for board in boardsToTick:
+    board.tick()

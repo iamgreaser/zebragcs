@@ -7,7 +7,6 @@ import strformat
 import ./zebra/world
 import ./zebra/board
 import ./zebra/gfx
-import ./zebra/script/exec
 import ./zebra/types
 import ./zebra/ui
 
@@ -30,13 +29,15 @@ proc main() =
   withOpenGfx gfx:
     world.broadcastEvent("initworld")
 
-    var playerEntity = world.spawnPlayer()
-    echo &"player entity: {playerEntity}\n"
+    var player = world.spawnPlayer()
+    echo &"player: {player}\n"
+    assert player.entity != nil
+    assert player.entity.board != nil
 
     var
       boardViewWidget = UiBoardView(
         x: 0, y: 0, w: 60, h: 25,
-        board: playerEntity.board,
+        board: player.entity.board,
       )
       statusBarWidget = UiStatusBar(
         x: 60, y: 0, w: 20, h: 25,
@@ -51,13 +52,14 @@ proc main() =
     rootWidget.widgets.add(statusBarWidget)
     rootWidget.widgets.add(boardViewWidget)
 
-    while gameRunning and playerEntity.alive:
+    while gameRunning and player.entity != nil and player.entity.alive:
       world.tick()
-      playerEntity.board.tick()
-      assert playerEntity.board.entities.contains(playerEntity)
+      if player.entity == nil:
+        break
+      assert player.entity.board.entities.contains(player.entity)
 
       block:
-        var board = playerEntity.board
+        var board = player.entity.board
         boardViewWidget.board = board
         boardViewWidget.x = max(0, (boardVisWidth - board.grid.w) div 2)
         boardViewWidget.y = max(0, (boardVisHeight - board.grid.h) div 2)
@@ -85,8 +87,10 @@ proc main() =
             discard
           else:
             # TODO: Handle key repeat properly --GM
-            playerEntity.board.broadcastEvent(&"press{ev.keyType}")
-            playerEntity.board.broadcastEvent(&"type{ev.keyType}")
+            var entity = player.entity
+            assert entity != nil
+            entity.board.broadcastEvent(&"press{ev.keyType}")
+            entity.board.broadcastEvent(&"type{ev.keyType}")
 
         of ievKeyRelease:
           if ev.keyType == ikEsc:
@@ -94,7 +98,9 @@ proc main() =
             gameRunning = false
             break
           else:
-            playerEntity.board.broadcastEvent(&"release{ev.keyType}")
+            var entity = player.entity
+            assert entity != nil
+            entity.board.broadcastEvent(&"release{ev.keyType}")
 
         #else: discard
 

@@ -15,8 +15,9 @@ proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
 proc sendEventToPos*(board: Board, eventName: string, x: int64, y: int64)
 
-
 import ./script/exec
+
+method tick*(board: Board)
 
 import ./entity
 import ./grid

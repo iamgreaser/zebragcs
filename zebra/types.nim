@@ -77,7 +77,12 @@ type
 
   WorldObj = object of ScriptExecStateObj
     boards*: Table[string, Board]
+    players*: seq[Player]
   World* = ref WorldObj
+
+  PlayerObj = object
+    entity*: Entity
+  Player* = ref PlayerObj
 
   BoardInfoObj = object
     boardName*: string
@@ -400,3 +405,6 @@ proc `$`*(x: Entity): string =
 
 proc `$`*(x: Board): string =
   &"Board(entities={x.entities}, share={x.share}, activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
+
+proc `$`*(x: Player): string =
+  &"Player(entity={x.entity})"
