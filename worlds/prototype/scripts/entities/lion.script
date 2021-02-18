@@ -1,0 +1,70 @@
+# vim: sw=2 sts=2 et syntax= :
+
+param int @fgcolor 12
+param int @char 234
+param bool @physblock true
+
+param int @intelligence 4
+
+global int $givecount
+global dir $pushdir
+global bool $didmsgammoget
+
+on state main {
+  sleep 2
+  if @physblock {
+    if le random 0 9 @intelligence {
+      set $pushdir randomdir
+    } else {
+      # TODO!
+      set $pushdir randomdir
+    }
+
+    set $givecount 10
+    send $pushdir enemydamage
+    # The ack will kill this but just in case
+    if @physblock {
+      send $pushdir push
+      move $pushdir
+    } else {
+      say "...wait, what?"
+    }
+  } else {
+    goto dead
+  }
+}
+
+on state dead {
+  # TODO: Animate this --GM
+  die
+}
+
+on event ackenemydamage {
+  if @physblock {
+    set @physblock false
+    goto dead
+  }
+}
+
+on event push {
+  if @physblock {
+    send $pushdir push
+    move $pushdir else { die }
+  }
+}
+
+on event shot {
+  if @physblock {
+    set @physblock false
+    goto dead
+  }
+}
+
+on event touch {
+  if @physblock {
+    set @physblock false
+    set $givecount 10
+    send opp $pushdir enemydamage
+    goto dead
+  }
+}

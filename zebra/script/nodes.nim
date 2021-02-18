@@ -49,6 +49,9 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
       sps.parseExpr(), sps.parseExpr(),
     ])
 
+    of "random": return ScriptNode(kind: snkFunc, funcType: sftRandom, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
+    of "randomdir": return ScriptNode(kind: snkFunc, funcType: sftRandomDir, funcArgs: @[])
+
     else:
       raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
   else:

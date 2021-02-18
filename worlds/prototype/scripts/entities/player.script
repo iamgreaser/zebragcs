@@ -76,6 +76,17 @@ on event typew {
   }
 }
 
+on event enemydamage {
+  dec @health $givecount
+  send opp $pushdir ackenemydamage
+  if ge @health 1 {
+    say "Ouch!"
+  } else {
+    say "Game over - Press ESCAPE"
+    goto dead
+  }
+}
+
 on event enemyshot {
   dec @health 10
   if ge @health 1 {

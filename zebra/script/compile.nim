@@ -2,6 +2,7 @@ import streams
 import strformat
 import strutils
 import tables
+import times
 
 import ../types
 
@@ -21,9 +22,11 @@ proc newScriptParseState(strm: Stream): ScriptParseState =
   )
 
 proc newScriptSharedExecState(rootDir: string): ScriptSharedExecState =
+  var t = getTime()
   ScriptSharedExecState(
     globals: initTable[string, ScriptVal](),
     rootDir: (rootDir & "/").replace("//", "/"),
+    seed: uint64(t.toUnix())*1000000000'u64 + uint64(t.nanosecond),
   )
 
 proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =

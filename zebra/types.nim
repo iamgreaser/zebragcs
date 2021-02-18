@@ -61,6 +61,7 @@ type
     worldController*: ScriptExecBase
     world*: World
     rootDir*: string
+    seed*: uint64
 
   ScriptExecStateObj = object of RootObj
     share*: ScriptSharedExecState
@@ -204,6 +205,8 @@ type
     sftNe,
     sftNot,
     sftOpp,
+    sftRandom,
+    sftRandomDir,
     sftThispos,
 
   ScriptNodeKind* = enum

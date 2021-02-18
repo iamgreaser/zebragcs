@@ -8,10 +8,16 @@ local int %y 0
 on event initworld {
   #spawn at 30 12 player
 
-  set %y 15
-  while lt %y 20 {
+  set %y 17
+  while lt %y 22 {
     set %x 20
     while lt %x 25 {
+      spawn at %x %y lion
+      inc %x 1
+    }
+
+    set %x 40
+    while lt %x 45 {
       spawn at %x %y ammo
       inc %x 1
     }

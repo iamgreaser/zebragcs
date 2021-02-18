@@ -28,6 +28,22 @@ method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardName: string, x: 
     else:
       raise newException(ScriptExecError, &"Expected dir or pos, got {val} instead")
 
+proc randomUintBelow(execState: ScriptExecState, n: uint64): int64 =
+  # xorshift64*
+  var share = execState.share
+  assert share != nil
+  var x = share.seed
+  x = x xor (x shr 12)
+  x = x xor (x shl 25)
+  x = x xor (x shr 27)
+  share.seed = x
+  x *= 0x2545F4914F6CDD1D'u64
+
+  # Reduce the space
+  x = (x div 2) div (0x8000000000000000'u64 div n)
+  assert x >= 0 and x < n
+  return int64(x)
+
 proc asBool(x: ScriptVal): bool =
   case x.kind
   of svkBool: x.boolVal
@@ -197,6 +213,31 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       var v0 = execState.resolveExpr(expr.funcArgs[1]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[2]).asInt()
       return execState.funcAtBoard(boardName, v0, v1)
+
+    of sftRandom:
+      assert expr.funcArgs.len == 2
+      var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
+      var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
+      var vout = if v0 < v1:
+          v0 + execState.randomUintBelow(uint64(v1+1-v0))
+        elif v1 < v0:
+          v1 + execState.randomUintBelow(uint64(v0+1-v1))
+        elif v0 == v1:
+          v0
+        else:
+          raise newException(ScriptExecError, &"EDOOFUS: Math itself has somehow failed ({v0} vs {v1})")
+
+      return ScriptVal(kind: svkInt, intVal: vout)
+
+    of sftRandomDir:
+      assert expr.funcArgs.len == 0
+      case execState.randomUintBelow(4'u64)
+        of 0'i64: return ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1)
+        of 1'i64: return ScriptVal(kind: svkDir, dirValX: 0, dirValY: +1)
+        of 2'i64: return ScriptVal(kind: svkDir, dirValX: -1, dirValY: 0)
+        of 3'i64: return ScriptVal(kind: svkDir, dirValX: +1, dirValY: 0)
+        else:
+          raise newException(ScriptExecError, &"EDOOFUS: Missing a case for randomdir!")
 
     #else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
 
