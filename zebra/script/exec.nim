@@ -50,6 +50,18 @@ method stmtSend(entity: Entity, dirOrPos: ScriptVal, eventName: string) =
 
 method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for spawn")
+method stmtSpawn(world: World, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
+  var (boardName, x, y) = world.resolvePos(dirOrPos)
+  var otherBoard = try:
+      # FIXME getBoard causes a crash under some circumstances, need to fix this --GM
+      #world.getBoard(boardName)
+      world.boards[boardName]
+    except KeyError:
+      raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
+  assert otherBoard != nil
+
+  var newEntity = otherBoard.newEntity(entityName, x, y)
+  return newEntity
 method stmtSpawn(board: Board, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity =
   var (boardName, x, y) = board.resolvePos(dirOrPos)
   var world = board.world

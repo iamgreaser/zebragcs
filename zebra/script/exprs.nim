@@ -11,6 +11,11 @@ proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 
 method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
+method resolvePos*(world: World, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
+  case val.kind:
+    of svkPos: (val.posBoardName, val.posValX, val.posValY)
+    else:
+      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
 method resolvePos*(board: Board, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
     of svkPos: (val.posBoardName, val.posValX, val.posValY)
