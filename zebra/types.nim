@@ -207,6 +207,7 @@ type
     sftOpp,
     sftRandom,
     sftRandomDir,
+    sftSeek,
     sftThispos,
 
   ScriptNodeKind* = enum

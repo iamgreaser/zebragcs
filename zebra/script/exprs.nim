@@ -83,6 +83,29 @@ method funcAtBoard(board: Board, boardName: string, x: int64, y: int64): ScriptV
 method funcAtBoard(entity: Entity, boardName: string, x: int64, y: int64): ScriptVal =
   return entity.board.funcAtBoard(boardName, x, y)
 
+method funcSeek(execState: ScriptExecState, pos: ScriptVal): ScriptVal {.base.} =
+  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
+method funcSeek(entity: Entity, pos: ScriptVal): ScriptVal =
+  var thisBoardName = entity.board.boardName
+  var (otherBoardName, dx, dy) = case pos.kind:
+    of svkPos: (pos.posBoardName, pos.posValX - entity.x, pos.posValY - entity.y)
+    else:
+      raise newException(ScriptExecError, &"Expected dir or pos, got {pos} instead")
+
+  # If the boards are different, go idle instead.
+  if otherBoardName != thisBoardName:
+    return ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0)
+
+  dx = max(-1, min(1, dx))
+  dy = max(-1, min(1, dy))
+
+  if dx == 0 or dy == 0:
+    return ScriptVal(kind: svkDir, dirValX: dx, dirValY: dy)
+  elif entity.randomUintBelow(2) == 0:
+    return ScriptVal(kind: svkDir, dirValX: 0, dirValY: dy)
+  else:
+    return ScriptVal(kind: svkDir, dirValX: dx, dirValY: 0)
+
 proc defaultScriptVal(execState: ScriptExecState, kind: ScriptValKind): ScriptVal =
   case kind
   of svkBool: ScriptVal(kind: kind, boolVal: false)
@@ -238,6 +261,11 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         of 3'i64: return ScriptVal(kind: svkDir, dirValX: +1, dirValY: 0)
         else:
           raise newException(ScriptExecError, &"EDOOFUS: Missing a case for randomdir!")
+
+    of sftSeek:
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      return execState.funcSeek(v0)
 
     #else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
 
