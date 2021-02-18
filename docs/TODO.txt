@@ -26,6 +26,14 @@ Also this document isn't actually Markdown.
 
 - [x] Combine multiple boards into a world.
 
+- [ ] Entity reference type support.
+  - [ ] Add an entity reference type.
+  - [ ] Allow using these instead of a dir/pos in `send`.
+
+- [ ] Player script support.
+  - [ ] Add player script types.
+  - [ ] Send input events to the local player only, which then passes them onto their bound entity.
+
 - [ ] Virtual FS support.
       This will also support the Actual FS, but the Virtual FS system will be used for that.
   - [ ] ActualFS (R/W, random-access)
