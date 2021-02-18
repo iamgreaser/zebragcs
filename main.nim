@@ -3,13 +3,10 @@ when defined(profiler):
 
 import os
 import strformat
-import strutils
 
 import ./zebra/world
 import ./zebra/board
-import ./zebra/entity
 import ./zebra/gfx
-import ./zebra/script/compile
 import ./zebra/script/exec
 import ./zebra/types
 import ./zebra/ui
@@ -28,23 +25,12 @@ proc main() =
     raise newException(Exception, &"{args} not valid for command-line arguments")
   var gameRunning: bool = true
 
-  var share = newScriptSharedExecState(
-    rootDir = &"worlds/{worldName}/",
-  )
-  var world = share.loadWorld()
-  for dirName in walkDirs((&"{share.rootDir}/boards/*/").replace("//", "/")):
-    var componentList = dirName.split("/")
-    var boardName = componentList[componentList.len-2]
-    echo &"Loading board \"{boardName}\""
-    discard world.loadBoardFromFile(boardName)
-
+  var world = loadWorld(worldName)
 
   withOpenGfx gfx:
     world.broadcastEvent("initworld")
 
-    var playerEntity = block:
-      var board = world.getBoard("entry")
-      board.newEntity("player", board.grid.w div 2, board.grid.h div 2)
+    var playerEntity = world.spawnPlayer()
     echo &"player entity: {playerEntity}\n"
 
     var
