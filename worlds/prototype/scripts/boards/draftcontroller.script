@@ -21,12 +21,12 @@ on event initworld {
   spawn at 31 9 lockkey { set @fgcolor 13 }
 
   spawn at 40 14 passage {
-    set @targetpos atboard "second" 42 15
+    set @targetpos atboard second 42 15
     set @bgcolor 2
   }
   # I am so getting banned from everywhere for making it possible to spawn stuff on unloaded boards. --GM
-  spawn atboard "second" 42 15 passage {
-    set @targetpos atboard "entry" 40 14
+  spawn atboard second 42 15 passage {
+    set @targetpos atboard entry 40 14
     set @bgcolor 2
   }
 

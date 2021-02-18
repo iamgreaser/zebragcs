@@ -45,7 +45,9 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
 
     of "at": return ScriptNode(kind: snkFunc, funcType: sftAt, funcArgs: @[sps.parseExpr(), sps.parseExpr()])
     of "atboard": return ScriptNode(kind: snkFunc, funcType: sftAtBoard, funcArgs: @[
-      sps.parseExpr(),
+      ScriptNode(kind: snkConst, constVal: ScriptVal(
+        kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
+      )),
       sps.parseExpr(), sps.parseExpr(),
     ])
 
