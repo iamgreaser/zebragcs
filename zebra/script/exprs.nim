@@ -93,7 +93,11 @@ method funcDirComponents(board: Board, funcType: ScriptFuncType, dir: ScriptVal)
 method funcDirComponents(entity: Entity, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] =
   case dir.kind:
     of svkDir: (dir.dirValX, dir.dirValY)
-    of svkPos: (dir.posValX - entity.x, dir.posValY - entity.y)
+    of svkPos:
+      if dir.posBoardName != entity.board.boardName:
+        (0'i64, 0'i64)
+      else:
+        (dir.posValX - entity.x, dir.posValY - entity.y)
     else:
       raise newException(ScriptExecError, &"Expected dir or pos, got {dir} instead")
 
