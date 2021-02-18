@@ -145,6 +145,9 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bo
   if not (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
     false
   else:
+    if entity.hasPhysGhost():
+      return true
+
     var entseq = board.grid[x, y]
     if entseq.len == 0:
       return true

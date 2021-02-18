@@ -3,6 +3,7 @@ import tables
 import ./types
 
 proc hasPhysBlock*(entity: Entity): bool
+proc hasPhysGhost*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
 proc moveTo*(entity: Entity, board: Board, x: int64, y: int64): bool
 proc newEntity*(board: Board, entityType: string, x, y: int64): Entity
@@ -90,3 +91,9 @@ proc hasPhysBlock(entity: Entity): bool =
     entity.params["physblock"].asBool()
   except KeyError:
     true
+
+proc hasPhysGhost(entity: Entity): bool =
+  try:
+    entity.params["physghost"].asBool()
+  except KeyError:
+    false
