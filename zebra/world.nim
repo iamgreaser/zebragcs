@@ -82,7 +82,7 @@ method tick(world: World) =
   # Work out which boards to tick
   var boardsToTick: seq[Board] = @[]
   for player in world.players:
-    var (board, cx, cy) = player.getCamera()
+    var (board, _, _) = player.getCamera()
     if board != nil:
       boardsToTick.add(board)
 

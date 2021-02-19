@@ -23,6 +23,7 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
     of "true": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: true))
 
     of "noentity": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkEntity, entityRef: nil))
+    of "noplayer": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkPlayer, playerRef: nil))
 
     of "i", "idle": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0))
     of "n", "north": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1))

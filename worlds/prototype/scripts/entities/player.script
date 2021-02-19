@@ -9,6 +9,7 @@ param int @gems 0
 param int @score 0
 param bool @shiftpressed false
 param dir @nextdir idle
+param player @parentplayer noplayer
 global entity $touchsrc
 global entity $damagesrc
 global entity $playerent
@@ -62,8 +63,12 @@ on state dead {
   if eq $playerent self {
     set $playerent noentity
   }
-  die
+  set @char 1
   sleep 1
+}
+
+on event disown {
+  die
 }
 
 on event teleport {
@@ -93,6 +98,8 @@ on event enemydamage {
   } else {
     #say "Game over - Press ESCAPE"
     say "You died - Press R to respawn"
+    send @parentplayer needrespawn
+    set @parentplayer noplayer
     goto dead
   }
 }
@@ -104,6 +111,8 @@ on event enemyshot {
   } else {
     #say "Game over - Press ESCAPE"
     say "You died - Press R to respawn"
+    send @parentplayer needrespawn
+    set @parentplayer noplayer
     goto dead
   }
 }

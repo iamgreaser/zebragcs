@@ -48,25 +48,32 @@ method stmtBroadcast(entity: Entity, eventName: string) =
   board.broadcastEvent(eventName)
 
 method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventName: string) {.base, locks: "unknown".} =
-  if dirOrPos.kind == svkEntity:
-    var otherEntity = dirOrPos.entityRef
-    if otherEntity != nil:
-      if otherEntity.alive:
-        otherEntity.tickEvent(eventName)
-    return
+  case dirOrPos.kind
+  of svkEntity:
+    var entity = dirOrPos.entityRef
+    if entity != nil:
+      if entity.alive:
+        entity.tickEvent(eventName)
 
-  var share = execState.share
-  assert share != nil
-  var world = share.world
-  assert world != nil
+  of svkPlayer:
+    var player = dirOrPos.playerRef
+    if player != nil:
+      if player.alive:
+        player.tickEvent(eventName)
 
-  var (boardName, x, y) = execState.resolvePos(dirOrPos)
-  var board = try:
-      world.boards[boardName]
-    except KeyError:
-      raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
-  assert board != nil
-  board.sendEventToPos(eventName, x, y)
+  else:
+    var share = execState.share
+    assert share != nil
+    var world = share.world
+    assert world != nil
+
+    var (boardName, x, y) = execState.resolvePos(dirOrPos)
+    var board = try:
+        world.boards[boardName]
+      except KeyError:
+        raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
+    assert board != nil
+    board.sendEventToPos(eventName, x, y)
 
 method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
   var share = execState.share
@@ -173,6 +180,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
             else:
               "false"
           of svkEntity: &"<entity 0x{cast[uint](sayExpr.entityRef):x}>"
+          of svkPlayer: &"<player 0x{cast[uint](sayExpr.playerRef):x}>"
           of svkInt: $sayExpr.intVal
           of svkStr: sayExpr.strVal
           of svkDir: &"rel {sayExpr.dirValX} {sayExpr.dirValY}"

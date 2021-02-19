@@ -133,6 +133,7 @@ proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
   of "dir": svkDir
   of "entity": svkEntity
   of "int": svkInt
+  of "player": svkPlayer
   of "pos": svkPos
   of "str": svkStr
   else:

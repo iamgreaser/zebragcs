@@ -318,6 +318,7 @@ type
     svkDir,
     svkEntity,
     svkInt,
+    svkPlayer,
     svkPos,
     svkStr,
   ScriptVal* = ref ScriptValObj
@@ -327,6 +328,7 @@ type
     of svkDir: dirValX*, dirValY*: int64
     of svkEntity: entityRef*: Entity
     of svkInt: intVal*: int64
+    of svkPlayer: playerRef*: Player
     of svkPos:
       posBoardName*: string
       posValX*, posValY*: int64
@@ -334,6 +336,7 @@ type
 
 # Forward declarations
 proc `$`*(x: Entity): string
+proc `$`*(x: Player): string
 
 proc `$`*(x: ScriptVal): string =
   case x.kind
@@ -345,6 +348,11 @@ proc `$`*(x: ScriptVal): string =
     else:
       &"EntityV(nil)"
   of svkInt: &"IntV({x.intVal})"
+  of svkPlayer:
+    if x.playerRef != nil:
+      &"PlayerV({x.playerRef})"
+    else:
+      &"PlayerV(nil)"
   of svkPos: &"PosV({x.posBoardName}, {x.posValX}, {x.posValY})"
   of svkStr: &"StrV({x.strVal})"
 
@@ -413,13 +421,16 @@ proc `$`*(x: ScriptContinuation): string =
 proc `$`*(x: ScriptExecState): string =
   #&"ExecState(execBase={x.execBase}, activeState={x.activeState}, continuations={x.continuations})"
   #&"ExecState(activeState={x.activeState}, continuations={x.continuations})"
-  &"ExecState(activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
+  &"ExecState(activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Entity): string =
-  &"Entity(pos=({x.x}, {x.y}), activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
+  &"Entity(pos=({x.x}, {x.y}), activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Board): string =
-  &"Board(entities={x.entities}, share={x.share}, activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
+  &"Board(boardName={x.boardName}, activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Player): string =
-  &"Player(share={x.share}, activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
+  &"Player(activeState={x.activeState}, alive={x.alive})"
+
+proc `$`*(x: World): string =
+  &"World(activeState={x.activeState}, alive={x.alive})"
