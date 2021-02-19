@@ -50,6 +50,13 @@ method stmtBroadcast(entity: Entity, eventName: string) =
 method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventName: string) {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for send")
 method stmtSend(entity: Entity, dirOrPos: ScriptVal, eventName: string) =
+  if dirOrPos.kind == svkEntity:
+    var otherEntity = dirOrPos.entityRef
+    if otherEntity != nil:
+      if otherEntity.alive:
+        otherEntity.tickEvent(eventName)
+    return
+
   var (boardName, x, y) = entity.resolvePos(dirOrPos)
   var board = try:
       entity.board.world.boards[boardName]
@@ -183,6 +190,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
               "true"
             else:
               "false"
+          of svkEntity: &"<entity 0x{cast[uint](sayExpr.entityRef):x}>"
           of svkInt: $sayExpr.intVal
           of svkStr: sayExpr.strVal
           of svkDir: &"rel {sayExpr.dirValX} {sayExpr.dirValY}"

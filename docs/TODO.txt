@@ -26,9 +26,9 @@ Also this document isn't actually Markdown.
 
 - [x] Combine multiple boards into a world.
 
-- [ ] Entity reference type support.
-  - [ ] Add an entity reference type.
-  - [ ] Allow using these instead of a dir/pos in `send`.
+- [x] Entity reference type support.
+  - [x] Add an entity reference type.
+  - [x] Allow using these instead of a dir/pos in `send`.
 
 - [ ] Player script support.
   - [ ] Add player script types.

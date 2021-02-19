@@ -131,6 +131,7 @@ proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
   case varTypeName
   of "bool": svkBool
   of "dir": svkDir
+  of "entity": svkEntity
   of "int": svkInt
   of "pos": svkPos
   of "str": svkStr

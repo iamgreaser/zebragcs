@@ -216,6 +216,7 @@ type
     sftRandom,
     sftRandomDir,
     sftSeek,
+    sftSelf,
     sftThispos,
 
   ScriptNodeKind* = enum
@@ -312,6 +313,7 @@ type
   ScriptValKind* = enum
     svkBool,
     svkDir,
+    svkEntity,
     svkInt,
     svkPos,
     svkStr,
@@ -320,16 +322,25 @@ type
     case kind*: ScriptValKind
     of svkBool: boolVal*: bool
     of svkDir: dirValX*, dirValY*: int64
+    of svkEntity: entityRef*: Entity
     of svkInt: intVal*: int64
     of svkPos:
       posBoardName*: string
       posValX*, posValY*: int64
     of svkStr: strVal*: string
 
+# Forward declarations
+proc `$`*(x: Entity): string
+
 proc `$`*(x: ScriptVal): string =
   case x.kind
   of svkBool: &"BoolV({x.boolVal})"
   of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
+  of svkEntity:
+    if x.entityRef != nil:
+      &"EntityV({x.entityRef})"
+    else:
+      &"EntityV(nil)"
   of svkInt: &"IntV({x.intVal})"
   of svkPos: &"PosV({x.posBoardName}, {x.posValX}, {x.posValY})"
   of svkStr: &"StrV({x.strVal})"

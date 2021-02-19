@@ -10,6 +10,8 @@ global int $givecount
 global dir $pushdir
 global bool $didmsgammoget
 global pos $playerpos
+global entity $touchsrc
+global entity $damagesrc
 
 on state main {
   sleep 2
@@ -21,6 +23,7 @@ on state main {
     }
 
     set $givecount 10
+    set $damagesrc self
     send $pushdir enemydamage
     # The ack should kill this but just in case
     # (apparently it sometimes doesn't? I do want to fix that. --GM)
@@ -65,7 +68,8 @@ on event touch {
   if @physblock {
     set @physblock false
     set $givecount 10
-    send opp $pushdir enemydamage
+    set $damagesrc self
+    send $touchsrc enemydamage
     goto dead
   }
 }

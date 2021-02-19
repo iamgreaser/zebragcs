@@ -6,6 +6,7 @@ param bool @physblock true
 global int $givecount
 global dir $pushdir
 global bool $didmsgammoget
+global entity $touchsrc
 
 on state idle {
 }
@@ -42,7 +43,7 @@ on event touch {
       say "Ammunition - 5 shots per container."
     }
     set $givecount 5
-    send opp $pushdir giveammo
+    send $touchsrc giveammo
     goto taken
   }
 }

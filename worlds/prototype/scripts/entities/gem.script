@@ -6,6 +6,7 @@ param bool @physblock true
 global int $givecount
 global dir $pushdir
 global bool $didmsggemget
+global entity $touchsrc
 
 on state idle {
 }
@@ -40,11 +41,11 @@ on event touch {
       say "Gems give you health!"
     }
     set $givecount 1
-    send opp $pushdir givegems
+    send $touchsrc givegems
     set $givecount 1
-    send opp $pushdir givehealth
+    send $touchsrc givehealth
     set $givecount 10
-    send opp $pushdir givescore
+    send $touchsrc givescore
     goto taken
   }
 }

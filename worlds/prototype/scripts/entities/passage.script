@@ -7,6 +7,7 @@ param bool @physblock false
 param pos @targetpos thispos
 global pos $teleportpos
 global dir $pushdir
+global entity $touchsrc
 
 on state idle {
 }
@@ -14,5 +15,5 @@ on state idle {
 on event touch {
   say "Touched."
   set $teleportpos @targetpos
-  send opp $pushdir teleport
+  send $touchsrc teleport
 }

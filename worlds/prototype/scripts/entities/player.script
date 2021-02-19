@@ -9,6 +9,8 @@ param int @gems 0
 param int @score 0
 param bool @shiftpressed false
 param dir @nextdir idle
+global entity $touchsrc
+global entity $damagesrc
 global int $givecount
 global pos $playerpos
 global dir $pushdir
@@ -44,6 +46,7 @@ on state main {
     } else {
       set $pushdir @nextdir
       set %prevpos thispos
+      set $touchsrc self
       send @nextdir touch
       if eq %prevpos thispos {
         move @nextdir
@@ -78,7 +81,7 @@ on event typew {
 
 on event enemydamage {
   dec @health $givecount
-  send opp $pushdir ackenemydamage
+  send $damagesrc ackenemydamage
   if ge @health 1 {
     say "Ouch!"
   } else {
