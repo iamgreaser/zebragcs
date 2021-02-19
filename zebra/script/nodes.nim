@@ -22,6 +22,8 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
     of "false": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: false))
     of "true": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: true))
 
+    of "noentity": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkEntity, entityRef: nil))
+
     of "i", "idle": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0))
     of "n", "north": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1))
     of "s", "south": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: +1))
@@ -29,6 +31,7 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
     of "e", "east": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: +1, dirValY: 0))
 
     of "self": return ScriptNode(kind: snkFunc, funcType: sftSelf, funcArgs: @[])
+    of "posof": return ScriptNode(kind: snkFunc, funcType: sftPosof, funcArgs: @[sps.parseExpr()])
 
     of "cw": return ScriptNode(kind: snkFunc, funcType: sftCw, funcArgs: @[sps.parseExpr()])
     of "opp": return ScriptNode(kind: snkFunc, funcType: sftOpp, funcArgs: @[sps.parseExpr()])

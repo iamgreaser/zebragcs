@@ -9,61 +9,8 @@ proc asStr*(x: ScriptVal): string
 proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
 proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 
-method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.base, locks: "unknown".} =
-  raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
-method resolvePos*(world: World, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
-  case val.kind:
-    of svkPos: (val.posBoardName, val.posValX, val.posValY)
-    else:
-      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
-method resolvePos*(board: Board, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
-  case val.kind:
-    of svkPos: (val.posBoardName, val.posValX, val.posValY)
-    else:
-      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
-method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
-  case val.kind:
-    of svkDir: (entity.board.boardName, entity.x + val.dirValX, entity.y + val.dirValY)
-    of svkPos: (val.posBoardName, val.posValX, val.posValY)
-    else:
-      raise newException(ScriptExecError, &"Expected dir or pos, got {val} instead")
-
-proc randomUintBelow(execState: ScriptExecState, n: uint64): int64 =
-  # xorshift64*
-  var share = execState.share
-  assert share != nil
-  var x = share.seed
-  x = x xor (x shr 12)
-  x = x xor (x shl 25)
-  x = x xor (x shr 27)
-  share.seed = x
-  x *= 0x2545F4914F6CDD1D'u64
-
-  # Reduce the space
-  x = (x div 2) div (0x8000000000000000'u64 div n)
-  assert x >= 0 and x < n
-  return int64(x)
-
-proc asBool(x: ScriptVal): bool =
-  case x.kind
-  of svkBool: x.boolVal
-  else:
-    raise newException(ScriptExecError, &"Expected bool, got {x} instead")
-
-proc asInt(x: ScriptVal): int64 =
-  case x.kind
-  of svkInt: x.intVal
-  else:
-    raise newException(ScriptExecError, &"Expected int, got {x} instead")
-
-proc asStr(x: ScriptVal): string =
-  case x.kind
-  of svkStr: x.strVal
-  else:
-    raise newException(ScriptExecError, &"Expected str, got {x} instead")
-
 method funcThisPos(execState: ScriptExecState): ScriptVal {.base, locks: "unknown".} =
-  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func thispos")
+  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func thispos (or posof)")
 method funcThisPos(entity: Entity): ScriptVal {.locks: "unknown".} =
   return ScriptVal(kind: svkPos, posBoardName: entity.board.boardName, posValX: entity.x, posValY: entity.y)
 
@@ -88,6 +35,81 @@ method funcAtBoard(board: Board, boardName: string, x: int64, y: int64): ScriptV
 method funcAtBoard(entity: Entity, boardName: string, x: int64, y: int64): ScriptVal =
   return entity.board.funcAtBoard(boardName, x, y)
 
+method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.base, locks: "unknown".} =
+  raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
+method resolvePos*(world: World, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
+  case val.kind:
+    of svkPos: (val.posBoardName, val.posValX, val.posValY)
+    of svkEntity:
+      var otherEntity = val.entityRef
+      var pos = if otherEntity != nil:
+        otherEntity.funcThisPos()
+      else:
+        world.funcThisPos()
+      (pos.posBoardName, pos.posValX, pos.posValY)
+    else:
+      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
+method resolvePos*(board: Board, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
+  case val.kind:
+    of svkPos: (val.posBoardName, val.posValX, val.posValY)
+    of svkEntity:
+      var otherEntity = val.entityRef
+      var pos = if otherEntity != nil:
+        otherEntity.funcThisPos()
+      else:
+        board.funcThisPos()
+      (pos.posBoardName, pos.posValX, pos.posValY)
+    else:
+      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
+method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
+  case val.kind:
+    of svkDir: (entity.board.boardName, entity.x + val.dirValX, entity.y + val.dirValY)
+    of svkPos: (val.posBoardName, val.posValX, val.posValY)
+    of svkEntity:
+      var otherEntity = val.entityRef
+      var pos = if otherEntity != nil:
+        otherEntity.funcThisPos()
+      else:
+        entity.funcThisPos()
+      (pos.posBoardName, pos.posValX, pos.posValY)
+    else:
+      raise newException(ScriptExecError, &"Expected dir, pos or entity, got {val} instead")
+
+proc randomUintBelow(execState: ScriptExecState, n: uint64): int64 =
+  # xorshift64*
+  var share = execState.share
+  assert share != nil
+  var x = share.seed
+  x = x xor (x shr 12)
+  x = x xor (x shl 25)
+  x = x xor (x shr 27)
+  share.seed = x
+  x *= 0x2545F4914F6CDD1D'u64
+
+  # Reduce the space
+  x = (x div 2) div (0x8000000000000000'u64 div n)
+  assert x >= 0 and x < n
+  return int64(x)
+
+proc asBool(x: ScriptVal): bool =
+  case x.kind
+  of svkBool: x.boolVal
+  of svkEntity: x.entityRef != nil
+  else:
+    raise newException(ScriptExecError, &"Expected bool or entity, got {x} instead")
+
+proc asInt(x: ScriptVal): int64 =
+  case x.kind
+  of svkInt: x.intVal
+  else:
+    raise newException(ScriptExecError, &"Expected int, got {x} instead")
+
+proc asStr(x: ScriptVal): string =
+  case x.kind
+  of svkStr: x.strVal
+  else:
+    raise newException(ScriptExecError, &"Expected str, got {x} instead")
+
 method funcDirComponents(execState: ScriptExecState, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base.} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
 method funcDirComponents(board: Board, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] =
@@ -110,10 +132,9 @@ method funcSeek(execState: ScriptExecState, pos: ScriptVal): ScriptVal {.base.} 
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
 method funcSeek(entity: Entity, pos: ScriptVal): ScriptVal =
   var thisBoardName = entity.board.boardName
-  var (otherBoardName, dx, dy) = case pos.kind:
-    of svkPos: (pos.posBoardName, pos.posValX - entity.x, pos.posValY - entity.y)
-    else:
-      raise newException(ScriptExecError, &"Expected dir or pos, got {pos} instead")
+  var (otherBoardName, x, y) = entity.resolvePos(pos)
+  var dx = x - entity.x
+  var dy = y - entity.y
 
   # If the boards are different, go idle instead.
   if otherBoardName != thisBoardName:
@@ -253,6 +274,19 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     of sftSelf:
       assert expr.funcArgs.len == 0
       return execState.funcSelf()
+
+    of sftPosof:
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      case v0.kind
+      of svkEntity:
+        var otherEntity = v0.entityRef
+        if otherEntity != nil:
+          return otherEntity.funcThisPos()
+        else:
+          return execState.funcThisPos()
+      else:
+        raise newException(ScriptExecError, &"Expected entity, got {v0} instead")
 
     of sftAt:
       assert expr.funcArgs.len == 2

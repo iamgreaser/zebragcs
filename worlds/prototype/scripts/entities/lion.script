@@ -9,17 +9,18 @@ param int @intelligence 4
 global int $givecount
 global dir $pushdir
 global bool $didmsgammoget
-global pos $playerpos
+global entity $playerent
 global entity $touchsrc
 global entity $damagesrc
 
 on state main {
   sleep 2
   if @physblock {
-    if le random 0 9 @intelligence {
-      set $pushdir seek $playerpos
-    } else {
-      set $pushdir randomdir
+    set $pushdir randomdir
+    if $playerent {
+      if le random 0 9 @intelligence {
+        set $pushdir seek $playerent
+      }
     }
 
     set $givecount 10

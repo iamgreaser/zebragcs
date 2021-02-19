@@ -11,8 +11,9 @@ param bool @shiftpressed false
 param dir @nextdir idle
 global entity $touchsrc
 global entity $damagesrc
-global int $givecount
+global entity $playerent
 global pos $playerpos
+global int $givecount
 global dir $pushdir
 global dir $shotdir
 global bool $didmsgoutofammo
@@ -20,6 +21,7 @@ global pos $teleportpos
 local pos %prevpos thispos
 
 on state main {
+  set $playerent self
   if eq @nextdir idle {
     sleep 1
   } else {
@@ -54,10 +56,13 @@ on state main {
     }
     set @nextdir idle
   }
-  set $playerpos thispos
 }
 
 on state dead {
+  if eq $playerent self {
+    set $playerent noentity
+  }
+  sleep 1
 }
 
 on event teleport {

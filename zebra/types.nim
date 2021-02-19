@@ -213,6 +213,7 @@ type
     sftNe,
     sftNot,
     sftOpp,
+    sftPosof,
     sftRandom,
     sftRandomDir,
     sftSeek,
