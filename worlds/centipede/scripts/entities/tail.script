@@ -1,12 +1,14 @@
 param bool @physblock true
-param int @char 2
+param int @char 79
 param int @fgcolor 15
-param int @bgcolor 4
+param int @bgcolor 0
 
 param entity @leader noentity
 param entity @follower noentity
+param entity @player noentity
 local pos %nextpos thispos
 local bool %didmove false
+local int %nextcolor 15
 
 on state main {
   set %nextpos posof @leader
@@ -18,7 +20,11 @@ on state dead {
   set @char 32
   set @bgcolor 0
   sleep 1
-  send @follower die
+  if @follower {
+    send @follower die
+  } else {
+    send @player actuallydie
+  }
   die
 }
 
@@ -26,9 +32,16 @@ on event extend {
   if @follower {
     send @follower extend
   } else {
+    set %nextcolor @fgcolor
+    dec %nextcolor 1
+    if lt %nextcolor 9 {
+      set %nextcolor 14
+    }
     set @physblock false
     spawninto @follower thispos tail {
       set @leader self
+      set @player @player
+      set @fgcolor %nextcolor
     }
     set @physblock true
   }

@@ -1,7 +1,7 @@
 param bool @physblock true
-param int @char 2
+param int @char 233
 param int @fgcolor 15
-param int @bgcolor 4
+param int @bgcolor 0
 
 global entity $eatenby
 global int $foodtoplace
@@ -13,9 +13,10 @@ local int %x 0
 local int %y 0
 local dir %movedir east
 local dir %lastmovedir east
+local int %nextcolor 15
 
 on state init {
-  set $foodtoplace 1
+  set $foodtoplace 5
   goto main
 }
 
@@ -43,9 +44,16 @@ on state main {
       if @follower {
         send @follower extend
       } else {
+        set %nextcolor @fgcolor
+        dec %nextcolor 1
+        if lt %nextcolor 9 {
+          set %nextcolor 14
+        }
         set @physblock false
         spawninto @follower %oldpos tail {
           set @leader self
+          set @player self
+          set @fgcolor %nextcolor
         }
         set @physblock true
       }
@@ -59,8 +67,17 @@ on state dead {
   set @bgcolor 0
   sleep 1
   send @follower die
-  sleep 60
+  goto waitdead
+}
+on state waitdead {
+}
+on state actuallydead {
+  sleep 20
   die
+}
+
+on event actuallydie {
+  goto actuallydead
 }
 
 on event atefood {
