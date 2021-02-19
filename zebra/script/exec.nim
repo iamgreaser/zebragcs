@@ -211,11 +211,17 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           execState.continuations.add(cont)
           return
 
-      of snkSpawn:
+      of snkSpawn, snkSpawnInto:
+        var dstExpr = case node.kind
+          of snkSpawn: nil
+          of snkSpawnInto: node.spawnIntoDstExpr
+          else:
+            raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
         var dirOrPos = execState.resolveExpr(node.spawnPos)
         var entityName: string = node.spawnEntityName
         var spawnBody = node.spawnBody
         var spawnElse = node.spawnElse
+
         var newEntity = execState.stmtSpawn(entityName, dirOrPos, spawnBody, spawnElse)
         if newEntity == nil:
           execState.continuations.add(cont)
@@ -238,6 +244,13 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
                 raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
             else:
               raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
+
+        case node.kind
+          of snkSpawn: discard
+          of snkSpawnInto:
+            execState.storeAtExpr(dstExpr, ScriptVal(kind: svkEntity, entityRef: newEntity))
+          else:
+            raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
 
       else:
         raise newException(ScriptExecError, &"Unhandled statement/block kind {node.kind}")

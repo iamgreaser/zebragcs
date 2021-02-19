@@ -9,6 +9,8 @@
 local int %x 0
 local int %y 0
 
+local entity %tmppassage noentity
+
 on event initworld {
   #spawn at 30 12 player
   spawn at 30 15 ammo
@@ -20,13 +22,13 @@ on event initworld {
   spawn at 31 10 box
   spawn at 31 9 lockkey { set @fgcolor 13 }
 
-  spawn at 40 14 passage {
+  spawninto %tmppassage at 40 14 passage {
     set @targetpos atboard second 42 15
     set @bgcolor 2
   }
   # I am so getting banned from everywhere for making it possible to spawn stuff on unloaded boards. --GM
   spawn atboard second 42 15 passage {
-    set @targetpos atboard entry 40 14
+    set @targetpos posof %tmppassage
     set @bgcolor 2
   }
 

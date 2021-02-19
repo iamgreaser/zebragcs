@@ -243,6 +243,7 @@ type
     snkSend,
     snkSleep,
     snkSpawn,
+    snkSpawnInto,
     snkWhileBlock,
   ScriptNode* = ref ScriptNodeObj
   ScriptNodeObj = object
@@ -286,7 +287,8 @@ type
     of snkSend:
       sendEventName*: string
       sendPos*: ScriptNode
-    of snkSpawn:
+    of snkSpawn, snkSpawnInto:
+      spawnIntoDstExpr*: ScriptNode
       spawnEntityName*: string
       spawnPos*: ScriptNode
       spawnBody*: seq[ScriptNode]
@@ -370,6 +372,7 @@ proc `$`*(x: ScriptNode): string =
   of snkSend: return &"Send({x.sendEventName} -> {x.sendPos})"
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
   of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
+  of snkSpawnInto: return &"SpawnInto({x.spawnIntoDstExpr} := {x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
   of snkWhileBlock: return &"While({x.whileTest}: {x.whileBody})"
 
 proc `$`*(x: ScriptToken): string =

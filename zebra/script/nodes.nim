@@ -221,7 +221,13 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           sleepTimeExpr: timeExpr,
         ))
 
-      of "spawn":
+      of "spawn", "spawninto":
+        var dstExpr = case tok.wordVal.toLowerAscii()
+          of "spawninto": sps.parseExpr()
+          of "spawn": nil
+          else:
+            raise newScriptParseError(sps, &"EDOOFUS: Unhandled spawn type {tok}!")
+
         var posExpr = sps.parseExpr()
         var entityName = sps.readKeywordToken().toLowerAscii()
         var braceToken = sps.readToken()
@@ -266,13 +272,26 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           else:
             raise newScriptParseError(sps, &"Unexpected spawn block token {braceToken}")
 
-        nodes.add(ScriptNode(
-          kind: snkSpawn,
-          spawnEntityName: entityName,
-          spawnPos: posExpr,
-          spawnBody: bodyExpr,
-          spawnElse: elseExpr,
-        ))
+        case tok.wordVal.toLowerAscii()
+          of "spawn":
+            nodes.add(ScriptNode(
+              kind: snkSpawn,
+              spawnEntityName: entityName,
+              spawnPos: posExpr,
+              spawnBody: bodyExpr,
+              spawnElse: elseExpr,
+            ))
+          of "spawninto":
+            nodes.add(ScriptNode(
+              kind: snkSpawnInto,
+              spawnIntoDstExpr: dstExpr,
+              spawnEntityName: entityName,
+              spawnPos: posExpr,
+              spawnBody: bodyExpr,
+              spawnElse: elseExpr,
+            ))
+          else:
+            raise newScriptParseError(sps, &"EDOOFUS: Unhandled spawn type {tok}!")
 
       of "while":
         var whileTest = sps.parseExpr()
