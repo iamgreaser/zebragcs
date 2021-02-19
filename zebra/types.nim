@@ -60,6 +60,7 @@ type
     entityTypes*: Table[string, ScriptExecBase]
     boardControllers*: Table[string, ScriptExecBase]
     worldController*: ScriptExecBase
+    playerController*: ScriptExecBase
     world*: World
     rootDir*: string
     seed*: uint64
@@ -80,8 +81,7 @@ type
     players*: seq[Player]
   World* = ref WorldObj
 
-  PlayerObj = object
-    entity*: Entity
+  PlayerObj = object of ScriptExecStateObj
   Player* = ref PlayerObj
 
   BoardInfoObj = object
@@ -422,4 +422,4 @@ proc `$`*(x: Board): string =
   &"Board(entities={x.entities}, share={x.share}, activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"
 
 proc `$`*(x: Player): string =
-  &"Player(entity={x.entity})"
+  &"Player(share={x.share}, activeState={x.activeState}, params={x.params}, locals={x.locals}, alive={x.alive})"

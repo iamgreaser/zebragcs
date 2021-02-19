@@ -7,14 +7,13 @@ import ./types
 
 proc broadcastEvent*(world: World, eventName: string)
 proc loadWorld*(worldName: string): World
-proc spawnPlayer*(world: World): Player
 
 import ./script/exec
 
 method tick*(world: World)
 
 import ./board
-import ./entity
+import ./player
 import ./script/compile
 import ./script/exprs
 
@@ -64,15 +63,6 @@ proc loadWorld(worldName: string): World =
   # Return
   world
 
-proc spawnPlayer(world: World): Player =
-  var board = world.getBoard("entry")
-  var playerEntity = board.newEntity("player", board.grid.w div 2, board.grid.h div 2)
-  var player = Player(
-    entity: playerEntity,
-  )
-  world.players.add(player)
-  player
-
 proc broadcastEvent(world: World, eventName: string) =
   world.tickEvent(eventName)
   var boardsCopy: seq[Board] = @[]
@@ -82,15 +72,20 @@ proc broadcastEvent(world: World, eventName: string) =
     board.broadcastEvent(eventName)
 
 method tick(world: World) =
+  # Tick world
   procCall tick(ScriptExecState(world))
 
+  # Tick players
+  for player in world.players:
+    player.tick()
+
+  # Work out which boards to tick
   var boardsToTick: seq[Board] = @[]
   for player in world.players:
-    var entity = player.entity
-    if entity != nil:
-      var board = entity.board
-      assert entity.board != nil
+    var (board, cx, cy) = player.getCamera()
+    if board != nil:
       boardsToTick.add(board)
 
+  # Tick those boards specifically
   for board in boardsToTick:
     board.tick()

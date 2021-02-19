@@ -1,0 +1,18 @@
+param entity @playerent noentity
+param pos @camerapos atboard entry 30 12
+
+on event initplayer {
+  if not @playerent {
+    spawninto @playerent atboard entry 30 12 player
+  }
+}
+
+on state main {
+  if not @playerent { die }
+  sleep 1
+}
+
+on event typeup { send @playerent typeup }
+on event typedown { send @playerent typedown }
+on event typeleft { send @playerent typeleft }
+on event typeright { send @playerent typeright }

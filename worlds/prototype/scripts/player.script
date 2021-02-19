@@ -1,0 +1,37 @@
+param entity @playerent noentity
+param pos @camerapos atboard entry 30 12
+
+local bool %awaitrespawn false
+
+on event initplayer {
+  spawninto @playerent atboard entry 30 12 player {
+  }
+}
+
+on state main {
+  if not @playerent {
+    set @playerent noentity
+    set %awaitrespawn true
+    goto awaitrespawn
+  }
+  sleep 1
+}
+
+on state awaitrespawn {
+}
+
+on event typer {
+  if %awaitrespawn {
+    set %awaitrespawn false
+    spawninto @playerent atboard entry 30 12 player {
+    }
+    goto main
+  }
+}
+
+on event typeup { send @playerent typeup }
+on event typedown { send @playerent typedown }
+on event typeleft { send @playerent typeleft }
+on event typeright { send @playerent typeright }
+on event pressshift { send @playerent pressshift }
+on event releaseshift { send @playerent releaseshift }

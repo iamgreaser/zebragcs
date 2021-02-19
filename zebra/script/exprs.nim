@@ -27,40 +27,21 @@ method funcAt(entity: Entity, x: int64, y: int64): ScriptVal {.locks: "unknown".
   return entity.board.funcAt(x, y)
 
 method funcAtBoard(execState: ScriptExecState, boardName: string, x: int64, y: int64): ScriptVal {.base.} =
-  raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func atboard")
-method funcAtBoard(world: World, boardName: string, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
   return ScriptVal(kind: svkPos, posBoardName: boardName, posValX: x, posValY: y)
-method funcAtBoard(board: Board, boardName: string, x: int64, y: int64): ScriptVal =
-  return board.world.funcAtBoard(boardName, x, y)
-method funcAtBoard(entity: Entity, boardName: string, x: int64, y: int64): ScriptVal =
-  return entity.board.funcAtBoard(boardName, x, y)
 
 method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.base, locks: "unknown".} =
-  raise newException(ScriptExecError, &"Could not resolve position of type {execState}")
-method resolvePos*(world: World, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
     of svkPos: (val.posBoardName, val.posValX, val.posValY)
     of svkEntity:
-      var otherEntity = val.entityRef
-      var pos = if otherEntity != nil:
-        otherEntity.funcThisPos()
+      var entity = val.entityRef
+      var pos = if entity != nil:
+        entity.funcThisPos()
       else:
-        world.funcThisPos()
+        # TODO: Pick a suitable default position --GM
+        execState.funcThisPos()
       (pos.posBoardName, pos.posValX, pos.posValY)
     else:
-      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
-method resolvePos*(board: Board, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
-  case val.kind:
-    of svkPos: (val.posBoardName, val.posValX, val.posValY)
-    of svkEntity:
-      var otherEntity = val.entityRef
-      var pos = if otherEntity != nil:
-        otherEntity.funcThisPos()
-      else:
-        board.funcThisPos()
-      (pos.posBoardName, pos.posValX, pos.posValY)
-    else:
-      raise newException(ScriptExecError, &"Expected pos, got {val} instead")
+      raise newException(ScriptExecError, &"Expected pos or entity, got {val} instead")
 method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
     of svkDir: (entity.board.boardName, entity.x + val.dirValX, entity.y + val.dirValY)

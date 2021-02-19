@@ -30,9 +30,9 @@ Also this document isn't actually Markdown.
   - [x] Add an entity reference type.
   - [x] Allow using these instead of a dir/pos in `send`.
 
-- [ ] Player script support.
-  - [ ] Add player script types.
-  - [ ] Send input events to the local player only, which then passes them onto their bound entity.
+- [x] Player script support.
+  - [x] Add player script types.
+  - [x] Send input events to the local player only, which then passes them onto their bound entity.
 
 - [ ] Virtual FS support.
       This will also support the Actual FS, but the Virtual FS system will be used for that.

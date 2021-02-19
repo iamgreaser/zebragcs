@@ -11,6 +11,7 @@ proc newScriptSharedExecState*(rootDir: string): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
 proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string)
 proc loadWorldControllerFromFile*(share: ScriptSharedExecState)
+proc loadPlayerControllerFromFile*(share: ScriptSharedExecState)
 
 import ./nodes
 
@@ -138,5 +139,24 @@ proc loadWorldControllerFromFile*(share: ScriptSharedExecState) =
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
     share.loadWorldController(strm, fname)
+  finally:
+    strm.close()
+
+proc loadPlayerController(share: ScriptSharedExecState, strm: Stream, fname: string) =
+  var sps = newScriptParseState(strm, fname)
+  var node = sps.parseRoot(stkEof)
+  #echo &"node: {node}\n"
+  var execBase = node.compileRoot("player")
+  #echo &"exec base: {execBase}\n"
+  assert execBase != nil
+  share.playerController = execBase
+
+proc loadPlayerControllerFromFile*(share: ScriptSharedExecState) =
+  var fname = (&"{share.rootDir}/scripts/player.script").replace("//", "/")
+  var strm = newFileStream(fname, fmRead)
+  if strm == nil:
+    raise newException(IOError, &"\"{fname}\" could not be opened")
+  try:
+    share.loadPlayerController(strm, fname)
   finally:
     strm.close()

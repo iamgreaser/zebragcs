@@ -4,11 +4,12 @@ when defined(profiler):
 import os
 import strformat
 
-import ./zebra/world
-import ./zebra/board
 import ./zebra/gfx
+import ./zebra/player
 import ./zebra/types
 import ./zebra/ui
+import ./zebra/world
+import ./zebra/script/exec
 
 
 const boardVisWidth = 60
@@ -29,15 +30,18 @@ proc main() =
   withOpenGfx gfx:
     world.broadcastEvent("initworld")
 
-    var player = world.spawnPlayer()
+    var player = world.newPlayer()
+    player.tickEvent("initplayer")
     echo &"player: {player}\n"
-    assert player.entity != nil
-    assert player.entity.board != nil
+    # FIXME: Needs a "waiting to load the thing" screen --GM
+    var playerEntity = player.getEntity()
+    assert playerEntity != nil
+    assert playerEntity.board != nil
 
     var
       boardViewWidget = UiBoardView(
         x: 0, y: 0, w: 60, h: 25,
-        board: player.entity.board,
+        board: playerEntity.board,
       )
       statusBarWidget = UiStatusBar(
         x: 60, y: 0, w: 20, h: 25,
@@ -52,21 +56,24 @@ proc main() =
     rootWidget.widgets.add(statusBarWidget)
     rootWidget.widgets.add(boardViewWidget)
 
-    while gameRunning and player.entity != nil and player.entity.alive:
+    while gameRunning and player.alive:
       world.tick()
-      if player.entity == nil:
-        break
-      if not player.entity.alive:
-        break
-      assert player.entity.board.entities.contains(player.entity)
+      var (playerBoard, playerBoardX, playerBoardY) = player.getCamera()
 
-      block:
-        var board = player.entity.board
-        boardViewWidget.board = board
-        boardViewWidget.x = max(0, (boardVisWidth - board.grid.w) div 2)
-        boardViewWidget.y = max(0, (boardVisHeight - board.grid.h) div 2)
-        boardViewWidget.w = min(boardVisWidth, board.grid.w)
-        boardViewWidget.h = min(boardVisHeight, board.grid.h)
+      # Sanity checks
+      var playerEntity = player.getEntity()
+      if playerEntity != nil:
+        assert playerEntity.board != nil
+        assert playerEntity.board.entities.contains(playerEntity)
+
+      if playerBoard != nil:
+        block:
+          # TODO: Actually make use of the camera --GM
+          boardViewWidget.board = playerBoard
+          boardViewWidget.x = max(0, (boardVisWidth - playerBoard.grid.w) div 2)
+          boardViewWidget.y = max(0, (boardVisHeight - playerBoard.grid.h) div 2)
+          boardViewWidget.w = min(boardVisWidth, playerBoard.grid.w)
+          boardViewWidget.h = min(boardVisHeight, playerBoard.grid.h)
 
       gfx.drawWidget(rootWidget)
       gfx.blitToScreen()
@@ -89,10 +96,8 @@ proc main() =
             discard
           else:
             # TODO: Handle key repeat properly --GM
-            var entity = player.entity
-            assert entity != nil
-            entity.board.broadcastEvent(&"press{ev.keyType}")
-            entity.board.broadcastEvent(&"type{ev.keyType}")
+            player.tickEvent(&"press{ev.keyType}")
+            player.tickEvent(&"type{ev.keyType}")
 
         of ievKeyRelease:
           if ev.keyType == ikEsc:
@@ -100,9 +105,7 @@ proc main() =
             gameRunning = false
             break
           else:
-            var entity = player.entity
-            assert entity != nil
-            entity.board.broadcastEvent(&"release{ev.keyType}")
+            player.tickEvent(&"release{ev.keyType}")
 
         #else: discard
 

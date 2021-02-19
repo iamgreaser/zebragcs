@@ -62,6 +62,7 @@ on state dead {
   if eq $playerent self {
     set $playerent noentity
   }
+  die
   sleep 1
 }
 
@@ -90,7 +91,8 @@ on event enemydamage {
   if ge @health 1 {
     say "Ouch!"
   } else {
-    say "Game over - Press ESCAPE"
+    #say "Game over - Press ESCAPE"
+    say "You died - Press R to respawn"
     goto dead
   }
 }
@@ -100,7 +102,8 @@ on event enemyshot {
   if ge @health 1 {
     say "Ouch!"
   } else {
-    say "Game over - Press ESCAPE"
+    #say "Game over - Press ESCAPE"
+    say "You died - Press R to respawn"
     goto dead
   }
 }
