@@ -357,7 +357,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         ))
 
       else:
-        raise newScriptParseError(sps, &"Unexpected word token \"{tok.strval}\"")
+        raise newScriptParseError(sps, &"Unexpected word token \"{tok.wordVal}\"")
     else:
       if tok.kind == endKind:
         return ScriptNode(

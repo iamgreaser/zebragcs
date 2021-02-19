@@ -56,6 +56,8 @@ proc main() =
       world.tick()
       if player.entity == nil:
         break
+      if not player.entity.alive:
+        break
       assert player.entity.board.entities.contains(player.entity)
 
       block:
