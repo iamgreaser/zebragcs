@@ -1,0 +1,16 @@
+param bool @physblock false
+param int @char 4
+param int @fgcolor 10
+param int @bgcolor 0
+
+global entity $eatenby
+global int $foodtoplace
+
+on state main {
+}
+
+on event eat {
+  inc $foodtoplace 1
+  send $eatenby atefood
+  die
+}

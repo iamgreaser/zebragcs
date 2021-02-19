@@ -1,0 +1,73 @@
+param bool @physblock true
+param int @char 2
+param int @fgcolor 15
+param int @bgcolor 4
+
+global entity $eatenby
+global int $foodtoplace
+param int @foodtoembed 5
+param entity @follower noentity
+
+local pos %oldpos thispos
+local int %x 0
+local int %y 0
+local dir %movedir east
+local dir %lastmovedir east
+
+on state init {
+  set $foodtoplace 1
+  goto main
+}
+
+on state main {
+  while ge $foodtoplace 1 {
+    # TODO: Place food
+    set %x random 3 56
+    set %y random 3 21
+    spawn at %x %y food else {
+      inc $foodtoplace 1
+    }
+    dec $foodtoplace 1
+  }
+
+  set %oldpos thispos
+  set $eatenby self
+  send %movedir eat
+  set %lastmovedir %movedir
+  move %movedir else {
+    set @physblock false
+    goto dead
+  }
+  if @physblock {
+    if ge @foodtoembed 1 {
+      if @follower {
+        send @follower extend
+      } else {
+        set @physblock false
+        spawninto @follower %oldpos tail {
+          set @leader self
+        }
+        set @physblock true
+      }
+      dec @foodtoembed 1
+    }
+    sleep 2
+  }
+}
+on state dead {
+  set @char 32
+  set @bgcolor 0
+  sleep 1
+  send @follower die
+  sleep 60
+  die
+}
+
+on event atefood {
+  inc @foodtoembed 3
+}
+
+on event typeup { if ne %lastmovedir south { set %movedir north } }
+on event typedown { if ne %lastmovedir north { set %movedir south } }
+on event typeleft { if ne %lastmovedir east { set %movedir west } }
+on event typeright { if ne %lastmovedir west { set %movedir east } }

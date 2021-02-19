@@ -1,0 +1,40 @@
+param bool @physblock true
+param int @char 2
+param int @fgcolor 15
+param int @bgcolor 4
+
+param entity @leader noentity
+param entity @follower noentity
+local pos %nextpos thispos
+local bool %didmove false
+
+on state main {
+  set %nextpos posof @leader
+  sleep 1
+  move %nextpos
+}
+
+on state dead {
+  set @char 32
+  set @bgcolor 0
+  sleep 1
+  send @follower die
+  die
+}
+
+on event extend {
+  if @follower {
+    send @follower extend
+  } else {
+    set @physblock false
+    spawninto @follower thispos tail {
+      set @leader self
+    }
+    set @physblock true
+  }
+}
+
+on event die {
+  set @physblock false
+  goto dead
+}
