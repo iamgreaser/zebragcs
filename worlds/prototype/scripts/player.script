@@ -35,3 +35,5 @@ on event typeleft { send @playerent typeleft }
 on event typeright { send @playerent typeright }
 on event pressshift { send @playerent pressshift }
 on event releaseshift { send @playerent releaseshift }
+
+on event typew { send @playerent typew }
