@@ -43,6 +43,7 @@ type
     parent*: GfxCrop
     x*, y*: int64
     w*, h*: int64
+    scrollX*, scrollY*: int64
   GfxCrop* = ref GfxCropObj
 
 import strformat
@@ -217,17 +218,19 @@ proc drawChar(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint1
 
 proc drawChar(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint16) =
   # Clip out-of-range coordinates
-  if y < 0 or y >= crop.h:
+  var px = x - crop.scrollX
+  var py = y - crop.scrollY
+  if py < 0 or py >= crop.h:
     return
-  if x < 0 or x >= crop.w:
+  if px < 0 or px >= crop.w:
     return
 
   if crop.parent != nil:
     assert crop.gfx == nil
-    drawChar(crop.parent, x + crop.x, y + crop.y, bg, fg, ch)
+    drawChar(crop.parent, px + crop.x, py + crop.y, bg, fg, ch)
   else:
     assert crop.gfx != nil
-    drawChar(crop.gfx, x + crop.x, y + crop.y, bg, fg, ch)
+    drawChar(crop.gfx, px + crop.x, py + crop.y, bg, fg, ch)
 
 proc drawCharArray(crop: GfxCrop, x: int64, y: int64, bg: uint8, fg: uint8, chs: openArray[uint16]) =
   for i in low(chs)..high(chs):

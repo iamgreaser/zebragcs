@@ -68,12 +68,17 @@ proc main() =
 
       if playerBoard != nil:
         block:
-          # TODO: Actually make use of the camera --GM
           boardViewWidget.board = playerBoard
-          boardViewWidget.x = max(0, (boardVisWidth - playerBoard.grid.w) div 2)
-          boardViewWidget.y = max(0, (boardVisHeight - playerBoard.grid.h) div 2)
           boardViewWidget.w = min(boardVisWidth, playerBoard.grid.w)
           boardViewWidget.h = min(boardVisHeight, playerBoard.grid.h)
+          boardViewWidget.x = max(0, (boardVisWidth - playerBoard.grid.w) div 2)
+          boardViewWidget.y = max(0, (boardVisHeight - playerBoard.grid.h) div 2)
+          boardViewWidget.scrollX = max(0,
+            min(playerBoard.grid.w - boardViewWidget.w,
+              playerBoardX - (boardViewWidget.w div 2)))
+          boardViewWidget.scrollY = max(0,
+            min(playerBoard.grid.h - boardViewWidget.h,
+              playerBoardY - (boardViewWidget.h div 2)))
 
       gfx.drawWidget(rootWidget)
       gfx.blitToScreen()

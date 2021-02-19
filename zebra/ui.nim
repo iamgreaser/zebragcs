@@ -7,6 +7,7 @@ type
   UiWidgetObj = object of RootObj
     x*, y*: int64
     w*, h*: int64
+    scrollX*, scrollY*: int64
   UiWidget* = ref UiWidgetObj
 
   UiBagObj = object of UiWidgetObj
@@ -45,6 +46,7 @@ proc drawWidget(gfx: GfxState, widget: UiWidget) =
     gfx: gfx,
     x: widget.x, y: widget.y,
     w: widget.w, h: widget.h,
+    scrollX: widget.scrollX, scrollY: widget.scrollY,
   )
   widget.drawWidgetBase(innerCrop)
 
@@ -53,6 +55,7 @@ proc drawWidget(crop: GfxCrop, widget: UiWidget) =
     parent: crop,
     x: widget.x, y: widget.y,
     w: widget.w, h: widget.h,
+    scrollX: widget.scrollX, scrollY: widget.scrollY,
   )
   widget.drawWidgetBase(innerCrop)
 
@@ -104,8 +107,10 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
   assert board != nil
 
   for y in 0..(min(crop.h, board.grid.h)-1):
+    var py = y + crop.scrollY
     for x in 0..(min(crop.w, board.grid.w)-1):
-      var entseq = board.grid[x, y]
+      var px = x + crop.scrollX
+      var entseq = board.grid[px, py]
       var (fgcolor, bgcolor, ch) = if entseq.len >= 1:
           var entity = entseq[entseq.len-1]
           var execBase = entity.execBase
@@ -123,7 +128,7 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
         else:
           (0x07'u64, 0x00'u64, uint64(' '))
       crop.drawChar(
-        x = x, y = y,
+        x = px, y = py,
         bg = uint8(bgcolor),
         fg = uint8(fgcolor),
         ch = uint16(ch),
