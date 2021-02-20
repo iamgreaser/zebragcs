@@ -14,10 +14,16 @@ proc newDiskFs(rootDir: string): DiskFs =
   )
 
 method vfsDirList*(vfs: DiskFs, path: seq[string]): seq[string] =
-  var realpattern = vfs.rootDir & "/" & path.join("/") & "/*/"
+  var realpattern = (vfs.rootDir & "/" & path.join("/") & "/*").replace("//", "/")
   result = @[]
   for dirName in walkDirs(realpattern):
-    result.add(dirName)
+    result.add(dirName.split("/")[^1])
+
+method vfsFileList*(vfs: DiskFs, path: seq[string]): seq[string] =
+  var realpattern = (vfs.rootDir & "/" & path.join("/") & "/*").replace("//", "/")
+  result = @[]
+  for fileName in walkFiles(realpattern):
+    result.add(fileName.split("/")[^1])
 
 method openReadStream*(vfs: DiskFs, path: seq[string]): Stream =
   var realfname = vfs.rootDir & "/" & path.join("/")

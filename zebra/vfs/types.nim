@@ -14,6 +14,7 @@ type
 
   RamFsObj = object of FsBaseObj
     fileTable*: Table[string, string]
+    dirTable*: Table[string, FsBase]
   RamFs* = ref RamFsObj
 
 proc `$`*(x: FsBase): string =
@@ -27,3 +28,5 @@ method openReadStream*(vfs: FsBase, path: seq[string]): Stream {.base.} =
   raise newException(VfsError, &"unimplemented openReadStream for VFS {vfs}")
 method vfsDirList*(vfs: FsBase, path: seq[string]): seq[string] {.base.} =
   raise newException(VfsError, &"unimplemented vfsDirList for VFS {vfs}")
+method vfsFileList*(vfs: FsBase, path: seq[string]): seq[string] {.base.} =
+  raise newException(VfsError, &"unimplemented vfsFileList for VFS {vfs}")

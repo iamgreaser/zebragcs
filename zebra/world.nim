@@ -1,5 +1,4 @@
 import strformat
-import strutils
 import tables
 
 import ./types
@@ -59,9 +58,7 @@ proc loadWorld(worldName: string): World =
   share.world = world
 
   # Now load boards
-  for dirName in share.vfs.vfsDirList(@["boards"]):
-    var componentList = dirName.split("/")
-    var boardName = componentList[componentList.len-2]
+  for boardName in share.vfs.vfsDirList(@["boards"]):
     echo &"Loading board \"{boardName}\""
     discard world.loadBoardFromFile(boardName)
 
