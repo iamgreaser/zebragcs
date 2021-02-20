@@ -104,7 +104,8 @@ method drawWidgetBase(widget: UiSolid, crop: GfxCrop) =
 
 method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
   var board = widget.board
-  assert board != nil
+  if board == nil:
+    return
 
   for y in 0..(min(crop.h, board.grid.h)-1):
     var py = y + crop.scrollY

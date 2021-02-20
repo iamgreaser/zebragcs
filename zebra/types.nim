@@ -2,6 +2,9 @@ import streams
 import strformat
 import tables
 
+const boardVisWidth* = 60
+const boardVisHeight* = 25
+
 type
   ScriptCompileError* = object of CatchableError
   ScriptExecError* = object of CatchableError
@@ -76,7 +79,14 @@ type
     alive*: bool
   ScriptExecState* = ref ScriptExecStateObj
 
+  GameStateObj = object
+    world*: World
+    player*: Player
+    alive*: bool
+  GameState* = ref GameStateObj
+
   WorldObj = object of ScriptExecStateObj
+    name*: string
     boards*: Table[string, Board]
     players*: seq[Player]
   World* = ref WorldObj
@@ -434,3 +444,6 @@ proc `$`*(x: Player): string =
 
 proc `$`*(x: World): string =
   &"World(activeState={x.activeState}, alive={x.alive})"
+
+proc `$`*(x: GameState): string =
+  &"GameState(world={x.world}, player={x.player})"

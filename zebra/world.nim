@@ -35,6 +35,7 @@ proc loadWorld(worldName: string): World =
   var execBase = share.getWorldController()
   assert execBase != nil
   var world = World(
+    name: worldName,
     boards: Table[string, Board](),
     execBase: execBase,
     activeState: execBase.initState,

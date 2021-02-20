@@ -3,7 +3,7 @@ param pos @camerapos atboard entry 30 12
 
 local bool %awaitrespawn false
 
-on event initplayer {
+on state doingrespawn {
   if @playerent {
     send @playerent disown
     set @playerent noentity
@@ -11,6 +11,11 @@ on event initplayer {
   spawninto @playerent atboard entry 30 12 player {
     set @parentplayer self
   }
+  goto main
+}
+
+on state awaitrespawn {
+  set %awaitrespawn true
 }
 
 on state main {
@@ -20,19 +25,14 @@ on state main {
   sleep 1
 }
 
-on state awaitrespawn {
-}
-
 on event needrespawn {
-  set %awaitrespawn true
   goto awaitrespawn
 }
 
 on event typer {
   if %awaitrespawn {
     set %awaitrespawn false
-    send self initplayer
-    goto main
+    goto doingrespawn
   }
 }
 
