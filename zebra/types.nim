@@ -104,7 +104,15 @@ type
     boardName*: string
     controllerName*: string
     w*, h*: int64
+    entityDefList*: seq[BoardEntityDef]
+    entityDefMap*: Table[int64, BoardEntityDef]
   BoardInfo* = ref BoardInfoObj
+  BoardEntityDefObj = object
+    id*: int64
+    x*, y*: int64
+    typeName*: string
+    body*: seq[ScriptNode]
+  BoardEntityDef* = ref BoardEntityDefObj
 
   BoardObj = object of ScriptExecStateObj
     world*: World

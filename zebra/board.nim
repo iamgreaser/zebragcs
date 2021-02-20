@@ -23,6 +23,7 @@ import ./entity
 import ./grid
 import ./script/compile
 import ./script/exprs
+import ./script/nodes
 import ./script/tokens
 
 proc getBoardController(share: ScriptSharedExecState, controllerName: string): ScriptExecBase =
@@ -46,6 +47,8 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
     boardName: boardName,
     controllerName: "default",
     w: 0, h: 0,
+    entityDefList: @[],
+    entityDefMap: initTable[int64, BoardEntityDef](),
   )
   var hasSize = false
   var hasControllerName = false
@@ -69,6 +72,35 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
         boardInfo.controllerName = sps.readExpectedToken(stkWord).wordVal
         sps.expectEolOrEof()
         hasControllerName = true
+
+      of "entity":
+        var entityId = sps.readInt()
+        var entityX = sps.readInt()
+        var entityY = sps.readInt()
+        var entityTypeName = sps.readKeywordToken().toLowerAscii()
+        var tok = sps.readToken()
+        var entityBody: seq[ScriptNode] = case tok.kind
+          of stkEol:
+            sps.pushBackToken(tok)
+            @[]
+          of stkBraceOpen:
+            sps.parseCodeBlock(stkBraceClosed)
+          else:
+            raise newScriptParseError(sps, &"Unexpected entity body token {tok}")
+        sps.expectToken(stkEol)
+
+        var entityDef = BoardEntityDef(
+          id: entityId,
+          typeName: entityTypeName,
+          x: entityX,
+          y: entityY,
+          body: entityBody,
+        )
+        if boardInfo.entityDefMap.contains(entityDef.id):
+          raise newScriptParseError(sps, &"Entity ID {entityDef.id} already allocated for this board")
+        else:
+          boardInfo.entityDefMap[entityDef.id] = entityDef
+        boardInfo.entityDefList.add(entityDef)
 
       of "size":
         if hasSize:
@@ -119,7 +151,6 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
     share: share,
     sleepTicksLeft: 0,
   )
-
   world.boards[boardName] = board
 
   # Initialise!
@@ -127,6 +158,19 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
     board.params[k0] = board.resolveExpr(v0.varDefault)
   for k0, v0 in execBase.locals.pairs():
     board.locals[k0] = board.resolveExpr(v0.varDefault)
+
+  # Add all entities
+  var entityMap: Table[int64, Entity] = initTable[int64, Entity]()
+  for entityDef in boardInfo.entityDefList:
+    entityMap[entityDef.id] = board.newEntity(
+      x = entityDef.x,
+      y = entityDef.y,
+      entityType = entityDef.typeName,
+    )
+
+  # Initialise all entities
+  for entityDef in boardInfo.entityDefList:
+    entityMap[entityDef.id].customiseFromBody(board, entityDef.body)
 
   board
 

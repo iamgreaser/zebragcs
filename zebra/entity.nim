@@ -1,7 +1,9 @@
+import strformat
 import tables
 
 import ./types
 
+proc customiseFromBody*(entity: Entity, execState: ScriptExecState, body: seq[ScriptNode])
 proc forceMoveBy*(entity: Entity, dx: int64, dy: int64)
 proc forceMoveTo*(entity: Entity, board: Board, x: int64, y: int64)
 proc hasPhysBlock*(entity: Entity): bool
@@ -54,6 +56,25 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
     # No - invalidate and return nil
     entity.alive = false
     nil
+
+proc customiseFromBody(entity: Entity, execState: ScriptExecState, body: seq[ScriptNode]) =
+  for spawnNode in body:
+    case spawnNode.kind
+    of snkAssign:
+      var spawnNodeDstExpr = spawnNode.assignDstExpr
+      var spawnNodeSrc = execState.resolveExpr(spawnNode.assignSrcExpr)
+      case spawnNode.assignType
+      of satSet:
+        case spawnNodeDstExpr.kind
+        of snkParamVar:
+          # TODO: Confirm types --GM
+          entity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
+        else:
+          raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
+      else:
+        raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
+    else:
+      raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
 
 proc canMoveTo(entity: Entity, board: Board, x: int64, y: int64): bool =
   var board = entity.board

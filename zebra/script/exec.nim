@@ -217,23 +217,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           execState.continuations.add(cont)
           cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
         else:
-          for spawnNode in spawnBody:
-            case spawnNode.kind
-            of snkAssign:
-              var spawnNodeDstExpr = spawnNode.assignDstExpr
-              var spawnNodeSrc = execState.resolveExpr(spawnNode.assignSrcExpr)
-              case spawnNode.assignType
-              of satSet:
-                case spawnNodeDstExpr.kind
-                of snkParamVar:
-                  # TODO: Confirm types --GM
-                  newEntity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
-                else:
-                  raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
-              else:
-                raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
-            else:
-              raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
+          newEntity.customiseFromBody(execState, spawnBody)
 
         case node.kind
           of snkSpawn: discard

@@ -121,12 +121,12 @@ boards/boardname/board.info:
     # controller <controllername:boardcontrollername>
     controller daycycle
 
-    # entity <type:entitytypename> <x:int> <y:int> <:spawncodeblock>
-    entity passage 30 10 {
+    # entity <id:int> <x:int> <y:int> <type:entitytypename> <:spawncodeblock>
+    entity 0 30 10 passage {
       set @targetpos atboard "other" 30 12
       set @bgcolor 2
     }
-    entity boulder 30 10
+    entity 1 30 10 boulder
 
     # layer <name:layername> <x:int> <y:int> <:layerconfigblock>
     layer floor 0 0 {
