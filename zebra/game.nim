@@ -4,6 +4,14 @@ import tables
 import ./types
 import ./ui
 
+type
+  GameStateObj = object
+    gameType*: GameType
+    world*: World
+    player*: Player
+    alive*: bool
+  GameState* = ref GameStateObj
+
 proc applyInput*(game: GameState, ev: InputEvent)
 proc newDemoGame*(worldName: string): GameState
 proc newSinglePlayerGame*(worldName: string): GameState
@@ -11,11 +19,15 @@ proc tick*(game: GameState)
 proc updatePlayerBoardView*(game: GameState, boardWidget: UiBoardView)
 proc updatePlayerStatusBar*(game: GameState, statusWidget: UiStatusBar)
 
+proc `$`*(x: GameState): string =
+  &"GameState(world={x.world}, player={x.player})"
+
 import ./script/exec
 import ./player
 import ./world
 
 proc newDemoGame(worldName: string): GameState =
+  echo &"Starting new demo of world \"{worldName}\""
   var world = loadWorld(worldName)
   world.tickTitle = true
   world.broadcastEvent("initworld")
@@ -30,6 +42,7 @@ proc newDemoGame(worldName: string): GameState =
   game
 
 proc newSinglePlayerGame(worldName: string): GameState =
+  echo &"Starting new single-player game of world \"{worldName}\""
   var world = loadWorld(worldName)
   world.broadcastEvent("initworld")
 

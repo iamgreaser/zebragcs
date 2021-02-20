@@ -9,8 +9,15 @@ import ./zebra/gfx
 import ./zebra/types
 import ./zebra/ui
 
-proc runGame(game: GameState, gfx: GfxState, rootWidget: UiWidget, boardViewWidget: UiBoardView, statusBarWidget: UiStatusBar): GameType
+type
+  MainStateObj = object
+    gfx: GfxState
+    rootWidget: UiWidget
+    boardViewWidget: UiBoardView
+    statusBarWidget: UiStatusBar
+  MainState = ref MainStateObj
 
+proc runGame(mainState: MainState, game: GameState): GameType
 
 proc main() =
   var args = commandLineParams()
@@ -41,6 +48,12 @@ proc main() =
     rootWidget.widgets.add(statusBarWidget)
     rootWidget.widgets.add(boardViewWidget)
 
+    var mainState = MainState(
+      gfx: gfx,
+      rootWidget: rootWidget,
+      boardViewWidget: boardViewWidget,
+      statusBarWidget: statusBarWidget,
+    )
 
     var gameType = gtDemo
     try:
@@ -49,29 +62,25 @@ proc main() =
           of gtBed: return # Shouldn't reach here, but just in case...
           of gtDemo: newDemoGame(worldName)
           of gtSingle: newSinglePlayerGame(worldName)
-        gameType = runGame(
+        gameType = mainState.runGame(
           game = game,
-          gfx = gfx,
-          rootWidget = rootWidget,
-          boardViewWidget = boardViewWidget,
-          statusBarWidget = statusBarWidget,
         )
     except FullQuitException:
       echo "Full quit requested."
     finally:
       echo "Quitting!"
 
-proc runGame(game: GameState, gfx: GfxState, rootWidget: UiWidget, boardViewWidget: UiBoardView, statusBarWidget: UiStatusBar): GameType =
+proc runGame(mainState: MainState, game: GameState): GameType =
   while game.alive:
     game.tick()
-    game.updatePlayerBoardView(boardViewWidget)
-    game.updatePlayerStatusBar(statusBarWidget)
+    game.updatePlayerBoardView(mainState.boardViewWidget)
+    game.updatePlayerStatusBar(mainState.statusBarWidget)
 
-    gfx.drawWidget(rootWidget)
-    gfx.blitToScreen()
+    mainState.gfx.drawWidget(mainState.rootWidget)
+    mainState.gfx.blitToScreen()
 
     while true:
-      var ev = gfx.getNextInput()
+      var ev = mainState.gfx.getNextInput()
       if ev.kind == ievNone:
         break # End of list, stop here
       elif ev.kind == ievQuit:

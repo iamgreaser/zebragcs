@@ -90,13 +90,6 @@ type
     #gtMultiServer,
     gtSingle,
 
-  GameStateObj = object
-    gameType*: GameType
-    world*: World
-    player*: Player
-    alive*: bool
-  GameState* = ref GameStateObj
-
   WorldObj = object of ScriptExecStateObj
     name*: string
     tickTitle*: bool
@@ -457,6 +450,3 @@ proc `$`*(x: Player): string =
 
 proc `$`*(x: World): string =
   &"World(activeState={x.activeState}, alive={x.alive})"
-
-proc `$`*(x: GameState): string =
-  &"GameState(world={x.world}, player={x.player})"
