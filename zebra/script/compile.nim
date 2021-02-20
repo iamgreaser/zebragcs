@@ -97,12 +97,12 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   share.entityTypes[entityName] = execBase
 
 proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
-  var fname = (&"scripts/entities/{entityName}.script").replace("//", "/")
+  var fname = @["scripts", "entities", &"{entityName}.script"]
   var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadEntityType(entityName, strm, fname)
+    share.loadEntityType(entityName, strm, fname.join("/"))
   finally:
     strm.close()
 
@@ -115,12 +115,12 @@ proc loadBoardController(share: ScriptSharedExecState, controllerName: string, s
   share.boardControllers[controllerName] = execBase
 
 proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string) =
-  var fname = (&"scripts/boards/{controllerName}.script").replace("//", "/")
+  var fname = @["scripts", "boards", &"{controllerName}.script"]
   var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadBoardController(controllerName, strm, fname)
+    share.loadBoardController(controllerName, strm, fname.join("/"))
   finally:
     strm.close()
 
@@ -134,12 +134,12 @@ proc loadWorldController(share: ScriptSharedExecState, strm: Stream, fname: stri
   share.worldController = execBase
 
 proc loadWorldControllerFromFile*(share: ScriptSharedExecState) =
-  var fname = (&"scripts/world.script").replace("//", "/")
+  var fname = @["scripts", "world.script"]
   var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadWorldController(strm, fname)
+    share.loadWorldController(strm, fname.join("/"))
   finally:
     strm.close()
 
@@ -153,11 +153,11 @@ proc loadPlayerController(share: ScriptSharedExecState, strm: Stream, fname: str
   share.playerController = execBase
 
 proc loadPlayerControllerFromFile*(share: ScriptSharedExecState) =
-  var fname = (&"scripts/player.script").replace("//", "/")
+  var fname = @["scripts", "player.script"]
   var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    share.loadPlayerController(strm, fname)
+    share.loadPlayerController(strm, fname.join("/"))
   finally:
     strm.close()

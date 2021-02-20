@@ -178,7 +178,7 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
 proc loadBoardFromFile(world: World, boardName: string): Board =
   var share = world.share
   assert share != nil
-  var fname = (&"boards/{boardName}/board.info").replace("//", "/")
+  var fname = @["boards", boardName, "board.info"]
   var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")

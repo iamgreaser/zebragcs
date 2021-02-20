@@ -59,7 +59,7 @@ proc loadWorld(worldName: string): World =
   share.world = world
 
   # Now load boards
-  for dirName in share.vfs.vfsGlob("boards/*/"):
+  for dirName in share.vfs.vfsDirList(@["boards"]):
     var componentList = dirName.split("/")
     var boardName = componentList[componentList.len-2]
     echo &"Loading board \"{boardName}\""

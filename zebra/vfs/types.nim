@@ -23,7 +23,7 @@ proc `$`*(x: DiskFs): string =
 proc `$`*(x: RamFs): string =
   &"RamFs()"
 
-method openReadStream*(vfs: FsBase, fname: string): Stream {.base.} =
+method openReadStream*(vfs: FsBase, path: seq[string]): Stream {.base.} =
   raise newException(VfsError, &"unimplemented openReadStream for VFS {vfs}")
-method vfsGlob*(vfs: FsBase, pattern: string): seq[string] {.base.} =
-  raise newException(VfsError, &"unimplemented vfsGlob for VFS {vfs}")
+method vfsDirList*(vfs: FsBase, path: seq[string]): seq[string] {.base.} =
+  raise newException(VfsError, &"unimplemented vfsDirList for VFS {vfs}")
