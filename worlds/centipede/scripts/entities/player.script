@@ -22,7 +22,6 @@ on state init {
 
 on state main {
   while ge $foodtoplace 1 {
-    # TODO: Place food
     set %x random 3 56
     set %y random 3 21
     spawn at %x %y food else {

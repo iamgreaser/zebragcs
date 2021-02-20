@@ -37,6 +37,7 @@ proc loadWorld(worldName: string): World =
   var world = World(
     name: worldName,
     boards: Table[string, Board](),
+    tickTitle: false,
     execBase: execBase,
     activeState: execBase.initState,
     params: Table[string, ScriptVal](),
@@ -82,6 +83,8 @@ method tick(world: World) =
 
   # Work out which boards to tick
   var boardsToTick: seq[Board] = @[]
+  if world.tickTitle:
+    boardsToTick.add(world.boards["title"])
   for player in world.players:
     var (board, _, _) = player.getCamera()
     if board != nil:

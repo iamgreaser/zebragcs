@@ -1,9 +1,11 @@
 import strformat
+import tables
 
 import ./types
 import ./ui
 
 proc applyInput*(game: GameState, ev: InputEvent)
+proc newDemoGame*(worldName: string): GameState
 proc newSinglePlayerGame*(worldName: string): GameState
 proc tick*(game: GameState)
 proc updatePlayerBoardView*(game: GameState, boardWidget: UiBoardView)
@@ -12,6 +14,20 @@ proc updatePlayerStatusBar*(game: GameState, statusWidget: UiStatusBar)
 import ./script/exec
 import ./player
 import ./world
+
+proc newDemoGame(worldName: string): GameState =
+  var world = loadWorld(worldName)
+  world.tickTitle = true
+  world.broadcastEvent("initworld")
+
+  var game = GameState(
+    gameType: gtDemo,
+    world: world,
+    player: nil,
+    alive: true,
+  )
+
+  game
 
 proc newSinglePlayerGame(worldName: string): GameState =
   var world = loadWorld(worldName)
@@ -22,6 +38,7 @@ proc newSinglePlayerGame(worldName: string): GameState =
   player.tickEvent("initplayer")
 
   var game = GameState(
+    gameType: gtSingle,
     world: world,
     player: player,
     alive: true,
@@ -31,15 +48,27 @@ proc newSinglePlayerGame(worldName: string): GameState =
 
 proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
   var player = game.player
-  assert player != nil
 
-  var (playerBoard, playerBoardX, playerBoardY) = player.getCamera()
+  var (playerBoard, playerBoardX, playerBoardY) = if player != nil:
+      player.getCamera()
+    else:
+      var world = game.world
+      assert world != nil
+      var board = world.boards["title"]
+      var w = min(board.grid.w-1, boardVisWidth div 2)
+      var h = min(board.grid.h-1, boardVisHeight div 2)
+      (board, w, h)
 
-  # Sanity checks
-  var playerEntity = player.getEntity()
-  if playerEntity != nil:
-    assert playerEntity.board != nil
-    assert playerEntity.board.entities.contains(playerEntity)
+  if player != nil:
+    # Kill the game if our player controller is dead
+    if not player.alive:
+      game.alive = false
+
+    # Sanity checks
+    var playerEntity = player.getEntity()
+    if playerEntity != nil:
+      assert playerEntity.board != nil
+      assert playerEntity.board.entities.contains(playerEntity)
 
   if playerBoard != nil:
     block:
@@ -64,8 +93,6 @@ proc tick(game: GameState) =
   world.tick()
 
 proc applyInput(game: GameState, ev: InputEvent) =
-  var player = game.player
-  assert player != nil
 
   case ev.kind
   of ievNone:
@@ -73,7 +100,7 @@ proc applyInput(game: GameState, ev: InputEvent) =
 
   of ievQuit:
     game.alive = false
-    discard
+    raise newException(FullQuitException, "Quit event received")
 
   of ievKeyPress:
     if ev.keyType == ikEsc:
@@ -81,14 +108,18 @@ proc applyInput(game: GameState, ev: InputEvent) =
       discard
     else:
       # TODO: Handle key repeat properly --GM
-      player.tickEvent(&"press{ev.keyType}")
-      player.tickEvent(&"type{ev.keyType}")
+      var player = game.player
+      if player != nil:
+        player.tickEvent(&"press{ev.keyType}")
+        player.tickEvent(&"type{ev.keyType}")
 
   of ievKeyRelease:
     if ev.keyType == ikEsc:
-      # Quit to menu
+      # Quit to menu or exit game
       game.alive = false
     else:
-      player.tickEvent(&"release{ev.keyType}")
+      var player = game.player
+      if player != nil:
+        player.tickEvent(&"release{ev.keyType}")
 
   #else: discard

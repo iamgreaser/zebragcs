@@ -12,6 +12,8 @@ type
 
   BoardLoadError* = object of CatchableError
 
+  FullQuitException* = object of CatchableError
+
   GridObj[T] = object
     w*, h*: int64
     body*: seq[T]
@@ -79,7 +81,17 @@ type
     alive*: bool
   ScriptExecState* = ref ScriptExecStateObj
 
+  GameType* = enum
+    gtBed, # Quits the game
+    gtDemo,
+    #gtEditor,
+    #gtMultiClient,
+    #gtMultiDedicated,
+    #gtMultiServer,
+    gtSingle,
+
   GameStateObj = object
+    gameType*: GameType
     world*: World
     player*: Player
     alive*: bool
@@ -87,6 +99,7 @@ type
 
   WorldObj = object of ScriptExecStateObj
     name*: string
+    tickTitle*: bool
     boards*: Table[string, Board]
     players*: seq[Player]
   World* = ref WorldObj
