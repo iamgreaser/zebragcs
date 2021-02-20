@@ -1,4 +1,3 @@
-import os
 import strformat
 import strutils
 import tables
@@ -16,6 +15,8 @@ import ./board
 import ./player
 import ./script/compile
 import ./script/exprs
+import ./vfs/disk
+import ./vfs/types as vfsTypes
 
 proc getWorldController(share: ScriptSharedExecState): ScriptExecBase =
   if share.worldController == nil:
@@ -27,7 +28,9 @@ proc loadWorld(worldName: string): World =
   echo &"Loading world \"{worldName}\""
 
   var share = newScriptSharedExecState(
-    rootDir = &"worlds/{worldName}/",
+    vfs = newDiskFs(
+      rootDir = &"worlds/{worldName}/",
+    ),
   )
   assert share != nil
   assert share.world == nil
@@ -56,7 +59,7 @@ proc loadWorld(worldName: string): World =
   share.world = world
 
   # Now load boards
-  for dirName in walkDirs((&"{share.rootDir}/boards/*/").replace("//", "/")):
+  for dirName in share.vfs.vfsGlob("boards/*/"):
     var componentList = dirName.split("/")
     var boardName = componentList[componentList.len-2]
     echo &"Loading board \"{boardName}\""

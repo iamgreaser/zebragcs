@@ -22,7 +22,7 @@ proc getCamera(player: Player): tuple[board: Board, x: int64, y: int64] =
   var entity = player.getEntity()
   if entity != nil:
     return (entity.board, entity.x, entity.y)
-    
+
   # Now check camera pos
   var pos = player.params["camerapos"]
   assert pos != nil
@@ -58,7 +58,7 @@ proc getPlayerController(share: ScriptSharedExecState): ScriptExecBase =
 proc newPlayer(world: World): Player =
   var share = world.share
   assert share != nil
-  
+
   var execBase = share.getPlayerController()
   assert execBase != nil
 
@@ -97,4 +97,3 @@ method tick(player: Player) {.locks: "unknown".} =
       posValX: entity.x,
       posValY: entity.y,
     )
-    

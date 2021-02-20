@@ -36,7 +36,7 @@ Also this document isn't actually Markdown.
 
 - [ ] Virtual FS support.
       This will also support the Actual FS, but the Virtual FS system will be used for that.
-  - [ ] ActualFS (R/W, random-access)
+  - [x] ActualFS (R/W, random-access)
   - [ ] RamFS (R/W, random-access)
   - [ ] ZipFS (R/W, non-random-access archive)
 

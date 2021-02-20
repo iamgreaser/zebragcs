@@ -2,6 +2,8 @@ import streams
 import strformat
 import tables
 
+import ./vfs/types
+
 const boardVisWidth* = 60
 const boardVisHeight* = 25
 
@@ -67,7 +69,7 @@ type
     worldController*: ScriptExecBase
     playerController*: ScriptExecBase
     world*: World
-    rootDir*: string
+    vfs*: FsBase
     seed*: uint64
 
   ScriptExecStateObj = object of RootObj
@@ -434,7 +436,7 @@ proc `$`*(x: ScriptEventBase): string =
   &"Event({x.eventBody})"
 
 proc `$`*(x: ScriptSharedExecState): string =
-  &"SharedExecState(globals={x.globals}, rootDir={x.rootDir})"
+  &"SharedExecState(globals={x.globals}, vfs={x.vfs})"
 
 proc `$`*(x: ScriptExecBase): string =
   &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, locals={x.locals}, states={x.states}, events={x.events})"

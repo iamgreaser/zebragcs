@@ -5,9 +5,10 @@ import tables
 import times
 
 import ../types
+import ../vfs/types as vfsTypes
 
 proc newScriptParseState*(strm: Stream, fname: string): ScriptParseState
-proc newScriptSharedExecState*(rootDir: string): ScriptSharedExecState
+proc newScriptSharedExecState*(vfs: FsBase): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
 proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string)
 proc loadWorldControllerFromFile*(share: ScriptSharedExecState)
@@ -23,11 +24,11 @@ proc newScriptParseState(strm: Stream, fname: string): ScriptParseState =
     row: 1, col: 1,
   )
 
-proc newScriptSharedExecState(rootDir: string): ScriptSharedExecState =
+proc newScriptSharedExecState(vfs: FsBase): ScriptSharedExecState =
   var t = getTime()
   ScriptSharedExecState(
     globals: initTable[string, ScriptVal](),
-    rootDir: (rootDir & "/").replace("//", "/"),
+    vfs: vfs,
     seed: uint64(t.toUnix())*1000000000'u64 + uint64(t.nanosecond),
   )
 
@@ -96,8 +97,8 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   share.entityTypes[entityName] = execBase
 
 proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
-  var fname = (&"{share.rootDir}/scripts/entities/{entityName}.script").replace("//", "/")
-  var strm = newFileStream(fname, fmRead)
+  var fname = (&"scripts/entities/{entityName}.script").replace("//", "/")
+  var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
@@ -114,8 +115,8 @@ proc loadBoardController(share: ScriptSharedExecState, controllerName: string, s
   share.boardControllers[controllerName] = execBase
 
 proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string) =
-  var fname = (&"{share.rootDir}/scripts/boards/{controllerName}.script").replace("//", "/")
-  var strm = newFileStream(fname, fmRead)
+  var fname = (&"scripts/boards/{controllerName}.script").replace("//", "/")
+  var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
@@ -133,8 +134,8 @@ proc loadWorldController(share: ScriptSharedExecState, strm: Stream, fname: stri
   share.worldController = execBase
 
 proc loadWorldControllerFromFile*(share: ScriptSharedExecState) =
-  var fname = (&"{share.rootDir}/scripts/world.script").replace("//", "/")
-  var strm = newFileStream(fname, fmRead)
+  var fname = (&"scripts/world.script").replace("//", "/")
+  var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
@@ -152,8 +153,8 @@ proc loadPlayerController(share: ScriptSharedExecState, strm: Stream, fname: str
   share.playerController = execBase
 
 proc loadPlayerControllerFromFile*(share: ScriptSharedExecState) =
-  var fname = (&"{share.rootDir}/scripts/player.script").replace("//", "/")
-  var strm = newFileStream(fname, fmRead)
+  var fname = (&"scripts/player.script").replace("//", "/")
+  var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:

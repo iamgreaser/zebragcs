@@ -25,6 +25,7 @@ import ./script/compile
 import ./script/exprs
 import ./script/nodes
 import ./script/tokens
+import ./vfs/types as vfsTypes
 
 proc getBoardController(share: ScriptSharedExecState, controllerName: string): ScriptExecBase =
   try:
@@ -126,7 +127,7 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
 proc loadBoard(world: World, boardName: string, strm: Stream): Board =
   var share = world.share
   assert share != nil
-  
+
   if world.boards.contains(boardName):
     raise newException(BoardLoadError, &"board \"{boardName}\" already assigned")
 
@@ -177,8 +178,8 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
 proc loadBoardFromFile(world: World, boardName: string): Board =
   var share = world.share
   assert share != nil
-  var fname = (&"{share.rootDir}/boards/{boardName}/board.info").replace("//", "/")
-  var strm = newFileStream(fname, fmRead)
+  var fname = (&"boards/{boardName}/board.info").replace("//", "/")
+  var strm = share.vfs.openReadStream(fname)
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
