@@ -87,7 +87,7 @@ type
     gtBed, # Quits the game
     gtInitialWorldSelect, # No world loaded, but allows for world creation
     gtDemo,
-    #gtEditorSingle,
+    gtEditorSingle,
     #gtMultiClient,
     #gtMultiDedicated,
     #gtMultiServer,

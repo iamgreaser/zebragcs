@@ -19,6 +19,9 @@ type
 
   UiBoardViewObj = object of UiWidgetObj
     board*: Board
+    cursorVisible*: bool
+    cursorX*: int64
+    cursorY*: int64
   UiBoardView* = ref UiBoardViewObj
   UiStatusBarObj = object of UiWidgetObj
   UiStatusBar* = ref UiStatusBarObj
@@ -141,6 +144,12 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
         fg = uint8(fgcolor),
         ch = uint16(ch),
       )
+
+  if widget.cursorVisible:
+    crop.drawChar(x = widget.cursorX-1, y = widget.cursorY, bg = 0'u8, fg = 15'u8, ch = 195'u16)
+    crop.drawChar(x = widget.cursorX+1, y = widget.cursorY, bg = 0'u8, fg = 15'u8, ch = 180'u16)
+    crop.drawChar(x = widget.cursorX, y = widget.cursorY-1, bg = 0'u8, fg = 15'u8, ch = 194'u16)
+    crop.drawChar(x = widget.cursorX, y = widget.cursorY+1, bg = 0'u8, fg = 15'u8, ch = 193'u16)
 
 method drawWidgetBase(widget: UiStatusBar, crop: GfxCrop) =
   crop.clearToState(bg = 1, fg = 14, ch = uint16(' '))

@@ -9,11 +9,16 @@ type
     gameType*: GameType
     world*: World
     player*: Player
+    board*: Board
+    cursorX*: int64
+    cursorY*: int64
     alive*: bool
+    editing*: bool
   GameState* = ref GameStateObj
 
 proc applyInput*(game: GameState, ev: InputEvent)
 proc newDemoGame*(worldName: string): GameState
+proc newEditorSinglePlayerGame*(worldName: string): GameState
 proc newSinglePlayerGame*(worldName: string): GameState
 proc tick*(game: GameState)
 proc updatePlayerBoardView*(game: GameState, boardWidget: UiBoardView)
@@ -37,6 +42,26 @@ proc newDemoGame(worldName: string): GameState =
     world: world,
     player: nil,
     alive: true,
+  )
+
+  game
+
+proc newEditorSinglePlayerGame(worldName: string): GameState =
+  echo &"Starting new single-player game of world \"{worldName}\""
+  var world = loadWorld(worldName)
+
+  var board = world.boards["entry"]
+  assert board != nil
+
+  var game = GameState(
+    gameType: gtEditorSingle,
+    world: world,
+    player: nil,
+    board: board,
+    cursorX: board.grid.w div 2,
+    cursorY: board.grid.h div 2,
+    alive: true,
+    editing: true,
   )
 
   game
@@ -67,7 +92,10 @@ proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
     else:
       var world = game.world
       assert world != nil
-      var board = world.boards["title"]
+      var board = game.board
+      if board == nil:
+        board = world.boards["title"]
+      assert board != nil
       var w = min(board.grid.w-1, boardVisWidth div 2)
       var h = min(board.grid.h-1, boardVisHeight div 2)
       (board, w, h)
@@ -86,6 +114,14 @@ proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
   if playerBoard != nil:
     block:
       boardWidget.board = playerBoard
+
+      if game.editing:
+        boardWidget.cursorVisible = true
+        boardWidget.cursorX = game.cursorX
+        boardWidget.cursorY = game.cursorY
+      else:
+        boardWidget.cursorVisible = false
+
       boardWidget.w = min(boardVisWidth, playerBoard.grid.w)
       boardWidget.h = min(boardVisHeight, playerBoard.grid.h)
       boardWidget.x = max(0, (boardVisWidth - playerBoard.grid.w) div 2)
@@ -106,7 +142,6 @@ proc tick(game: GameState) =
   world.tick()
 
 proc applyInput(game: GameState, ev: InputEvent) =
-
   case ev.kind
   of ievNone:
     discard
@@ -119,6 +154,20 @@ proc applyInput(game: GameState, ev: InputEvent) =
     if ev.keyType == ikEsc:
       # Wait for release
       discard
+
+    elif game.editing:
+      case ev.keyType
+      of ikLeft:
+        game.cursorX = max(game.cursorX-1, 0)
+      of ikRight:
+        game.cursorX = min(game.cursorX+1, game.board.grid.w-1)
+      of ikUp:
+        game.cursorY = max(game.cursorY-1, 0)
+      of ikDown:
+        game.cursorY = min(game.cursorY+1, game.board.grid.h-1)
+      else:
+        discard
+
     else:
       # TODO: Handle key repeat properly --GM
       var player = game.player
@@ -130,6 +179,10 @@ proc applyInput(game: GameState, ev: InputEvent) =
     if ev.keyType == ikEsc:
       # Quit to menu or exit game
       game.alive = false
+
+    elif game.editing:
+      discard
+
     else:
       var player = game.player
       if player != nil:

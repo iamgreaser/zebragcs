@@ -9,3 +9,5 @@ entity 4 34 12 lockkey { set @fgcolor 12 }
 entity 5 31 11 box
 entity 6 31 10 box
 entity 7 31 9 lockkey { set @fgcolor 13 }
+
+entity 8 0 0 lion

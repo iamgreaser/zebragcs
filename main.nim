@@ -100,6 +100,7 @@ proc main() =
             mainState.openWorldMenu()
             nil
           of gtDemo: newDemoGame(mainState.worldName)
+          of gtEditorSingle: newEditorSinglePlayerGame(mainState.worldName)
           of gtSingle: newSinglePlayerGame(mainState.worldName)
         mainState.gameType = mainState.runGame(
           game = game,
@@ -159,6 +160,8 @@ proc runGame(mainState: MainState, game: GameState): GameType =
           if game.gameType == gtDemo:
             if ev.kind == ievKeyRelease:
               case ev.keyType
+              of ikE: # Edit world
+                return gtEditorSingle
               of ikP: # Play game
                 return gtSingle
               of ikW: # World select
