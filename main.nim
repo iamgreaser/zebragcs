@@ -4,6 +4,7 @@ when defined(profiler):
 import algorithm
 import os
 import strformat
+import strutils
 
 import ./zebra/game
 import ./zebra/gfx
@@ -15,6 +16,7 @@ import ./zebra/vfs/disk
 type
   MainStateObj = object
     gfx: GfxState
+    gameType: GameType
     game: GameState
     rootWidget: UiWidget
     boardViewWidget: UiBoardView
@@ -33,7 +35,7 @@ proc updateTextWindow(mainState: MainState, textWindowWidget: UiWindow)
 
 proc main() =
   var args = commandLineParams()
-  var worldName = "prototype"
+  var worldName = ""
   case args.len
   of 0: discard
   of 1: worldName = args[0]
@@ -84,16 +86,22 @@ proc main() =
       boardViewWidget: boardViewWidget,
       statusBarWidget: statusBarWidget,
       textWindowWidget: textWindowWidget,
+      gameType: if worldName != "":
+          gtDemo
+        else:
+          gtInitialWorldSelect,
     )
 
-    var gameType = gtDemo
     try:
-      while gameType != gtBed:
-        var game = case gameType
+      while mainState.gameType != gtBed:
+        var game = case mainState.gameType
           of gtBed: return # Shouldn't reach here, but just in case...
+          of gtInitialWorldSelect:
+            mainState.openWorldMenu()
+            nil
           of gtDemo: newDemoGame(mainState.worldName)
           of gtSingle: newSinglePlayerGame(mainState.worldName)
-        gameType = mainState.runGame(
+        mainState.gameType = mainState.runGame(
           game = game,
         )
     except FullQuitException:
@@ -104,10 +112,12 @@ proc main() =
 proc runGame(mainState: MainState, game: GameState): GameType =
   mainState.game = game
   try:
-    while game.alive:
-      game.tick()
-      game.updatePlayerBoardView(mainState.boardViewWidget)
-      game.updatePlayerStatusBar(mainState.statusBarWidget)
+    while mainState.worldMenuOpen or (game != nil and game.alive):
+      if game != nil:
+        game.tick()
+        game.updatePlayerBoardView(mainState.boardViewWidget)
+        game.updatePlayerStatusBar(mainState.statusBarWidget)
+
       mainState.updateTextWindow(mainState.textWindowWidget)
 
       mainState.gfx.drawWidget(mainState.rootWidget)
@@ -121,7 +131,7 @@ proc runGame(mainState: MainState, game: GameState): GameType =
           # Bail out once the event queue is drained
           game.alive = false
 
-        if game.gameType == gtDemo and mainState.worldMenuOpen:
+        if mainState.worldMenuOpen:
           if ev.kind == ievKeyPress:
             case ev.keyType
             of ikUp: mainState.worldMenuIndex = ((mainState.worldMenuIndex + mainState.worldList.len - 1) mod mainState.worldList.len)
@@ -132,12 +142,18 @@ proc runGame(mainState: MainState, game: GameState): GameType =
             of ikEsc: # Close menu
               mainState.worldMenuOpen = false
             of ikEnter: # Select in menu and load it
-              mainState.worldName = mainState.worldList[mainState.worldMenuIndex]
-              mainState.worldMenuOpen = false
-              return gtDemo
+              if mainState.worldMenuIndex == mainState.worldList.len-1:
+                # Enter the editor - TODO!
+                if not mainState.worldList[^1].contains("TODO"):
+                  mainState.worldList[^1] = mainState.worldList[^1] & " - TODO!"
+                discard
+              else:
+                mainState.worldName = mainState.worldList[mainState.worldMenuIndex]
+                mainState.worldMenuOpen = false
+                return gtDemo
             else: discard
 
-        else:
+        elif game != nil:
           game.applyInput(ev)
 
           if game.gameType == gtDemo:
@@ -153,8 +169,11 @@ proc runGame(mainState: MainState, game: GameState): GameType =
     mainState.game = nil
 
   # Where to from here?
-  case game.gameType
+  case mainState.gameType
   of gtDemo: gtBed
+  of gtInitialWorldSelect:
+    echo "No world selected, cannot continue."
+    gtBed
   else: gtDemo
 
 proc openWorldMenu(mainState: MainState) =
@@ -167,6 +186,8 @@ proc openWorldMenu(mainState: MainState) =
     mainState.worldList.add(worldName)
 
   mainState.worldList.sort()
+
+  mainState.worldList.add("<< Create New World >>")
 
   if mainState.worldList.len >= 1:
     mainState.worldMenuOpen = true

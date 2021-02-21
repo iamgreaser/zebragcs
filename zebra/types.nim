@@ -85,8 +85,9 @@ type
 
   GameType* = enum
     gtBed, # Quits the game
+    gtInitialWorldSelect, # No world loaded, but allows for world creation
     gtDemo,
-    #gtEditor,
+    #gtEditorSingle,
     #gtMultiClient,
     #gtMultiDedicated,
     #gtMultiServer,
