@@ -63,6 +63,10 @@ proc newPlayer(world: World): Player =
   assert execBase != nil
 
   var player = Player(
+    windowTitle: "",
+    windowTextLines: @[],
+    windowMenuItems: @[],
+    windowCursorY: 0,
     execBase: execBase,
     activeState: execBase.initState,
     params: Table[string, ScriptVal](),

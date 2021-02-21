@@ -99,7 +99,15 @@ type
     players*: seq[Player]
   World* = ref WorldObj
 
+  MenuItem* = tuple[
+    eventName: string,
+    text: string,
+  ]
   PlayerObj = object of ScriptExecStateObj
+    windowTitle*: string
+    windowTextLines*: seq[string]
+    windowMenuItems*: seq[MenuItem]
+    windowCursorY*: int64
   Player* = ref PlayerObj
 
   BoardInfoObj = object
@@ -164,6 +172,7 @@ type
     ikShift = "shift"
     ikCtrl = "ctrl"
     ikEsc = "esc"
+    ikEnter = "enter"
 
     ik0 = "0",
     ik1 = "1",

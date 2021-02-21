@@ -152,6 +152,7 @@ proc getNextInput*(gfx: GfxState): InputEvent =
         of SDL_SCANCODE_LSHIFT: ikShift
         of SDL_SCANCODE_LCTRL: ikCtrl
         of SDL_SCANCODE_ESCAPE: ikEsc
+        of SDL_SCANCODE_RETURN: ikEnter
 
         of SDL_SCANCODE_0: ik0
         of SDL_SCANCODE_1: ik1
