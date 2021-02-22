@@ -23,7 +23,9 @@ type
     cursorX*: int64
     cursorY*: int64
   UiBoardView* = ref UiBoardViewObj
+
   UiStatusBarObj = object of UiWidgetObj
+    keyLabels*: seq[tuple[key: string, desc: string]]
   UiStatusBar* = ref UiStatusBarObj
 
   UiSolidObj = object of UiWidgetObj
@@ -164,24 +166,13 @@ method drawWidgetBase(widget: UiStatusBar, crop: GfxCrop) =
   crop.drawCharArray(x =  3, y =  4, bg =  7, fg =  0, chs = " \xC0\xC4\xC4\xD9\xC0\xC4\xC4\xD9\xC4\xC4\xD9 ")
   crop.drawCharArray(x =  4, y =  5, bg =  1, fg =  8, chs = "\xDF\xDF\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDF\xDF")
 
-  crop.drawCharArray(x =  3, y =  7, bg =  1, fg = 14, chs = "Score:")
-  crop.drawCharArray(x =  3, y =  8, bg =  1, fg = 14, chs = "             0")
-  crop.drawCharArray(x =  3, y = 10, bg =  1, fg = 14, chs = "Health:    100")
-  crop.drawCharArray(x =  3, y = 11, bg =  1, fg = 14, chs = "Ammo:        0")
-  crop.drawCharArray(x =  3, y = 12, bg =  1, fg = 14, chs = "Gems:        0")
-  crop.drawCharArray(x =  3, y = 14, bg =  1, fg = 14, chs = "Status Bar    ")
-  crop.drawCharArray(x =  3, y = 15, bg =  1, fg = 14, chs = "Fakeness: 100%")
-
-  crop.drawCharArray(x =  2, y = 19, bg =  3, fg =  0, chs = " W ")
-  crop.drawCharArray(x =  6, y = 19, bg =  1, fg = 14, chs = "World select")
-  crop.drawCharArray(x =  2, y = 20, bg =  7, fg =  0, chs = " P ")
-  crop.drawCharArray(x =  6, y = 20, bg =  1, fg = 14, chs = "Play world")
-  crop.drawCharArray(x =  2, y = 21, bg =  3, fg =  0, chs = " E ")
-  crop.drawCharArray(x =  6, y = 21, bg =  1, fg = 14, chs = "Edit world")
-  crop.drawCharArray(x =  2, y = 22, bg =  7, fg =  0, chs = " L ")
-  crop.drawCharArray(x =  6, y = 22, bg =  1, fg = 14, chs = "Load game")
-  crop.drawCharArray(x =  2, y = 23, bg =  3, fg =  0, chs = " Q ")
-  crop.drawCharArray(x =  6, y = 23, bg =  1, fg = 14, chs = "Quit game")
+  var keyLabelY: int64 = 23-(widget.keyLabels.len-1)
+  for label in widget.keyLabels:
+    var bg = if (keyLabelY mod 2) == 0: 3'u8
+      else: 7'u8
+    crop.drawCharArray(x =  2, y = keyLabelY, bg = bg, fg =  0, chs = &" {label.key} ")
+    crop.drawCharArray(x =  5+label.key.len, y = keyLabelY, bg =  1, fg = 14, chs = label.desc)
+    keyLabelY += 1
 
 method drawWidgetBase*(widget: UiWindow, crop: GfxCrop) =
   for y in 1..(crop.h-2):

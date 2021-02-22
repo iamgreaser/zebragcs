@@ -134,7 +134,33 @@ proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
           playerBoardY - (boardWidget.h div 2)))
 
 proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
-  discard # TODO!
+  case game.gameType
+  of gtDemo:
+    statusWidget.keyLabels = @[
+      ("W", "World select"),
+      ("P", "Play world"),
+      ("E", "Edit world"),
+      #("L", "Load game"),
+      ("ESC", "Exit to BSD"),
+    ]
+
+  of gtInitialWorldSelect:
+    statusWidget.keyLabels = @[
+      ("ESC", "Exit to BSD"),
+    ]
+
+  of gtSingle:
+    statusWidget.keyLabels = @[
+      ("ESC", "Quit game"),
+    ]
+
+  of gtEditorSingle:
+    statusWidget.keyLabels = @[
+      ("ESC", "Quit editor"),
+    ]
+
+  of gtBed:
+    discard # Don't bother
 
 proc tick(game: GameState) =
   var world = game.world
