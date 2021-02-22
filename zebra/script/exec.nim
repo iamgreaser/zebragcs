@@ -173,18 +173,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
 
       of snkSay:
         var sayExpr = execState.resolveExpr(node.sayExpr)
-        var sayStr: string = case sayExpr.kind
-          of svkBool:
-            if sayExpr.boolVal:
-              "true"
-            else:
-              "false"
-          of svkEntity: &"<entity 0x{cast[uint](sayExpr.entityRef):x}>"
-          of svkPlayer: &"<player 0x{cast[uint](sayExpr.playerRef):x}>"
-          of svkInt: $sayExpr.intVal
-          of svkStr: sayExpr.strVal
-          of svkDir: &"rel {sayExpr.dirValX} {sayExpr.dirValY}"
-          of svkPos: &"at {sayExpr.posValX} {sayExpr.posValY}"
+        var sayStr: string = sayExpr.asCoercedStr()
 
         # TODO: Actually put it in the window somewhere --GM
         echo &"SAY: [{sayStr}]"

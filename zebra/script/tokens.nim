@@ -42,6 +42,45 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
   var mid, post: string
   var midInt: int # FIXME: We need a 64-bit version of this --GM
 
+  if sps.isParsingString:
+    var i = 0
+    var accum = ""
+    while i < s.len:
+      case s[i]
+      of '"':
+        if accum != "":
+          skipBytes(sps, i)
+          return ScriptToken(kind: stkStrConst, strConst: accum)
+        else:
+          skipBytes(sps, i+1)
+          sps.isParsingString = false
+          return ScriptToken(kind: stkStrClosed)
+
+      of '\\':
+        i += 1
+        if i >= s.len: raise newScriptParseError(sps, &"Line in string too long")
+
+        case s[i]
+        of '\\', '"':
+          accum.add(s[i])
+          i += 1
+        of '(':
+          if accum != "":
+            skipBytes(sps, i-1)
+            return ScriptToken(kind: stkStrConst, strConst: accum)
+          else:
+            skipBytes(sps, i+1)
+            sps.stringInterpLevel += 1
+            sps.isParsingString = false
+            return ScriptToken(kind: stkStrExprOpen)
+        else: raise newScriptParseError(sps, &"Unexpected char escape '\\{s[i]}'")
+
+      else:
+        accum.add(s[i])
+        i += 1
+
+    raise newScriptParseError(sps, &"Line in string too long")
+
   # Skip comments
   if scanf(s, "$s#$*", post):
     skipBytes(sps, s.len - post.len)
@@ -61,10 +100,18 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
   if scanf(s, "$*\n$s$*", mid, post) and scanf(mid, "$s$."):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkEol)
-  elif scanf(s, "$s\"$*\"$*", mid, post):
-    # TODO: Support interpolation somehow --GM
+  elif scanf(s, "$s\"$*", post):
     skipBytes(sps, s.len - post.len)
-    return ScriptToken(kind: stkString, strVal: mid)
+    sps.isParsingString = true
+    return ScriptToken(kind: stkStrOpen)
+  elif scanf(s, "$s)$*", post):
+    skipBytes(sps, s.len - post.len)
+    if sps.stringInterpLevel >= 1:
+      sps.stringInterpLevel -= 1
+      sps.isParsingString = true
+    else:
+      raise newScriptParseError(sps, &"Unexpected ')'")
+    return ScriptToken(kind: stkStrExprClosed)
   elif scanf(s, "$s$i$*", midInt, post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkInt, intVal: midInt)

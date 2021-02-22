@@ -3,6 +3,7 @@ param int @char 233
 param int @fgcolor 15
 param int @bgcolor 0
 
+param int @score 0
 global entity $eatenby
 global int $foodtoplace
 param int @foodtoembed 5
@@ -71,6 +72,7 @@ on state dead {
 on state waitdead {
 }
 on state actuallydead {
+  say "Game over! Final score: \(@score)"
   sleep 20
   die
 }
@@ -81,6 +83,8 @@ on event actuallydie {
 
 on event atefood {
   inc @foodtoembed 3
+  inc @score 1
+  say "Score: [\(@score)]"
 }
 
 on event typeup { if ne %lastmovedir south { set %movedir north } }

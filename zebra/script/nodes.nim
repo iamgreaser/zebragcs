@@ -13,10 +13,27 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
   var tok = sps.readToken()
   case tok.kind
   of stkInt: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkInt, intVal: tok.intVal))
-  of stkString: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkStr, strVal: tok.strVal))
   of stkGlobalVar: return ScriptNode(kind: snkGlobalVar, globalVarName: tok.globalName)
   of stkParamVar: return ScriptNode(kind: snkParamVar, paramVarName: tok.paramName)
   of stkLocalVar: return ScriptNode(kind: snkLocalVar, localVarName: tok.localName)
+
+  of stkStrOpen:
+    var accum: seq[ScriptNode] = @[]
+    while true:
+      var tok = sps.readToken()
+      case tok.kind
+      of stkStrClosed:
+        echo &"Nodes: {accum}"
+        return ScriptNode(kind: snkStringBlock, stringNodes: accum)
+      of stkStrConst:
+        accum.add(ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkStr, strVal: tok.strConst)))
+      of stkStrExprOpen:
+        var subNode = sps.parseExpr()
+        sps.expectToken(stkStrExprClosed)
+        accum.add(subNode)
+      else:
+        raise newScriptParseError(sps, &"Expected string expression, got {tok} instead")
+
   of stkWord:
     case tok.wordVal.toLowerAscii()
     of "false": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: false))

@@ -26,6 +26,8 @@ type
     strm*: Stream
     fname*: string
     row*, col*: int64
+    isParsingString*: bool
+    stringInterpLevel*: int64
     tokenPushStack*: seq[ScriptToken]
 
   ScriptGlobalBase* = ref ScriptGlobalBaseObj
@@ -148,7 +150,11 @@ type
     stkParamVar,
     stkParenClosed,
     stkParenOpen,
-    stkString,
+    stkStrClosed,
+    stkStrConst,
+    stkStrExprClosed,
+    stkStrExprOpen,
+    stkStrOpen,
     stkWord,
   ScriptToken* = ref ScriptTokenObj
   ScriptTokenObj = object
@@ -161,7 +167,9 @@ type
     of stkLocalVar: localName*: string
     of stkParamVar: paramName*: string
     of stkParenOpen, stkParenClosed: discard
-    of stkString: strVal*: string
+    of stkStrOpen, stkStrClosed: discard
+    of stkStrExprOpen, stkStrExprClosed: discard
+    of stkStrConst: strConst*: string
     of stkWord: wordVal*: string
 
   InputKeyType* = enum
@@ -280,6 +288,7 @@ type
     snkSleep,
     snkSpawn,
     snkSpawnInto,
+    snkStringBlock,
     snkWhileBlock,
   ScriptNode* = ref ScriptNodeObj
   ScriptNodeObj = object
@@ -301,6 +310,8 @@ type
       whileBody*: seq[ScriptNode]
     of snkConst:
       constVal*: ScriptVal
+    of snkStringBlock:
+      stringNodes*: seq[ScriptNode]
     of snkAssign:
       assignType*: ScriptAssignType
       assignDstExpr*: ScriptNode
@@ -417,6 +428,7 @@ proc `$`*(x: ScriptNode): string =
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
   of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
   of snkSpawnInto: return &"SpawnInto({x.spawnIntoDstExpr} := {x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
+  of snkStringBlock: return &"String({x.stringNodes})"
   of snkWhileBlock: return &"While({x.whileTest}: {x.whileBody})"
 
 proc `$`*(x: ScriptToken): string =
@@ -431,7 +443,11 @@ proc `$`*(x: ScriptToken): string =
   of stkParamVar: return &"ParamT({x.paramName})"
   of stkParenClosed: return ")T"
   of stkParenOpen: return "(T"
-  of stkString: return &"StringT({x.strVal})"
+  of stkStrClosed: return "\">T"
+  of stkStrConst: return &"StringConstT({x.strConst})"
+  of stkStrExprClosed: return ")\"T"
+  of stkStrExprOpen: return "\"(T"
+  of stkStrOpen: return "<\"T"
   of stkWord: return &"WordT({x.wordVal})"
 
 proc `$`*(x: ScriptGlobalBase): string =

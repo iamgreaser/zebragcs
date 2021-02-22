@@ -4,6 +4,7 @@ import tables
 import ../types
 
 proc asBool*(x: ScriptVal): bool
+proc asCoercedStr*(x: ScriptVal): string
 proc asInt*(x: ScriptVal): int64
 proc asStr*(x: ScriptVal): string
 proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
@@ -93,6 +94,20 @@ proc asStr(x: ScriptVal): string =
   of svkStr: x.strVal
   else:
     raise newException(ScriptExecError, &"Expected str, got {x} instead")
+
+proc asCoercedStr(x: ScriptVal): string =
+  case x.kind
+  of svkBool:
+    if x.boolVal:
+      "true"
+    else:
+      "false"
+  of svkEntity: &"<entity 0x{cast[uint](x.entityRef):x}>"
+  of svkPlayer: &"<player 0x{cast[uint](x.playerRef):x}>"
+  of svkInt: $x.intVal
+  of svkStr: x.strVal
+  of svkDir: &"rel {x.dirValX} {x.dirValY}"
+  of svkPos: &"at {x.posValX} {x.posValY}"
 
 method funcDirComponents(execState: ScriptExecState, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
@@ -192,6 +207,12 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
   case expr.kind
   of snkConst:
     return expr.constVal
+
+  of snkStringBlock:
+    var accum = ""
+    for subExpr in expr.stringNodes:
+      accum &= execState.resolveExpr(subExpr).asCoercedStr()
+    return ScriptVal(kind: svkStr, strVal: accum)
 
   of snkFunc:
     case expr.funcType
