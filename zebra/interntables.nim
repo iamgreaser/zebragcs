@@ -1,5 +1,6 @@
 # We need something that can actually intern keys consistently.
 
+import macros
 import strformat
 import tables
 
@@ -19,10 +20,8 @@ type
   InternTable*[V] = ref InternTableObj[V]
 
 
-var globalInternBase = InternTableBase(
-  idxToStr: @[],
-  strToIdx: initTable[string, InternKey](),
-)
+var globalInternInitStrings* {.compileTime.}: seq[string]
+var globalInternBase*: InternTableBase
 
 
 proc initInternTable*[V](): InternTable[V] =
@@ -31,6 +30,9 @@ proc initInternTable*[V](): InternTable[V] =
     presence: @[],
   )
   itab
+
+proc internKey*(key: InternKey): InternKey =
+  key
 
 proc internKey*(key: string): InternKey =
   try:
@@ -42,19 +44,25 @@ proc internKey*(key: string): InternKey =
     r
 
 proc internKeyCT*(key: string): InternKey {.compileTime.} =
-  internKey(key)
+  if not globalInternInitStrings.contains(key):
+    globalInternInitStrings.add(key)
+    echo "Pre-interning key " & $key
 
-proc `[]`*[V](itab: InternTable[V], idx: int): var V =
+  let k = globalInternInitStrings.find(key)
+  assert k >= 0
+  return k
+
+proc get[V](itab: InternTable[V], idx: int): var V =
   if idx < itab.presence.len and itab.presence[idx]:
     result = itab.values[idx]
   else:
     raise newException(KeyError, &"index {idx} not found")
 
-proc `[]`*[V](itab: InternTable[V], key: string): var V =
+proc get*[V](itab: InternTable[V], key: string): var V =
   var idx = globalInternBase.strToIdx[key]
   itab[idx]
 
-proc `[]=`*[V](itab: var InternTable[V], idx: int, val: V) =
+proc put*[V](itab: var InternTable[V], idx: int, val: V) =
   assert itab != nil
   while itab.presence.len <= idx:
     itab.presence.add(false)
@@ -62,8 +70,26 @@ proc `[]=`*[V](itab: var InternTable[V], idx: int, val: V) =
   itab.presence[idx] = true
   itab.values[idx] = val
 
-proc `[]=`*[V](itab: var InternTable[V], key: string, val: V) =
+proc put*[V](itab: var InternTable[V], key: string, val: V) =
   itab[internKey(key)] = val
+
+macro `[]`*[V](itab: InternTable[V], key: untyped): var V =
+  if key.kind == nnkStrLit:
+    let idx = internKeyCT(key.strVal)
+    quote do:
+      `itab`.get(`idx`)
+  else:
+    quote do:
+      `itab`.get(internKey(`key`))
+
+macro `[]=`*[V](itab: var InternTable[V], key: untyped, val: V) =
+  if key.kind == nnkStrLit:
+    let idx = internKeyCT(key.strVal)
+    quote do:
+      `itab`.put(`idx`, `val`)
+  else:
+    quote do:
+      `itab`.put(internKey(`key`), `val`)
 
 iterator indexedPairs*[V](itab: InternTable[V]): tuple[idx: InternKey, val: V] =
   assert itab != nil
@@ -115,3 +141,16 @@ proc `$`*[V](x: InternTable[V]): string =
     i += 1
   accum &= "}"
   accum
+
+proc initInternTableBase*(initStrings: seq[string]) =
+  globalInternBase = InternTableBase(
+    idxToStr: @[],
+    strToIdx: initTable[string, InternKey](),
+  )
+  echo "Setting up intern table base..."
+  for i in 0..initStrings.high:
+    let k = initStrings[i]
+    globalInternBase.idxToStr.add(k)
+    globalInternBase.strToIdx[k] = i
+  echo "Globals: " & $globalInternBase
+  echo "Base done."

@@ -8,6 +8,7 @@ import strutils
 
 import ./zebra/game
 import ./zebra/gfx
+import ./zebra/interntables
 import ./zebra/types
 import ./zebra/ui
 import ./zebra/vfs/disk
@@ -34,6 +35,7 @@ proc runGame(mainState: MainState, game: GameState): GameType
 proc updateTextWindow(mainState: MainState, textWindowWidget: UiWindow)
 
 proc main() =
+  initInternTableBase(static(globalInternInitStrings))
   var args = commandLineParams()
   var worldName = ""
   case args.len
