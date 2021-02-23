@@ -3,7 +3,7 @@ import strformat
 import ./interntables
 import ./types
 
-proc broadcastEvent*(world: World, eventName: string)
+proc broadcastEvent*(world: World, eventNameIdx: InternKey)
 proc loadWorld*(worldName: string): World
 
 import ./script/exec
@@ -41,7 +41,7 @@ proc loadWorld(worldName: string): World =
     boards: initInternTable[Board](),
     tickTitle: false,
     execBase: execBase,
-    activeState: execBase.initState,
+    activeStateIdx: execBase.initStateIdx,
     params: initInternTable[ScriptVal](),
     locals: initInternTable[ScriptVal](),
     alive: true,
@@ -65,13 +65,13 @@ proc loadWorld(worldName: string): World =
   # Return
   world
 
-proc broadcastEvent(world: World, eventName: string) =
-  world.tickEvent(eventName)
+proc broadcastEvent(world: World, eventNameIdx: InternKey) =
+  world.tickEvent(eventNameIdx)
   var boardsCopy: seq[Board] = @[]
   for board in world.boards.values():
     boardsCopy.add(board)
   for board in boardsCopy:
-    board.broadcastEvent(eventName)
+    board.broadcastEvent(eventNameIdx)
 
 method tick(world: World) =
   # Tick world

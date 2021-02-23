@@ -3,7 +3,7 @@ import ../interntables
 import ../types
 
 method tick*(execState: ScriptExecState) {.base, locks: "unknown".}
-proc tickEvent*(execState: ScriptExecState, eventName: string)
+proc tickEvent*(execState: ScriptExecState, eventNameIdx: InternKey)
 
 import ../board
 import ../entity
@@ -39,26 +39,26 @@ method stmtMovePerformAbs(execState: ScriptExecState, boardNameIdx: InternKey, d
 method stmtMovePerformAbs(entity: Entity, boardNameIdx: InternKey, dx, dy: int64): bool =
   entity.moveTo(entity.board.world.boards[boardNameIdx], dx, dy)
 
-method stmtBroadcast(execState: ScriptExecState, eventName: string) {.base, locks: "unknown".} =
+method stmtBroadcast(execState: ScriptExecState, eventNameIdx: InternKey) {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for broadcast")
-method stmtBroadcast(entity: Entity, eventName: string) =
+method stmtBroadcast(entity: Entity, eventNameIdx: InternKey) =
   var board = entity.board
   assert board != nil
-  board.broadcastEvent(eventName)
+  board.broadcastEvent(eventNameIdx)
 
-method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventName: string) {.base, locks: "unknown".} =
+method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventNameIdx: InternKey) {.base, locks: "unknown".} =
   case dirOrPos.kind
   of svkEntity:
     var entity = dirOrPos.entityRef
     if entity != nil:
       if entity.alive:
-        entity.tickEvent(eventName)
+        entity.tickEvent(eventNameIdx)
 
   of svkPlayer:
     var player = dirOrPos.playerRef
     if player != nil:
       if player.alive:
-        player.tickEvent(eventName)
+        player.tickEvent(eventNameIdx)
 
   else:
     var share = execState.share
@@ -66,30 +66,30 @@ method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventName: stri
     var world = share.world
     assert world != nil
 
-    var (boardName, x, y) = execState.resolvePos(dirOrPos)
+    var (boardNameIdx, x, y) = execState.resolvePos(dirOrPos)
     var board = try:
-        world.boards[boardName]
+        world.boards[boardNameIdx]
       except KeyError:
-        raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
+        raise newException(ScriptExecError, &"Board \"{boardNameIdx.getInternName()}\" does not exist")
     assert board != nil
-    board.sendEventToPos(eventName, x, y)
+    board.sendEventToPos(eventNameIdx, x, y)
 
-method stmtSpawn(execState: ScriptExecState, entityName: string, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
+method stmtSpawn(execState: ScriptExecState, entityNameIdx: InternKey, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
   var share = execState.share
   assert share != nil
   var world = share.world
   assert world != nil
 
-  var (boardName, x, y) = execState.resolvePos(dirOrPos)
+  var (boardNameIdx, x, y) = execState.resolvePos(dirOrPos)
   var board = try:
       # FIXME getBoard causes a crash under some circumstances, need to fix this --GM
       #world.getBoard(boardName)
-      world.boards[boardName]
+      world.boards[boardNameIdx]
     except KeyError:
-      raise newException(ScriptExecError, &"Board \"{boardName}\" does not exist")
+      raise newException(ScriptExecError, &"Board \"{boardNameIdx.getInternName()}\" does not exist")
   assert board != nil
 
-  var newEntity = board.newEntity(entityName, x, y)
+  var newEntity = board.newEntity(entityNameIdx, x, y)
   return newEntity
 
 proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
@@ -130,8 +130,8 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
             raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
 
       of snkGoto:
-        var stateName: string = node.gotoStateName
-        execState.activeState = stateName
+        var stateNameIdx: InternKey = node.gotoStateNameIdx
+        execState.activeStateIdx = stateNameIdx
         execState.continuations.setLen(0)
         return
 
@@ -167,8 +167,8 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           cont = ScriptContinuation(codeBlock: body, codePc: 0)
 
       of snkBroadcast:
-        var eventName: string = node.broadcastEventName
-        execState.stmtBroadcast(eventName)
+        var eventNameIdx: InternKey = node.broadcastEventNameIdx
+        execState.stmtBroadcast(eventNameIdx)
 
       of snkSay:
         var sayExpr = execState.resolveExpr(node.sayExpr)
@@ -179,8 +179,8 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
 
       of snkSend:
         var dirOrPos = execState.resolveExpr(node.sendPos)
-        var eventName: string = node.sendEventName
-        execState.stmtSend(dirOrPos, eventName)
+        var eventNameIdx: InternKey = node.sendEventNameIdx
+        execState.stmtSend(dirOrPos, eventNameIdx)
 
       of snkSleep:
         var sleepTime = execState.resolveExpr(node.sleepTimeExpr).asInt()
@@ -196,11 +196,11 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
           else:
             raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
         var dirOrPos = execState.resolveExpr(node.spawnPos)
-        var entityName: string = node.spawnEntityName
+        var entityNameIdx: InternKey = node.spawnEntityNameIdx
         var spawnBody = node.spawnBody
         var spawnElse = node.spawnElse
 
-        var newEntity = execState.stmtSpawn(entityName, dirOrPos, spawnBody, spawnElse)
+        var newEntity = execState.stmtSpawn(entityNameIdx, dirOrPos, spawnBody, spawnElse)
         if newEntity == nil:
           execState.continuations.add(cont)
           cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
@@ -245,8 +245,8 @@ method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
       return
 
   if execState.continuations.len < 1:
-    var activeState = execState.activeState
-    var stateBlock = execBase.states[activeState]
+    var activeStateIdx = execState.activeStateIdx
+    var stateBlock = execBase.states[activeStateIdx]
     execState.continuations.add(
       ScriptContinuation(
         codeBlock: stateBlock.stateBody,
@@ -256,11 +256,11 @@ method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
 
   execState.tickContinuations(lowerBound=0'u64)
 
-proc tickEvent(execState: ScriptExecState, eventName: string) =
+proc tickEvent(execState: ScriptExecState, eventNameIdx: InternKey) =
   var execBase = execState.execBase
   assert execBase != nil
   var eventBlock = try:
-      execBase.events[eventName]
+      execBase.events[eventNameIdx]
     except KeyError:
       return # If we don't have a handler for this event, then ignore it.
 

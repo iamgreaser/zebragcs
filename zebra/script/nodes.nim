@@ -1,6 +1,7 @@
 import strformat
 import strutils
 
+import ../interntables
 import ../types
 
 proc parseCodeBlock*(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode]
@@ -13,9 +14,9 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
   var tok = sps.readToken()
   case tok.kind
   of stkInt: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkInt, intVal: tok.intVal))
-  of stkGlobalVar: return ScriptNode(kind: snkGlobalVar, globalVarName: tok.globalName)
-  of stkParamVar: return ScriptNode(kind: snkParamVar, paramVarName: tok.paramName)
-  of stkLocalVar: return ScriptNode(kind: snkLocalVar, localVarName: tok.localName)
+  of stkGlobalVar: return ScriptNode(kind: snkGlobalVar, globalVarNameIdx: internKey(tok.globalName))
+  of stkParamVar: return ScriptNode(kind: snkParamVar, paramVarNameIdx: internKey(tok.paramName))
+  of stkLocalVar: return ScriptNode(kind: snkLocalVar, localVarNameIdx: internKey(tok.localName))
 
   of stkStrOpen:
     var accum: seq[ScriptNode] = @[]
@@ -112,7 +113,7 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
     sps.expectToken(stkBraceOpen)
     return ScriptNode(
       kind: snkOnEventBlock,
-      onEventName: eventName,
+      onEventNameIdx: internKey(eventName),
       onEventBody: sps.parseCodeBlock(stkBraceClosed),
     )
 
@@ -121,7 +122,7 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
     sps.expectToken(stkBraceOpen)
     return ScriptNode(
       kind: snkOnStateBlock,
-      onStateName: stateName,
+      onStateNameIdx: internKey(stateName),
       onStateBody: sps.parseCodeBlock(stkBraceClosed),
     )
 
@@ -147,7 +148,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkGoto,
-          gotoStateName: stateName,
+          gotoStateNameIdx: internKey(stateName),
         ))
 
       of "broadcast":
@@ -155,7 +156,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkBroadcast,
-          broadcastEventName: eventName,
+          broadcastEventNameIdx: internKey(eventName),
         ))
 
       of "dec", "fdiv", "inc", "mul", "set":
@@ -227,7 +228,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         awaitingEol = true
         nodes.add(ScriptNode(
           kind: snkSend,
-          sendEventName: eventName,
+          sendEventNameIdx: internKey(eventName),
           sendPos: posExpr,
         ))
 
@@ -294,7 +295,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           of "spawn":
             nodes.add(ScriptNode(
               kind: snkSpawn,
-              spawnEntityName: entityName,
+              spawnEntityNameIdx: internKey(entityName),
               spawnPos: posExpr,
               spawnBody: bodyExpr,
               spawnElse: elseExpr,
@@ -303,7 +304,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
             nodes.add(ScriptNode(
               kind: snkSpawnInto,
               spawnIntoDstExpr: dstExpr,
-              spawnEntityName: entityName,
+              spawnEntityNameIdx: internKey(entityName),
               spawnPos: posExpr,
               spawnBody: bodyExpr,
               spawnElse: elseExpr,
@@ -347,7 +348,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         nodes.add(ScriptNode(
           kind: snkGlobalDef,
           globalDefType: varType,
-          globalDefName: varName,
+          globalDefNameIdx: internKey(varName),
         ))
 
       of "param":
@@ -358,7 +359,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         nodes.add(ScriptNode(
           kind: snkParamDef,
           paramDefType: varType,
-          paramDefName: varName,
+          paramDefNameIdx: internKey(varName),
           paramDefInitValue: valueNode,
         ))
 
@@ -370,7 +371,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         nodes.add(ScriptNode(
           kind: snkLocalDef,
           localDefType: varType,
-          localDefName: varName,
+          localDefNameIdx: internKey(varName),
           localDefInitValue: valueNode,
         ))
 

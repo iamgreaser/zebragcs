@@ -51,13 +51,13 @@ type
 
   ScriptExecBase* = ref ScriptExecBaseObj
   ScriptExecBaseObj = object
-    entityName*: string
+    entityNameIdx*: InternKey
     globals*: InternTable[ScriptGlobalBase]
     params*: InternTable[ScriptParamBase]
     locals*: InternTable[ScriptLocalBase]
     states*: InternTable[ScriptStateBase]
     events*: InternTable[ScriptEventBase]
-    initState*: string
+    initStateIdx*: InternKey
 
   ScriptContinuation* = ref ScriptContinuationObj
   ScriptContinuationObj = object
@@ -78,7 +78,7 @@ type
   ScriptExecStateObj = object of RootObj
     share*: ScriptSharedExecState
     execBase*: ScriptExecBase
-    activeState*: string
+    activeStateIdx*: InternKey
     locals*: InternTable[ScriptVal]
     params*: InternTable[ScriptVal]
     continuations*: seq[ScriptContinuation]
@@ -115,8 +115,8 @@ type
   Player* = ref PlayerObj
 
   BoardInfoObj = object
-    boardName*: string
-    controllerName*: string
+    boardNameIdx*: InternKey
+    controllerNameIdx*: InternKey
     w*, h*: int64
     entityDefList*: seq[BoardEntityDef]
     entityDefMap*: Table[int64, BoardEntityDef]
@@ -124,7 +124,7 @@ type
   BoardEntityDefObj = object
     id*: int64
     x*, y*: int64
-    typeName*: string
+    typeNameIdx*: InternKey
     body*: seq[ScriptNode]
   BoardEntityDef* = ref BoardEntityDefObj
 
@@ -297,10 +297,10 @@ type
     of snkRootBlock:
       rootBody*: seq[ScriptNode]
     of snkOnStateBlock:
-      onStateName*: string
+      onStateNameIdx*: InternKey
       onStateBody*: seq[ScriptNode]
     of snkOnEventBlock:
-      onEventName*: string
+      onEventNameIdx*: InternKey
       onEventBody*: seq[ScriptNode]
     of snkIfBlock:
       ifTest*: ScriptNode
@@ -329,37 +329,37 @@ type
     of snkSleep:
       sleepTimeExpr*: ScriptNode
     of snkBroadcast:
-      broadcastEventName*: string
+      broadcastEventNameIdx*: InternKey
     of snkSay:
       sayExpr*: ScriptNode
     of snkSend:
-      sendEventName*: string
+      sendEventNameIdx*: InternKey
       sendPos*: ScriptNode
     of snkSpawn, snkSpawnInto:
       spawnIntoDstExpr*: ScriptNode
-      spawnEntityName*: string
+      spawnEntityNameIdx*: InternKey
       spawnPos*: ScriptNode
       spawnBody*: seq[ScriptNode]
       spawnElse*: seq[ScriptNode]
     of snkGoto:
-      gotoStateName*: string
+      gotoStateNameIdx*: InternKey
     of snkGlobalDef:
       globalDefType*: ScriptValKind
-      globalDefName*: string
+      globalDefNameIdx*: InternKey
     of snkGlobalVar:
-      globalVarName*: string
+      globalVarNameIdx*: InternKey
     of snkParamDef:
       paramDefType*: ScriptValKind
-      paramDefName*: string
+      paramDefNameIdx*: InternKey
       paramDefInitValue*: ScriptNode
     of snkParamVar:
-      paramVarName*: string
+      paramVarNameIdx*: InternKey
     of snkLocalDef:
       localDefType*: ScriptValKind
-      localDefName*: string
+      localDefNameIdx*: InternKey
       localDefInitValue*: ScriptNode
     of snkLocalVar:
-      localVarName*: string
+      localVarNameIdx*: InternKey
 
   ScriptValKind* = enum
     svkBool,
@@ -407,28 +407,28 @@ proc `$`*(x: ScriptVal): string =
 proc `$`*(x: ScriptNode): string =
   case x.kind
   of snkAssign: return &"Assign({x.assignType}: {x.assignDstExpr} <:- {x.assignSrcExpr})"
-  of snkBroadcast: return &"Broadcast({x.broadcastEventName})"
+  of snkBroadcast: return &"Broadcast({x.broadcastEventNameIdx.getInternName()})"
   of snkConst: return &"Const({x.constVal})"
   of snkDie: return &"Die"
   of snkForceMove: return &"ForceMove({x.moveDirExpr})"
   of snkFunc: return &"Func:{x.funcType}({x.funcArgs})"
-  of snkGlobalDef: return &"GlobalDef(${x.globalDefName}: {x.globalDefType})"
-  of snkGlobalVar: return &"GlobalVar(${x.globalVarName})"
-  of snkGoto: return &"Goto({x.gotoStateName})"
+  of snkGlobalDef: return &"GlobalDef(${x.globalDefNameIdx.getInternName()}: {x.globalDefType})"
+  of snkGlobalVar: return &"GlobalVar(${x.globalVarNameIdx.getInternName()})"
+  of snkGoto: return &"Goto({x.gotoStateNameIdx.getInternName()})"
   of snkIfBlock: return &"If({x.ifTest}, then {x.ifBody}, else {x.ifElse})"
-  of snkLocalDef: return &"LocalDef(@{x.localDefName}: {x.localDefType} := {x.localDefInitValue})"
-  of snkLocalVar: return &"LocalVar(@{x.localVarName})"
+  of snkLocalDef: return &"LocalDef(@{x.localDefNameIdx.getInternName()}: {x.localDefType} := {x.localDefInitValue})"
+  of snkLocalVar: return &"LocalVar(@{x.localVarNameIdx.getInternName()})"
   of snkMove: return &"Move({x.moveDirExpr} else {x.moveElse})"
-  of snkOnEventBlock: return &"OnEvent({x.onEventName}: {x.onEventBody})"
-  of snkOnStateBlock: return &"OnState({x.onStateName}: {x.onStateBody})"
-  of snkParamDef: return &"ParamDef(@{x.paramDefName}: {x.paramDefType} := {x.paramDefInitValue})"
-  of snkParamVar: return &"ParamVar(@{x.paramVarName})"
+  of snkOnEventBlock: return &"OnEvent({x.onEventNameIdx.getInternName()}: {x.onEventBody})"
+  of snkOnStateBlock: return &"OnState({x.onStateNameIdx.getInternName()}: {x.onStateBody})"
+  of snkParamDef: return &"ParamDef(@{x.paramDefNameIdx.getInternName()}: {x.paramDefType} := {x.paramDefInitValue})"
+  of snkParamVar: return &"ParamVar(@{x.paramVarNameIdx.getInternName()})"
   of snkRootBlock: return &"Root({x.rootBody})"
   of snkSay: return &"Say({x.sayExpr})"
-  of snkSend: return &"Send({x.sendEventName} -> {x.sendPos})"
+  of snkSend: return &"Send({x.sendEventNameIdx.getInternName()} -> {x.sendPos})"
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
-  of snkSpawn: return &"Spawn({x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
-  of snkSpawnInto: return &"SpawnInto({x.spawnIntoDstExpr} := {x.spawnEntityName} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
+  of snkSpawn: return &"Spawn({x.spawnEntityNameIdx.getInternName()} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
+  of snkSpawnInto: return &"SpawnInto({x.spawnIntoDstExpr} := {x.spawnEntityNameIdx.getInternName()} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
   of snkStringBlock: return &"String({x.stringNodes})"
   of snkWhileBlock: return &"While({x.whileTest}: {x.whileBody})"
 
@@ -466,24 +466,22 @@ proc `$`*(x: ScriptSharedExecState): string =
   &"SharedExecState(globals={x.globals}, vfs={x.vfs})"
 
 proc `$`*(x: ScriptExecBase): string =
-  &"ExecBase(initState={x.initState}, globals={x.globals}, params={x.params}, locals={x.locals}, states={x.states}, events={x.events})"
+  &"ExecBase(initState={x.initStateIdx.getInternName()}, globals={x.globals}, params={x.params}, locals={x.locals}, states={x.states}, events={x.events})"
 
 proc `$`*(x: ScriptContinuation): string =
   &"Continuation({x.codePc} in {x.codeBlock})"
 
 proc `$`*(x: ScriptExecState): string =
-  #&"ExecState(execBase={x.execBase}, activeState={x.activeState}, continuations={x.continuations})"
-  #&"ExecState(activeState={x.activeState}, continuations={x.continuations})"
-  &"ExecState(activeState={x.activeState}, alive={x.alive})"
+  &"ExecState(activeState={x.activeStateIdx.getInternName()}, alive={x.alive})"
 
 proc `$`*(x: Entity): string =
-  &"Entity(pos=({x.x}, {x.y}), activeState={x.activeState}, alive={x.alive})"
+  &"Entity(pos=({x.x}, {x.y}), activeState={x.activeStateIdx.getInternName()}, alive={x.alive})"
 
 proc `$`*(x: Board): string =
-  &"Board(boardName={x.boardNameIdx.getInternName()}, activeState={x.activeState}, alive={x.alive})"
+  &"Board(boardName={x.boardNameIdx.getInternName()}, activeState={x.activeStateIdx.getInternName()}, alive={x.alive})"
 
 proc `$`*(x: Player): string =
-  &"Player(activeState={x.activeState}, alive={x.alive})"
+  &"Player(activeState={x.activeStateIdx.getInternName()}, alive={x.alive})"
 
 proc `$`*(x: World): string =
-  &"World(activeState={x.activeState}, alive={x.alive})"
+  &"World(activeState={x.activeStateIdx.getInternName()}, alive={x.alive})"

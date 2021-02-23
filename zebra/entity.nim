@@ -10,21 +10,21 @@ proc hasPhysBlock*(entity: Entity): bool
 proc hasPhysGhost*(entity: Entity): bool
 proc moveBy*(entity: Entity, dx: int64, dy: int64): bool
 proc moveTo*(entity: Entity, board: Board, x: int64, y: int64): bool
-proc newEntity*(board: Board, entityType: string, x, y: int64): Entity
+proc newEntity*(board: Board, entityType: InternKey, x, y: int64): Entity
 
 import ./board
 import ./script/compile
 import ./script/exprs
 
 
-proc getEntityType(share: ScriptSharedExecState, entityName: string): ScriptExecBase =
+proc getEntityType(share: ScriptSharedExecState, entityNameIdx: InternKey): ScriptExecBase =
   try:
-    share.entityTypes[entityName]
+    share.entityTypes[entityNameIdx]
   except KeyError:
-    share.loadEntityTypeFromFile(entityName)
-    share.entityTypes[entityName]
+    share.loadEntityTypeFromFile(entityNameIdx.getInternName())
+    share.entityTypes[entityNameIdx]
 
-proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
+proc newEntity(board: Board, entityType: InternKey, x, y: int64): Entity =
   var share = board.share
   assert share != nil
   var execBase = share.getEntityType(entityType)
@@ -32,7 +32,7 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
     board: board,
     x: x, y: y,
     execBase: execBase,
-    activeState: execBase.initState,
+    activeStateIdx: execBase.initStateIdx,
     params: initInternTable[ScriptVal](),
     locals: initInternTable[ScriptVal](),
     alive: true,
@@ -68,7 +68,7 @@ proc customiseFromBody(entity: Entity, execState: ScriptExecState, body: seq[Scr
         case spawnNodeDstExpr.kind
         of snkParamVar:
           # TODO: Confirm types --GM
-          entity.params[spawnNodeDstExpr.paramVarName] = spawnNodeSrc
+          entity.params[spawnNodeDstExpr.paramVarNameIdx] = spawnNodeSrc
         else:
           raise newException(ScriptExecError, &"Unhandled spawn assignment destination {spawnNodeDstExpr}")
       else:

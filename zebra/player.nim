@@ -69,7 +69,7 @@ proc newPlayer(world: World): Player =
     windowMenuItems: @[],
     windowCursorY: 0,
     execBase: execBase,
-    activeState: execBase.initState,
+    activeStateIdx: execBase.initStateIdx,
     params: initInternTable[ScriptVal](),
     locals: initInternTable[ScriptVal](),
     alive: true,

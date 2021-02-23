@@ -35,7 +35,7 @@ proc newDemoGame(worldName: string): GameState =
   echo &"Starting new demo of world \"{worldName}\""
   var world = loadWorld(worldName)
   world.tickTitle = true
-  world.broadcastEvent("initworld")
+  world.broadcastEvent(internKeyCT("initworld"))
 
   var game = GameState(
     gameType: gtDemo,
@@ -69,11 +69,11 @@ proc newEditorSinglePlayerGame(worldName: string): GameState =
 proc newSinglePlayerGame(worldName: string): GameState =
   echo &"Starting new single-player game of world \"{worldName}\""
   var world = loadWorld(worldName)
-  world.broadcastEvent("initworld")
+  world.broadcastEvent(internKeyCT("initworld"))
 
   echo "Spawning new player"
   var player = world.newPlayer()
-  player.tickEvent("initplayer")
+  player.tickEvent(internKeyCT("initplayer"))
 
   var game = GameState(
     gameType: gtSingle,
@@ -198,8 +198,8 @@ proc applyInput(game: GameState, ev: InputEvent) =
       # TODO: Handle key repeat properly --GM
       var player = game.player
       if player != nil:
-        player.tickEvent(&"press{ev.keyType}")
-        player.tickEvent(&"type{ev.keyType}")
+        player.tickEvent(internKey(&"press{ev.keyType}"))
+        player.tickEvent(internKey(&"type{ev.keyType}"))
 
   of ievKeyRelease:
     if ev.keyType == ikEsc:
@@ -212,6 +212,6 @@ proc applyInput(game: GameState, ev: InputEvent) =
     else:
       var player = game.player
       if player != nil:
-        player.tickEvent(&"release{ev.keyType}")
+        player.tickEvent(internKey(&"release{ev.keyType}"))
 
   #else: discard

@@ -36,12 +36,13 @@ proc newScriptSharedExecState(vfs: FsBase): ScriptSharedExecState =
 
 proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   var execBase = ScriptExecBase(
-    entityName: entityName,
+    entityNameIdx: internKey(entityName),
     globals: initInternTable[ScriptGlobalBase](),
     params: initInternTable[ScriptParamBase](),
     locals: initInternTable[ScriptLocalBase](),
     states: initInternTable[ScriptStateBase](),
     events: initInternTable[ScriptEventBase](),
+    initStateIdx: -1,
   )
 
   if node.kind != snkRootBlock:
@@ -50,32 +51,32 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   for node in node.rootBody:
     case node.kind
     of snkGlobalDef:
-      execBase.globals[node.globalDefName] = ScriptGlobalBase(
+      execBase.globals[node.globalDefNameIdx] = ScriptGlobalBase(
         varType: node.globalDefType,
       )
 
     of snkParamDef:
-      execBase.params[node.paramDefName] = ScriptParamBase(
+      execBase.params[node.paramDefNameIdx] = ScriptParamBase(
         varType: node.paramDefType,
         varDefault: node.paramDefInitValue,
       )
 
     of snkLocalDef:
-      execBase.locals[node.localDefName] = ScriptLocalBase(
+      execBase.locals[node.localDefNameIdx] = ScriptLocalBase(
         varType: node.localDefType,
         varDefault: node.localDefInitValue,
       )
 
     of snkOnStateBlock:
-      if execBase.initState == "":
-        execBase.initState = node.onStateName
+      if execBase.initStateIdx == -1:
+        execBase.initStateIdx = node.onStateNameIdx
 
-      execBase.states[node.onStateName] = ScriptStateBase(
+      execBase.states[node.onStateNameIdx] = ScriptStateBase(
         stateBody: node.onStateBody,
       )
 
     of snkOnEventBlock:
-      execBase.events[node.onEventName] = ScriptEventBase(
+      execBase.events[node.onEventNameIdx] = ScriptEventBase(
         eventBody: node.onEventBody,
       )
 
@@ -84,7 +85,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
     #raise newException(ScriptCompileError, &"TODO: Compile things")
 
   # Validate a few things
-  if execBase.initState == "":
+  if execBase.initStateIdx == -1:
     raise newException(ScriptCompileError, &"No states defined - define something using \"on state\"!")
 
   # TODO: Validate state names
@@ -97,7 +98,7 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   #echo &"node: {node}\n"
   var execBase = node.compileRoot(entityName)
   #echo &"exec base: {execBase}\n"
-  share.entityTypes[entityName] = execBase
+  share.entityTypes[internKey(entityName)] = execBase
 
 proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
   var fname = @["scripts", "entities", &"{entityName}.script"]

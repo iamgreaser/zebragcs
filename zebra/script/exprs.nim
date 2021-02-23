@@ -170,34 +170,34 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
     assert share != nil
 
     var expectedType = try:
-        execBase.globals[dst.globalVarName].varType
+        execBase.globals[dst.globalVarNameIdx].varType
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared global \"${dst.globalVarName}\"")
+        raise newException(ScriptExecError, &"Undeclared global \"${dst.globalVarNameIdx.getInternName()}\"")
 
     if expectedType == val.kind:
-      share.globals[dst.globalVarName] = val
+      share.globals[dst.globalVarNameIdx] = val
     else:
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
   of snkParamVar:
     var expectedType = try:
-        execBase.params[dst.paramVarName].varType
+        execBase.params[dst.paramVarNameIdx].varType
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared param \"@{dst.paramVarName}\"")
+        raise newException(ScriptExecError, &"Undeclared param \"@{dst.paramVarNameIdx.getInternName()}\"")
 
     if expectedType == val.kind:
-      execState.params[dst.paramVarName] = val
+      execState.params[dst.paramVarNameIdx] = val
     else:
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
   of snkLocalVar:
     var expectedType = try:
-        execBase.locals[dst.localVarName].varType
+        execBase.locals[dst.localVarNameIdx].varType
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared local \"%{dst.localVarName}\"")
+        raise newException(ScriptExecError, &"Undeclared local \"%{dst.localVarNameIdx.getInternName()}\"")
 
     if expectedType == val.kind:
-      execState.locals[dst.localVarName] = val
+      execState.locals[dst.localVarNameIdx] = val
     else:
       raise newException(ScriptExecError, &"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
 
@@ -355,13 +355,13 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     #else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
 
   of snkGlobalVar:
-    var k0 = expr.globalVarName
+    var k0 = expr.globalVarNameIdx
     var share = execState.share
     assert share != nil
     var d0 = try:
         execState.execBase.globals[k0]
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared global \"${k0}\" (TODO: make sure the types get synced and verified properly! --GM)")
+        raise newException(ScriptExecError, &"Undeclared global \"${k0.getInternName()}\" (TODO: make sure the types get synced and verified properly! --GM)")
     var v0: ScriptVal = try:
         share.globals[k0]
       except KeyError:
@@ -371,11 +371,11 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     return v0
 
   of snkParamVar:
-    var k0 = expr.paramVarName
+    var k0 = expr.paramVarNameIdx
     var d0 = try:
         execState.execBase.params[k0]
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared parameter \"@{k0}\"")
+        raise newException(ScriptExecError, &"Undeclared parameter \"@{k0.getInternName()}\"")
     var v0: ScriptVal = try:
         execState.params[k0]
       except KeyError:
@@ -385,11 +385,11 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     return v0
 
   of snkLocalVar:
-    var k0 = expr.localVarName
+    var k0 = expr.localVarNameIdx
     var d0 = try:
         execState.execBase.locals[k0]
       except KeyError:
-        raise newException(ScriptExecError, &"Undeclared local \"%{k0}\"")
+        raise newException(ScriptExecError, &"Undeclared local \"%{k0.getInternName()}\"")
     var v0: ScriptVal = try:
         execState.locals[k0]
       except KeyError:

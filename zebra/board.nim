@@ -8,13 +8,13 @@ import ./types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
 proc addEntityToList*(board: Board, entity: Entity)
-proc broadcastEvent*(board: Board, eventName: string)
+proc broadcastEvent*(board: Board, eventNameIdx: InternKey)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
 proc getBoard*(world: World, boardName: string): var Board
 proc loadBoardFromFile*(world: World, boardName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
-proc sendEventToPos*(board: Board, eventName: string, x: int64, y: int64)
+proc sendEventToPos*(board: Board, eventNameIdx: InternKey, x: int64, y: int64)
 
 import ./script/exec
 
@@ -46,8 +46,8 @@ proc getBoard(world: World, boardName: string): var Board =
 
 proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
   var boardInfo = BoardInfo(
-    boardName: boardName,
-    controllerName: "default",
+    boardNameIdx: internKey(boardName),
+    controllerNameIdx: internKey("default"),
     w: 0, h: 0,
     entityDefList: @[],
     entityDefMap: initTable[int64, BoardEntityDef](),
@@ -71,7 +71,7 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
       of "controller":
         if hasControllerName:
           raise newScriptParseError(sps, &"\"controller\" already defined earlier")
-        boardInfo.controllerName = sps.readExpectedToken(stkWord).wordVal
+        boardInfo.controllerNameIdx = internKey(sps.readExpectedToken(stkWord).wordVal)
         sps.expectEolOrEof()
         hasControllerName = true
 
@@ -93,7 +93,7 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
 
         var entityDef = BoardEntityDef(
           id: entityId,
-          typeName: entityTypeName,
+          typeNameIdx: internKey(entityTypeName),
           x: entityX,
           y: entityY,
           body: entityBody,
@@ -135,7 +135,7 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
   var boardInfo = loadBoardInfo(strm, boardName)
   assert boardInfo != nil
 
-  var execBase = share.getBoardController(boardInfo.controllerName)
+  var execBase = share.getBoardController(boardInfo.controllerNameIdx.getInternName())
   assert execBase != nil
   var board = Board(
     boardNameIdx: internKey(boardName),
@@ -146,7 +146,7 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
       default = (proc(): seq[Entity] = newSeq[Entity]())),
     entities: @[],
     execBase: execBase,
-    activeState: execBase.initState,
+    activeStateIdx: execBase.initStateIdx,
     params: initInternTable[ScriptVal](),
     locals: initInternTable[ScriptVal](),
     alive: true,
@@ -167,7 +167,7 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
     entityMap[entityDef.id] = board.newEntity(
       x = entityDef.x,
       y = entityDef.y,
-      entityType = entityDef.typeName,
+      entityType = entityDef.typeNameIdx,
     )
 
   # Initialise all entities
@@ -233,21 +233,21 @@ proc removeEntityFromList(board: Board, entity: Entity) =
   discard # Handled in Board.tick --GM
 
 
-proc broadcastEvent(board: Board, eventName: string) =
-  board.tickEvent(eventName)
+proc broadcastEvent(board: Board, eventNameIdx: InternKey) =
+  board.tickEvent(eventNameIdx)
   var i: int64 = 0
   while i < board.entities.len:
     var entity = board.entities[i]
     if entity.alive:
-      entity.tickEvent(eventName)
+      entity.tickEvent(eventNameIdx)
     i += 1
 
-proc sendEventToPos(board: Board, eventName: string, x: int64, y: int64) =
+proc sendEventToPos(board: Board, eventNameIdx: InternKey, x: int64, y: int64) =
   if (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
     var entseq = board.grid[x, y]
     if entseq.len >= 1:
       var entity = entseq[entseq.len-1]
-      entity.tickEvent(eventName)
+      entity.tickEvent(eventNameIdx)
 
 method tick(board: Board) =
   procCall tick(ScriptExecState(board))
