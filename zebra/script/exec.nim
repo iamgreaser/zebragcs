@@ -24,20 +24,20 @@ method stmtForceMovePerformRel(execState: ScriptExecState, dx, dy: int64): bool 
 method stmtForceMovePerformRel(entity: Entity, dx, dy: int64): bool =
   entity.forceMoveBy(dx, dy)
 
-method stmtForceMovePerformAbs(execState: ScriptExecState, boardName: string, dx, dy: int64): bool {.base, locks: "unknown".} =
+method stmtForceMovePerformAbs(execState: ScriptExecState, boardNameIdx: InternKey, dx, dy: int64): bool {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for move")
-method stmtForceMovePerformAbs(entity: Entity, boardName: string, dx, dy: int64): bool =
-  entity.forceMoveTo(entity.board.world.boards[boardName], dx, dy)
+method stmtForceMovePerformAbs(entity: Entity, boardNameIdx: InternKey, dx, dy: int64): bool =
+  entity.forceMoveTo(entity.board.world.boards[boardNameIdx], dx, dy)
 
 method stmtMovePerformRel(execState: ScriptExecState, dx, dy: int64): bool {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for move")
 method stmtMovePerformRel(entity: Entity, dx, dy: int64): bool =
   entity.moveBy(dx, dy)
 
-method stmtMovePerformAbs(execState: ScriptExecState, boardName: string, dx, dy: int64): bool {.base, locks: "unknown".} =
+method stmtMovePerformAbs(execState: ScriptExecState, boardNameIdx: InternKey, dx, dy: int64): bool {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for move")
-method stmtMovePerformAbs(entity: Entity, boardName: string, dx, dy: int64): bool =
-  entity.moveTo(entity.board.world.boards[boardName], dx, dy)
+method stmtMovePerformAbs(entity: Entity, boardNameIdx: InternKey, dx, dy: int64): bool =
+  entity.moveTo(entity.board.world.boards[boardNameIdx], dx, dy)
 
 method stmtBroadcast(execState: ScriptExecState, eventName: string) {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for broadcast")
@@ -125,7 +125,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         var moveDir = execState.resolveExpr(node.forceMoveDirExpr)
         case moveDir.kind
           of svkDir: execState.stmtForceMovePerformRel(moveDir.dirValX, moveDir.dirValY)
-          of svkPos: execState.stmtForceMovePerformAbs(moveDir.posBoardName, moveDir.posValX, moveDir.posValY)
+          of svkPos: execState.stmtForceMovePerformAbs(moveDir.posBoardNameIdx, moveDir.posValX, moveDir.posValY)
           else:
             raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
 
@@ -157,7 +157,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         var moveDir = execState.resolveExpr(node.moveDirExpr)
         var didMove = case moveDir.kind
           of svkDir: execState.stmtMovePerformRel(moveDir.dirValX, moveDir.dirValY)
-          of svkPos: execState.stmtMovePerformAbs(moveDir.posBoardName, moveDir.posValX, moveDir.posValY)
+          of svkPos: execState.stmtMovePerformAbs(moveDir.posBoardNameIdx, moveDir.posValX, moveDir.posValY)
           else:
             raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
 

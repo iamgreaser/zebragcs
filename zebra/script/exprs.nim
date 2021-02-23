@@ -14,7 +14,7 @@ proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
 method funcThisPos(execState: ScriptExecState): ScriptVal {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func thispos (or posof)")
 method funcThisPos(entity: Entity): ScriptVal {.locks: "unknown".} =
-  return ScriptVal(kind: svkPos, posBoardName: entity.board.boardName, posValX: entity.x, posValY: entity.y)
+  return ScriptVal(kind: svkPos, posBoardNameIdx: entity.board.boardNameIdx, posValX: entity.x, posValY: entity.y)
 
 method funcSelf(execState: ScriptExecState): ScriptVal {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func self")
@@ -26,16 +26,16 @@ method funcSelf(player: Player): ScriptVal {.locks: "unknown".} =
 method funcAt(execState: ScriptExecState, x: int64, y: int64): ScriptVal {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func at")
 method funcAt(board: Board, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
-  return ScriptVal(kind: svkPos, posBoardName: board.boardName, posValX: x, posValY: y)
+  return ScriptVal(kind: svkPos, posBoardNameIdx: board.boardNameIdx, posValX: x, posValY: y)
 method funcAt(entity: Entity, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
   return entity.board.funcAt(x, y)
 
 method funcAtBoard(execState: ScriptExecState, boardName: string, x: int64, y: int64): ScriptVal {.base.} =
-  return ScriptVal(kind: svkPos, posBoardName: boardName, posValX: x, posValY: y)
+  return ScriptVal(kind: svkPos, posBoardNameIdx: internKey(boardName), posValX: x, posValY: y)
 
-method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.base, locks: "unknown".} =
+method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardNameIdx: InternKey, x: int64, y: int64] {.base, locks: "unknown".} =
   case val.kind:
-    of svkPos: (val.posBoardName, val.posValX, val.posValY)
+    of svkPos: (val.posBoardNameIdx, val.posValX, val.posValY)
     of svkEntity:
       var entity = val.entityRef
       var pos = if entity != nil:
@@ -43,20 +43,20 @@ method resolvePos*(execState: ScriptExecState, val: ScriptVal): tuple[boardName:
       else:
         # TODO: Pick a suitable default position --GM
         execState.funcThisPos()
-      (pos.posBoardName, pos.posValX, pos.posValY)
+      (pos.posBoardNameIdx, pos.posValX, pos.posValY)
     else:
       raise newException(ScriptExecError, &"Expected pos or entity, got {val} instead")
-method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardName: string, x: int64, y: int64] {.locks: "unknown".} =
+method resolvePos*(entity: Entity, val: ScriptVal): tuple[boardNameIdx: InternKey, x: int64, y: int64] {.locks: "unknown".} =
   case val.kind:
-    of svkDir: (entity.board.boardName, entity.x + val.dirValX, entity.y + val.dirValY)
-    of svkPos: (val.posBoardName, val.posValX, val.posValY)
+    of svkDir: (entity.board.boardNameIdx, entity.x + val.dirValX, entity.y + val.dirValY)
+    of svkPos: (val.posBoardNameIdx, val.posValX, val.posValY)
     of svkEntity:
       var otherEntity = val.entityRef
       var pos = if otherEntity != nil:
         otherEntity.funcThisPos()
       else:
         entity.funcThisPos()
-      (pos.posBoardName, pos.posValX, pos.posValY)
+      (pos.posBoardNameIdx, pos.posValX, pos.posValY)
 
     else:
       raise newException(ScriptExecError, &"Expected dir, pos or entity, got {val} instead")
@@ -121,7 +121,7 @@ method funcDirComponents(entity: Entity, funcType: ScriptFuncType, dir: ScriptVa
   case dir.kind:
     of svkDir: (dir.dirValX, dir.dirValY)
     of svkPos:
-      if dir.posBoardName != entity.board.boardName:
+      if dir.posBoardNameIdx != entity.board.boardNameIdx:
         (0'i64, 0'i64)
       else:
         (dir.posValX - entity.x, dir.posValY - entity.y)
@@ -131,13 +131,13 @@ method funcDirComponents(entity: Entity, funcType: ScriptFuncType, dir: ScriptVa
 method funcSeek(execState: ScriptExecState, pos: ScriptVal): ScriptVal {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
 method funcSeek(entity: Entity, pos: ScriptVal): ScriptVal =
-  var thisBoardName = entity.board.boardName
-  var (otherBoardName, x, y) = entity.resolvePos(pos)
+  var thisBoardNameIdx = entity.board.boardNameIdx
+  var (otherBoardNameIdx, x, y) = entity.resolvePos(pos)
   var dx = x - entity.x
   var dy = y - entity.y
 
   # If the boards are different, go idle instead.
-  if otherBoardName != thisBoardName:
+  if otherBoardNameIdx != thisBoardNameIdx:
     return ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0)
 
   dx = max(-1, min(1, dx))

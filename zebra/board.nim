@@ -138,7 +138,7 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
   var execBase = share.getBoardController(boardInfo.controllerName)
   assert execBase != nil
   var board = Board(
-    boardName: boardName,
+    boardNameIdx: internKey(boardName),
     world: world,
     grid: newGrid[seq[Entity]](
       w = boardInfo.w,

@@ -125,7 +125,7 @@ proc `$`*(x: InternTableBase): string =
     i += 1
   accum &= ")"
   accum
-  
+
 proc `$`*[V](x: InternTable[V]): string =
   var accum = "InternTable[" & $V & "]{"
   var i: int = 0;
@@ -141,6 +141,9 @@ proc `$`*[V](x: InternTable[V]): string =
     i += 1
   accum &= "}"
   accum
+
+proc getInternName*(x: InternKey): string =
+  globalInternBase.idxToStr[x]
 
 proc initInternTableBase*(initStrings: seq[string]) =
   globalInternBase = InternTableBase(

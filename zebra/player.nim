@@ -29,8 +29,8 @@ proc getCamera(player: Player): tuple[board: Board, x: int64, y: int64] =
   assert pos != nil
   case pos.kind
   of svkPos:
-    var boardName = pos.posBoardName
-    var board = world.boards[boardName]
+    var boardNameIdx = pos.posBoardNameIdx
+    var board = world.boards[boardNameIdx]
     (board, pos.posValX, pos.posValY)
   else:
     raise newException(ScriptExecError, &"@camerapos expected pos, got {pos} instead")
@@ -98,7 +98,7 @@ method tick(player: Player) {.locks: "unknown".} =
     assert board != nil
     player.params["camerapos"] = ScriptVal(
       kind: svkPos,
-      posBoardName: board.boardName,
+      posBoardNameIdx: board.boardNameIdx,
       posValX: entity.x,
       posValY: entity.y,
     )

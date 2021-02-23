@@ -130,7 +130,7 @@ type
 
   BoardObj = object of ScriptExecStateObj
     world*: World
-    boardName*: string
+    boardNameIdx*: InternKey
     grid*: Grid[seq[Entity]]
     entities*: seq[Entity]
   Board* = ref BoardObj
@@ -378,7 +378,7 @@ type
     of svkInt: intVal*: int64
     of svkPlayer: playerRef*: Player
     of svkPos:
-      posBoardName*: string
+      posBoardNameIdx*: InternKey
       posValX*, posValY*: int64
     of svkStr: strVal*: string
 
@@ -401,7 +401,7 @@ proc `$`*(x: ScriptVal): string =
       &"PlayerV({x.playerRef})"
     else:
       &"PlayerV(nil)"
-  of svkPos: &"PosV({x.posBoardName}, {x.posValX}, {x.posValY})"
+  of svkPos: &"PosV({x.posBoardNameIdx.getInternName()}, {x.posValX}, {x.posValY})"
   of svkStr: &"StrV({x.strVal})"
 
 proc `$`*(x: ScriptNode): string =
@@ -480,7 +480,7 @@ proc `$`*(x: Entity): string =
   &"Entity(pos=({x.x}, {x.y}), activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Board): string =
-  &"Board(boardName={x.boardName}, activeState={x.activeState}, alive={x.alive})"
+  &"Board(boardName={x.boardNameIdx.getInternName()}, activeState={x.activeState}, alive={x.alive})"
 
 proc `$`*(x: Player): string =
   &"Player(activeState={x.activeState}, alive={x.alive})"
