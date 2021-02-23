@@ -1,6 +1,6 @@
 import strformat
-import tables
 
+import ./interntables
 import ./types
 
 proc customiseFromBody*(entity: Entity, execState: ScriptExecState, body: seq[ScriptNode])
@@ -33,17 +33,17 @@ proc newEntity(board: Board, entityType: string, x, y: int64): Entity =
     x: x, y: y,
     execBase: execBase,
     activeState: execBase.initState,
-    params: Table[string, ScriptVal](),
-    locals: Table[string, ScriptVal](),
+    params: initInternTable[ScriptVal](),
+    locals: initInternTable[ScriptVal](),
     alive: true,
     share: share,
     sleepTicksLeft: 0,
   )
 
   # Initialise!
-  for k0, v0 in execBase.params.pairs():
+  for k0, v0 in execBase.params.indexedPairs():
     entity.params[k0] = entity.resolveExpr(v0.varDefault)
-  for k0, v0 in execBase.locals.pairs():
+  for k0, v0 in execBase.locals.indexedPairs():
     entity.locals[k0] = entity.resolveExpr(v0.varDefault)
 
   # Now attempt to see if we can add it

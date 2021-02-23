@@ -1,3 +1,4 @@
+import interntables
 import streams
 import strformat
 import tables
@@ -51,11 +52,11 @@ type
   ScriptExecBase* = ref ScriptExecBaseObj
   ScriptExecBaseObj = object
     entityName*: string
-    globals*: Table[string, ScriptGlobalBase]
-    params*: Table[string, ScriptParamBase]
-    locals*: Table[string, ScriptLocalBase]
-    states*: Table[string, ScriptStateBase]
-    events*: Table[string, ScriptEventBase]
+    globals*: InternTable[ScriptGlobalBase]
+    params*: InternTable[ScriptParamBase]
+    locals*: InternTable[ScriptLocalBase]
+    states*: InternTable[ScriptStateBase]
+    events*: InternTable[ScriptEventBase]
     initState*: string
 
   ScriptContinuation* = ref ScriptContinuationObj
@@ -65,9 +66,9 @@ type
 
   ScriptSharedExecState* = ref ScriptSharedExecStateObj
   ScriptSharedExecStateObj = object
-    globals*: Table[string, ScriptVal]
-    entityTypes*: Table[string, ScriptExecBase]
-    boardControllers*: Table[string, ScriptExecBase]
+    globals*: InternTable[ScriptVal]
+    entityTypes*: InternTable[ScriptExecBase]
+    boardControllers*: InternTable[ScriptExecBase]
     worldController*: ScriptExecBase
     playerController*: ScriptExecBase
     world*: World
@@ -78,8 +79,8 @@ type
     share*: ScriptSharedExecState
     execBase*: ScriptExecBase
     activeState*: string
-    locals*: Table[string, ScriptVal]
-    params*: Table[string, ScriptVal]
+    locals*: InternTable[ScriptVal]
+    params*: InternTable[ScriptVal]
     continuations*: seq[ScriptContinuation]
     sleepTicksLeft*: int64
     alive*: bool
@@ -98,7 +99,7 @@ type
   WorldObj = object of ScriptExecStateObj
     name*: string
     tickTitle*: bool
-    boards*: Table[string, Board]
+    boards*: InternTable[Board]
     players*: seq[Player]
   World* = ref WorldObj
 

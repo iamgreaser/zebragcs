@@ -3,6 +3,7 @@ import strformat
 import strutils
 import tables
 
+import ./interntables
 import ./types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
@@ -146,8 +147,8 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
     entities: @[],
     execBase: execBase,
     activeState: execBase.initState,
-    params: Table[string, ScriptVal](),
-    locals: Table[string, ScriptVal](),
+    params: initInternTable[ScriptVal](),
+    locals: initInternTable[ScriptVal](),
     alive: true,
     share: share,
     sleepTicksLeft: 0,
@@ -155,9 +156,9 @@ proc loadBoard(world: World, boardName: string, strm: Stream): Board =
   world.boards[boardName] = board
 
   # Initialise!
-  for k0, v0 in execBase.params.pairs():
+  for k0, v0 in execBase.params.indexedPairs():
     board.params[k0] = board.resolveExpr(v0.varDefault)
-  for k0, v0 in execBase.locals.pairs():
+  for k0, v0 in execBase.locals.indexedPairs():
     board.locals[k0] = board.resolveExpr(v0.varDefault)
 
   # Add all entities

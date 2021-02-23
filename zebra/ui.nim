@@ -1,6 +1,6 @@
 import strformat
-import tables
 
+import ./interntables
 import ./types
 import ./gfx
 

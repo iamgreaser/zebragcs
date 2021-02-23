@@ -1,6 +1,6 @@
 import strformat
-import tables
 
+import ./interntables
 import ./types
 
 proc broadcastEvent*(world: World, eventName: string)
@@ -38,21 +38,21 @@ proc loadWorld(worldName: string): World =
   assert execBase != nil
   var world = World(
     name: worldName,
-    boards: Table[string, Board](),
+    boards: initInternTable[Board](),
     tickTitle: false,
     execBase: execBase,
     activeState: execBase.initState,
-    params: Table[string, ScriptVal](),
-    locals: Table[string, ScriptVal](),
+    params: initInternTable[ScriptVal](),
+    locals: initInternTable[ScriptVal](),
     alive: true,
     share: share,
     sleepTicksLeft: 0,
   )
 
   # Initialise!
-  for k0, v0 in execBase.params.pairs():
+  for k0, v0 in execBase.params.indexedPairs():
     world.params[k0] = world.resolveExpr(v0.varDefault)
-  for k0, v0 in execBase.locals.pairs():
+  for k0, v0 in execBase.locals.indexedPairs():
     world.locals[k0] = world.resolveExpr(v0.varDefault)
 
   share.world = world

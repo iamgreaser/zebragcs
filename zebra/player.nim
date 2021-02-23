@@ -1,6 +1,7 @@
 import strformat
-import tables
-import types
+
+import ./interntables
+import ./types
 
 proc getCamera*(player: Player): tuple[board: Board, x: int64, y: int64]
 proc getEntity*(player: Player): Entity
@@ -69,8 +70,8 @@ proc newPlayer(world: World): Player =
     windowCursorY: 0,
     execBase: execBase,
     activeState: execBase.initState,
-    params: Table[string, ScriptVal](),
-    locals: Table[string, ScriptVal](),
+    params: initInternTable[ScriptVal](),
+    locals: initInternTable[ScriptVal](),
     alive: true,
     share: share,
     sleepTicksLeft: 0,
@@ -79,9 +80,9 @@ proc newPlayer(world: World): Player =
   world.players.add(player)
 
   # Initialise!
-  for k0, v0 in execBase.params.pairs():
+  for k0, v0 in execBase.params.indexedPairs():
     player.params[k0] = player.resolveExpr(v0.varDefault)
-  for k0, v0 in execBase.locals.pairs():
+  for k0, v0 in execBase.locals.indexedPairs():
     player.locals[k0] = player.resolveExpr(v0.varDefault)
 
   player

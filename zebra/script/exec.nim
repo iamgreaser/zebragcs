@@ -1,6 +1,7 @@
 import strformat
 import tables
 
+import ../interntables
 import ../types
 
 method tick*(execState: ScriptExecState) {.base, locks: "unknown".}

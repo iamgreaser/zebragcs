@@ -1,9 +1,9 @@
 import streams
 import strformat
 import strutils
-import tables
 import times
 
+import ../interntables
 import ../types
 import ../vfs/types as vfsTypes
 
@@ -27,7 +27,9 @@ proc newScriptParseState(strm: Stream, fname: string): ScriptParseState =
 proc newScriptSharedExecState(vfs: FsBase): ScriptSharedExecState =
   var t = getTime()
   ScriptSharedExecState(
-    globals: initTable[string, ScriptVal](),
+    globals: initInternTable[ScriptVal](),
+    entityTypes: initInternTable[ScriptExecBase](),
+    boardControllers: initInternTable[ScriptExecBase](),
     vfs: vfs,
     seed: uint64(t.toUnix())*1000000000'u64 + uint64(t.nanosecond),
   )
@@ -35,10 +37,11 @@ proc newScriptSharedExecState(vfs: FsBase): ScriptSharedExecState =
 proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   var execBase = ScriptExecBase(
     entityName: entityName,
-    globals: initTable[string, ScriptGlobalBase](),
-    params: initTable[string, ScriptParamBase](),
-    states: initTable[string, ScriptStateBase](),
-    events: initTable[string, ScriptEventBase](),
+    globals: initInternTable[ScriptGlobalBase](),
+    params: initInternTable[ScriptParamBase](),
+    locals: initInternTable[ScriptLocalBase](),
+    states: initInternTable[ScriptStateBase](),
+    events: initInternTable[ScriptEventBase](),
   )
 
   if node.kind != snkRootBlock:
