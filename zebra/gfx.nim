@@ -1,6 +1,10 @@
 # This reference helped:
 # https://hookrace.net/blog/writing-a-2d-platform-game-in-nim-with-sdl2/
 
+import os
+import std/monotimes
+import times
+
 const defaultCharset = staticRead("dat/ascii.chr")
 
 const defaultPalette: array[0..(16-1), tuple[r: uint8, g: uint8, b: uint8]] = [
@@ -23,6 +27,10 @@ const defaultPalette: array[0..(16-1), tuple[r: uint8, g: uint8, b: uint8]] = [
 ]
 
 import sdl2
+
+var lastSleepTime: MonoTime
+var didLastSleep: bool = false
+var cpuUsage: float64 = 0.0
 
 const gfxWidth* = 80
 const gfxHeight* = 25
@@ -309,4 +317,26 @@ proc blitToScreen(gfx: GfxState) =
       )
 
   renderer.present()
-  sdl2.delay(50)
+  sdl2.delay(0) # If we don't call this then SDL's keyboard handling gets janky and misses keys --GM
+  if didLastSleep:
+    lastSleepTime = lastSleepTime + initDuration(milliseconds = 50)
+    var now = getMonoTime()
+    if now < lastSleepTime:
+      var sleepBeg = now.ticks div 1_000_000
+      var sleepEnd = lastSleepTime.ticks div 1_000_000
+      var sleepDiff = sleepEnd - sleepBeg
+      var sleepDiffNanos = lastSleepTime.ticks - now.ticks
+      var cpuUsedThisTick = float64(50*1_000_000 - sleepDiffNanos) / float64(50*1_000_000)
+      cpuUsage += (cpuUsedThisTick - cpuUsage) * 0.1
+      assert sleepDiff >= 0
+      sleep(int(sleepDiff))
+    else:
+      # Slipped!
+      var cpuUsedThisTick = 1.0
+      cpuUsage += (cpuUsedThisTick - cpuUsage) * 0.1
+      lastSleepTime = now
+  else:
+    sleep(50)
+    lastSleepTime = getMonoTime()
+    didLastSleep = true;
+  echo &"cpu: {cpuUsage:9.6f}"
