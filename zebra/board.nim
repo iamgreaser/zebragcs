@@ -227,24 +227,19 @@ proc removeEntityFromGrid(board: Board, entity: Entity) =
       i += 1
 
   board.grid[entity.x, entity.y] = entseq
-  discard
 
 proc removeEntityFromList(board: Board, entity: Entity) =
-  var i: int64 = 0
-  while i < board.entities.len:
-    if board.entities[i] == entity:
-      board.entities.delete(i)
-    else:
-      i += 1
+  discard # Handled in Board.tick --GM
 
 
 proc broadcastEvent(board: Board, eventName: string) =
-  var entitiesCopy: seq[Entity] = @[]
-  for entity in board.entities:
-    entitiesCopy.add(entity)
   board.tickEvent(eventName)
-  for entity in entitiesCopy:
-    entity.tickEvent(eventName)
+  var i: int64 = 0
+  while i < board.entities.len:
+    var entity = board.entities[i]
+    if entity.alive:
+      entity.tickEvent(eventName)
+    i += 1
 
 proc sendEventToPos(board: Board, eventName: string, x: int64, y: int64) =
   if (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
@@ -256,17 +251,12 @@ proc sendEventToPos(board: Board, eventName: string, x: int64, y: int64) =
 method tick(board: Board) =
   procCall tick(ScriptExecState(board))
 
-  var entitiesCopy: seq[Entity] = @[]
-  for entity in board.entities:
-    entitiesCopy.add(entity)
-  for entity in entitiesCopy:
-    entity.tick()
-
-  # Remove dead entities
-  entitiesCopy = @[]
-  for entity in board.entities:
-    if entity.alive:
-      entitiesCopy.add(entity)
+  var i: int64 = 0
+  while i < board.entities.len:
+    var entity = board.entities[i]
+    if (entity.board == board) and entity.alive:
+      entity.tick()
+      i += 1
     else:
       board.removeEntityFromGrid(entity)
-  board.entities = entitiesCopy
+      board.entities.delete(i)

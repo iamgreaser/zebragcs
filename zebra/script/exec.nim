@@ -13,7 +13,7 @@ import ./exprs
 
 method stmtDie(execState: ScriptExecState) {.base, locks: "unknown".} =
   execState.alive = false
-  execState.continuations = @[]
+  execState.continuations.setLen(0)
 method stmtDie(entity: Entity) =
   var board = entity.board
   assert board != nil
@@ -133,7 +133,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
       of snkGoto:
         var stateName: string = node.gotoStateName
         execState.activeState = stateName
-        execState.continuations = @[]
+        execState.continuations.setLen(0)
         return
 
       of snkIfBlock:
@@ -234,7 +234,7 @@ method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
 
   # If this is dead then we don't care. Drain all continuations.
   if not execState.alive:
-    execState.continuations = @[]
+    execState.continuations.setLen(0)
     return
 
   # If we actually slept, then the next state wrap is instantaneous.
