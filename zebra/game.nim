@@ -1,12 +1,23 @@
+import os
 import strformat
+import std/monotimes
+import times
 
 import ./interntables
+import ./network
 import ./types
 import ./ui
+
+var lastSleepTime: MonoTime
+var didLastSleep: bool = false
+var cpuUsage: float64 = 0.0
+const cpuUsageReportPeriod: int = 20
+var cpuUsageTicksUntilNextReport: int = cpuUsageReportPeriod
 
 type
   GameStateObj = object
     gameType*: GameType
+    worldName*: string
     world*: World
     player*: Player
     board*: Board
@@ -17,9 +28,14 @@ type
   GameState* = ref GameStateObj
 
 proc applyInput*(game: GameState, ev: InputEvent)
+proc close*(game: GameState)
+proc endTick*(game: GameState)
 proc newDemoGame*(worldName: string): GameState
 proc newEditorSinglePlayerGame*(worldName: string): GameState
+proc newMultiClientGame*(ipAddr: string, udpPort: uint16 = 22700): GameState
+proc newMultiServerGame*(worldName: string, udpPort: uint16 = 22700): GameState
 proc newSinglePlayerGame*(worldName: string): GameState
+proc startMultiServerGame*(game: GameState)
 proc tick*(game: GameState)
 proc updatePlayerBoardView*(game: GameState, boardWidget: UiBoardView)
 proc updatePlayerStatusBar*(game: GameState, statusWidget: UiStatusBar)
@@ -39,6 +55,7 @@ proc newDemoGame(worldName: string): GameState =
 
   var game = GameState(
     gameType: gtDemo,
+    worldName: worldName,
     world: world,
     player: nil,
     alive: true,
@@ -55,6 +72,7 @@ proc newEditorSinglePlayerGame(worldName: string): GameState =
 
   var game = GameState(
     gameType: gtEditorSingle,
+    worldName: worldName,
     world: world,
     player: nil,
     board: board,
@@ -77,6 +95,7 @@ proc newSinglePlayerGame(worldName: string): GameState =
 
   var game = GameState(
     gameType: gtSingle,
+    worldName: worldName,
     world: world,
     player: player,
     alive: true,
@@ -84,7 +103,48 @@ proc newSinglePlayerGame(worldName: string): GameState =
 
   game
 
+proc newMultiClientGame(ipAddr: string, udpPort: uint16 = 22700): GameState =
+  echo &"Connecting to multi-player game at zebragcs://{ipAddr}:{udpPort}"
+  var game = GameState(
+    gameType: gtMultiClient,
+    worldName: "",
+    world: nil,
+    player: nil,
+    alive: true,
+  )
+
+  game
+
+proc newMultiServerGame(worldName: string, udpPort: uint16 = 22700): GameState =
+  echo &"Creating lobby for new multi-player game on port {udpPort} of world \"{worldName}\""
+
+  var game = GameState(
+    gameType: gtMultiServer,
+    worldName: worldName,
+    world: nil,
+    player: nil,
+    alive: true,
+  )
+
+  game
+
+proc startMultiServerGame(game: GameState) =
+  assert game.world == nil
+  echo &"Starting multi-player server game of world \"{game.worldName}\""
+  var world = loadWorld(game.worldName)
+  world.broadcastEvent(internKeyCT("initworld"))
+  game.world = world
+
+  echo "Spawning new player"
+  var player = world.newPlayer()
+  player.tickEvent(internKeyCT("initplayer"))
+  game.player = player
+
+
 proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
+  if game.world == nil:
+    return
+
   var player = game.player
 
   var (playerBoard, playerBoardX, playerBoardY) = if player != nil:
@@ -140,6 +200,8 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
       ("W", "World select"),
       ("P", "Play world"),
       ("E", "Edit world"),
+      ("N", "Net server"),
+      ("C", "Net client"),
       #("L", "Load game"),
       ("ESC", "Exit to BSD"),
     ]
@@ -147,6 +209,16 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
   of gtInitialWorldSelect:
     statusWidget.keyLabels = @[
       ("ESC", "Exit to BSD"),
+    ]
+
+  of gtMultiClient:
+    statusWidget.keyLabels = @[
+      ("ESC", "Disconnect"),
+    ]
+
+  of gtMultiServer:
+    statusWidget.keyLabels = @[
+      ("ESC", "Stop server"),
     ]
 
   of gtSingle:
@@ -164,8 +236,8 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
 
 proc tick(game: GameState) =
   var world = game.world
-  assert world != nil
-  world.tick()
+  if world != nil:
+    world.tick()
 
 proc applyInput(game: GameState, ev: InputEvent) =
   case ev.kind
@@ -217,3 +289,38 @@ proc applyInput(game: GameState, ev: InputEvent) =
         player.tickEvent(internKey(&"release{ev.keyType}"))
 
   #else: discard
+
+proc close(game: GameState) =
+  game.alive = false
+  # TODO: Close any network sockets we may have --GM
+
+proc endTick(game: GameState) =
+  if didLastSleep:
+    lastSleepTime = lastSleepTime + initDuration(milliseconds = 50)
+    var now = getMonoTime()
+    if now < lastSleepTime:
+      var sleepBeg = now.ticks div 1_000_000
+      var sleepEnd = lastSleepTime.ticks div 1_000_000
+      var sleepDiff = sleepEnd - sleepBeg
+      var sleepDiffNanos = lastSleepTime.ticks - now.ticks
+      var cpuUsedThisTick = float64(50*1_000_000 - sleepDiffNanos) / float64(50*1_000_000)
+      cpuUsage += cpuUsedThisTick
+      cpuUsageTicksUntilNextReport -= 1
+      assert sleepDiff >= 0
+      sleep(int(sleepDiff))
+    else:
+      # Slipped!
+      var cpuUsedThisTick = 1.0
+      cpuUsage += cpuUsedThisTick
+      cpuUsageTicksUntilNextReport -= 1
+      lastSleepTime = now
+  else:
+    sleep(50)
+    lastSleepTime = getMonoTime()
+    didLastSleep = true;
+
+  if cpuUsageTicksUntilNextReport <= 0:
+    cpuUsageTicksUntilNextReport = cpuUsageReportPeriod
+    cpuUsage /= float64(cpuUsageReportPeriod)
+    echo &"cpu: {cpuUsage:9.6f}"
+    cpuUsage = 0.0

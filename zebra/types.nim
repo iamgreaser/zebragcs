@@ -87,9 +87,9 @@ type
     gtInitialWorldSelect, # No world loaded, but allows for world creation
     gtDemo,
     gtEditorSingle,
-    #gtMultiClient,
+    gtMultiClient,
     #gtMultiDedicated,
-    #gtMultiServer,
+    gtMultiServer,
     gtSingle,
 
   WorldObj = object of ScriptExecStateObj

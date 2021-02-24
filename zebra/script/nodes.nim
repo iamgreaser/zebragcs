@@ -24,7 +24,7 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
       var tok = sps.readToken()
       case tok.kind
       of stkStrClosed:
-        echo &"Nodes: {accum}"
+        #echo &"Nodes: {accum}"
         return ScriptNode(kind: snkStringBlock, stringNodes: accum)
       of stkStrConst:
         accum.add(ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkStr, strVal: tok.strConst)))

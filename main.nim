@@ -103,6 +103,8 @@ proc main() =
             nil
           of gtDemo: newDemoGame(mainState.worldName)
           of gtEditorSingle: newEditorSinglePlayerGame(mainState.worldName)
+          of gtMultiClient: newMultiClientGame("localhost")
+          of gtMultiServer: newMultiServerGame(mainState.worldName)
           of gtSingle: newSinglePlayerGame(mainState.worldName)
         mainState.gameType = mainState.runGame(
           game = game,
@@ -125,6 +127,9 @@ proc runGame(mainState: MainState, game: GameState): GameType =
 
       mainState.gfx.drawWidget(mainState.rootWidget)
       mainState.gfx.blitToScreen()
+
+      if game != nil:
+        game.endTick()
 
       while true:
         var ev = mainState.gfx.getNextInput()
@@ -159,18 +164,34 @@ proc runGame(mainState: MainState, game: GameState): GameType =
         elif game != nil:
           game.applyInput(ev)
 
-          if game.gameType == gtDemo:
-            if ev.kind == ievKeyRelease:
+          if game.world == nil:
+            if game.gameType == gtMultiServer:
               case ev.keyType
-              of ikE: # Edit world
-                return gtEditorSingle
-              of ikP: # Play game
-                return gtSingle
-              of ikW: # World select
-                mainState.openWorldMenu()
+              of ikEnter:
+                # Start game!
+                game.startMultiServerGame()
+                assert game.world != nil
               else: discard
 
+          else:
+            if game.gameType == gtDemo:
+              if ev.kind == ievKeyRelease:
+                case ev.keyType
+                of ikC: # Net client
+                  return gtMultiClient
+                of ikE: # Edit world
+                  return gtEditorSingle
+                of ikN: # Net server
+                  return gtMultiServer
+                of ikP: # Play game
+                  return gtSingle
+                of ikW: # World select
+                  mainState.openWorldMenu()
+                else: discard
+
   finally:
+    if mainState.game != nil:
+      mainState.game.close()
     mainState.game = nil
 
   # Where to from here?
@@ -207,7 +228,7 @@ proc updateTextWindow(mainState: MainState, textWindowWidget: UiWindow) =
 
   if mainState.worldMenuOpen:
     textWindowWidget.title = "World select"
-    textWindowWidget.textLines = @[]
+    textWindowWidget.textLines.setLen(0)
     textWindowWidget.menuLines = mainState.worldList
     textWindowWidget.cursorY = mainState.worldMenuIndex
 
@@ -218,10 +239,35 @@ proc updateTextWindow(mainState: MainState, textWindowWidget: UiWindow) =
       if player != nil:
         textWindowWidget.title = player.windowTitle
         textWindowWidget.textLines = player.windowTextLines
-        textWindowWidget.menuLines = @[]
+        textWindowWidget.menuLines.setLen(0)
         textWindowWidget.cursorY = player.windowCursorY
         for item in player.windowMenuItems:
           textWindowWidget.menuLines.add(item.text)
+
+      elif game.gameType == gtMultiClient:
+        textWindowWidget.title = "Net client"
+        textWindowWidget.textLines = @[
+          #----------------------------------------
+          "Connecting... (not really, it's a TODO)",
+          "",
+          "Press ESC to abort",
+        ]
+        textWindowWidget.menuLines.setLen(0)
+        textWindowWidget.cursorY = 0
+
+      elif game.gameType == gtMultiServer and game.world == nil:
+        textWindowWidget.title = "Net Server"
+        textWindowWidget.textLines = @[
+          #----------------------------------------
+          &"World: \"{mainState.worldName}\"",
+          &"Other players present: {0}",
+        ]
+        textWindowWidget.menuLines = @[
+          #--------------------------------------
+          "Start Game",
+        ]
+        textWindowWidget.cursorY = 0
+
 
   textWindowWidget.h = 0
   if textWindowWidget.textLines.len >= 1:
