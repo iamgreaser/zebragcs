@@ -31,9 +31,6 @@ proc initInternTable*[V](): InternTable[V] =
   )
   itab
 
-proc internKey*(key: InternKey): InternKey =
-  key
-
 proc internKey*(key: string): InternKey =
   try:
     #echo "Grabbing interned key " & $key
@@ -54,17 +51,13 @@ proc internKeyCT*(key: string): InternKey {.compileTime.} =
   assert k >= 0
   return k
 
-proc get[V](itab: InternTable[V], idx: int): var V =
+proc `[]`*[V](itab: InternTable[V], idx: int): var V =
   if idx < itab.presence.len and itab.presence[idx]:
     result = itab.values[idx]
   else:
     raise newException(KeyError, &"index {idx} not found")
 
-proc get*[V](itab: InternTable[V], key: string): var V =
-  var idx = globalInternBase.strToIdx[key]
-  itab[idx]
-
-proc put*[V](itab: var InternTable[V], idx: int, val: V) =
+proc `[]=`*[V](itab: var InternTable[V], idx: int, val: V) =
   assert itab != nil
   while itab.presence.len <= idx:
     itab.presence.add(false)
@@ -72,26 +65,23 @@ proc put*[V](itab: var InternTable[V], idx: int, val: V) =
   itab.presence[idx] = true
   itab.values[idx] = val
 
-proc put*[V](itab: var InternTable[V], key: string, val: V) =
-  itab[internKey(key)] = val
+macro `[]`*[V](itab: InternTable[V], key: string): var V =
+  if key.kind == nnkStrLit:
+    let idx: InternKey = internKeyCT(key.strVal)
+    quote do:
+      `itab`[`idx`]
+  else:
+    quote do:
+      `itab`[internKey(`key`)]
 
-macro `[]`*[V](itab: InternTable[V], key: untyped): var V =
+macro `[]=`*[V](itab: var InternTable[V], key: string, val: V) =
   if key.kind == nnkStrLit:
     let idx = internKeyCT(key.strVal)
     quote do:
-      `itab`.get(`idx`)
+      `itab`[`idx`] = `val`
   else:
     quote do:
-      `itab`.get(internKey(`key`))
-
-macro `[]=`*[V](itab: var InternTable[V], key: untyped, val: V) =
-  if key.kind == nnkStrLit:
-    let idx = internKeyCT(key.strVal)
-    quote do:
-      `itab`.put(`idx`, `val`)
-  else:
-    quote do:
-      `itab`.put(internKey(`key`), `val`)
+      `itab`[internKey(`key`)] = `val`
 
 iterator indexedPairs*[V](itab: InternTable[V]): tuple[idx: InternKey, val: V] =
   assert itab != nil
