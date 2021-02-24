@@ -9,6 +9,7 @@ import ../vfs/types as vfsTypes
 
 proc newScriptParseState*(strm: Stream, fname: string): ScriptParseState
 proc newScriptSharedExecState*(vfs: FsBase): ScriptSharedExecState
+proc newScriptSharedExecState*(vfs: FsBase, seed: uint64): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
 proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: string)
 proc loadWorldControllerFromFile*(share: ScriptSharedExecState)
@@ -32,6 +33,15 @@ proc newScriptSharedExecState(vfs: FsBase): ScriptSharedExecState =
     boardControllers: initInternTable[ScriptExecBase](),
     vfs: vfs,
     seed: uint64(t.toUnix())*1000000000'u64 + uint64(t.nanosecond),
+  )
+
+proc newScriptSharedExecState(vfs: FsBase, seed: uint64): ScriptSharedExecState =
+  ScriptSharedExecState(
+    globals: initInternTable[ScriptVal](),
+    entityTypes: initInternTable[ScriptExecBase](),
+    boardControllers: initInternTable[ScriptExecBase](),
+    vfs: vfs,
+    seed: seed,
   )
 
 proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =

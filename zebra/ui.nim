@@ -25,6 +25,7 @@ type
   UiBoardView* = ref UiBoardViewObj
 
   UiStatusBarObj = object of UiWidgetObj
+    textLabels*: seq[string]
     keyLabels*: seq[tuple[key: string, desc: string]]
   UiStatusBar* = ref UiStatusBarObj
 
@@ -165,6 +166,11 @@ method drawWidgetBase(widget: UiStatusBar, crop: GfxCrop) =
   crop.drawCharArray(x =  2, y =  3, bg =  7, fg =  0, chs = "  \xB3 \xC4\xBF\xB3  \xC0\xC4\xC4\xBF  ")
   crop.drawCharArray(x =  3, y =  4, bg =  7, fg =  0, chs = " \xC0\xC4\xC4\xD9\xC0\xC4\xC4\xD9\xC4\xC4\xD9 ")
   crop.drawCharArray(x =  4, y =  5, bg =  1, fg =  8, chs = "\xDF\xDF\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDF\xDF")
+
+  var textLabelY: int64 = 8
+  for label in widget.textLabels:
+    crop.drawCharArray(x =  2, y = textLabelY, bg = 1, fg = 14, chs = label)
+    textLabelY += 1
 
   var keyLabelY: int64 = 23-(widget.keyLabels.len-1)
   for label in widget.keyLabels:

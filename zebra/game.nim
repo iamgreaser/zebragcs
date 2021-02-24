@@ -23,11 +23,14 @@ type
     board*: Board
     cursorX*: int64
     cursorY*: int64
+    frameIdx*: uint16
     alive*: bool
     editing*: bool
   GameState* = ref GameStateObj
 
+proc addGameInput*(game: GameState, player: Player, ev: NetEvent)
 proc applyInput*(game: GameState, ev: InputEvent)
+proc applyGameInput*(game: GameState, player: Player, ev: NetEvent)
 proc close*(game: GameState)
 proc endTick*(game: GameState)
 proc newDemoGame*(worldName: string): GameState
@@ -110,6 +113,7 @@ proc newMultiClientGame(ipAddr: string, udpPort: uint16 = 22700): GameState =
     worldName: "",
     world: nil,
     player: nil,
+    frameIdx: 0,
     alive: true,
   )
 
@@ -123,6 +127,7 @@ proc newMultiServerGame(worldName: string, udpPort: uint16 = 22700): GameState =
     worldName: worldName,
     world: nil,
     player: nil,
+    frameIdx: 0,
     alive: true,
   )
 
@@ -194,6 +199,8 @@ proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
           playerBoardY - (boardWidget.h div 2)))
 
 proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
+  statusWidget.textLabels.setLen(0)
+
   case game.gameType
   of gtDemo:
     statusWidget.keyLabels = @[
@@ -217,6 +224,9 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
     ]
 
   of gtMultiServer:
+    statusWidget.textLabels = @[
+      &"Frame: {game.frameIdx:04X}",
+    ]
     statusWidget.keyLabels = @[
       ("ESC", "Stop server"),
     ]
@@ -238,6 +248,23 @@ proc tick(game: GameState) =
   var world = game.world
   if world != nil:
     world.tick()
+
+
+proc applyGameInput(game: GameState, player: Player, ev: NetEvent) =
+  # TODO: Handle key repeat properly --GM
+  # TODO: Intern these names at compiletime --GM
+  case ev.kind
+  of nevInputPress:
+    player.tickEvent(internKey(&"press{ev.inputKey}"))
+
+  of nevInputRelease:
+    player.tickEvent(internKey(&"release{ev.inputKey}"))
+
+  of nevInputType:
+    player.tickEvent(internKey(&"type{ev.inputKey}"))
+
+proc addGameInput(game: GameState, player: Player, ev: NetEvent) =
+  game.applyGameInput(player, ev)
 
 proc applyInput(game: GameState, ev: InputEvent) =
   case ev.kind
@@ -267,12 +294,12 @@ proc applyInput(game: GameState, ev: InputEvent) =
         discard
 
     else:
-      # TODO: Handle key repeat properly --GM
       var player = game.player
       if player != nil:
-        # TODO: Intern these at compiletime --GM
-        player.tickEvent(internKey(&"press{ev.keyType}"))
-        player.tickEvent(internKey(&"type{ev.keyType}"))
+        game.applyGameInput(player,
+          NetEvent(kind: nevInputPress, inputKey: ev.keyType))
+        game.applyGameInput(player,
+          NetEvent(kind: nevInputType, inputKey: ev.keyType))
 
   of ievKeyRelease:
     if ev.keyType == ikEsc:
@@ -285,8 +312,8 @@ proc applyInput(game: GameState, ev: InputEvent) =
     else:
       var player = game.player
       if player != nil:
-        # TODO: Intern this at compiletime --GM
-        player.tickEvent(internKey(&"release{ev.keyType}"))
+        game.applyGameInput(player,
+          NetEvent(kind: nevInputRelease, inputKey: ev.keyType))
 
   #else: discard
 
@@ -295,6 +322,9 @@ proc close(game: GameState) =
   # TODO: Close any network sockets we may have --GM
 
 proc endTick(game: GameState) =
+  if game.world != nil:
+    game.frameIdx += 1'u16
+
   if didLastSleep:
     lastSleepTime = lastSleepTime + initDuration(milliseconds = 50)
     var now = getMonoTime()
