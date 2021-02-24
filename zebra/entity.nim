@@ -129,13 +129,7 @@ proc moveBy(entity: Entity, dx: int64, dy: int64): bool =
   entity.moveTo(entity.board, entity.x + dx, entity.y + dy)
 
 proc hasPhysBlock(entity: Entity): bool =
-  try:
-    entity.params["physblock"].asBool()
-  except KeyError:
-    true
+  entity.params["physblock"].asBool()
 
 proc hasPhysGhost(entity: Entity): bool =
-  try:
-    entity.params["physghost"].asBool()
-  except KeyError:
-    false
+  entity.params["physghost"].asBool()

@@ -36,10 +36,12 @@ proc internKey*(key: InternKey): InternKey =
 
 proc internKey*(key: string): InternKey =
   try:
+    #echo "Grabbing interned key " & $key
     globalInternBase.strToIdx[key]
   except KeyError:
     var r = globalInternBase.idxToStr.len
     globalInternBase.idxToStr.add(key)
+    echo "Interning key " & $key
     globalInternBase.strToIdx[key] = r
     r
 

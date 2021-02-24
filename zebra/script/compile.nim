@@ -97,6 +97,25 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot(entityName)
+
+  # Preset a few things
+  if not execBase.params.contains("physblock"):
+    execBase.params["physblock"] = ScriptParamBase(
+      varType: svkBool,
+      varDefault: ScriptNode(
+        kind: snkConst,
+        constVal: ScriptVal(kind: svkBool, boolVal: true),
+      ),
+    )
+  if not execBase.params.contains("physghost"):
+    execBase.params["physghost"] = ScriptParamBase(
+      varType: svkBool,
+      varDefault: ScriptNode(
+        kind: snkConst,
+        constVal: ScriptVal(kind: svkBool, boolVal: false),
+      ),
+    )
+
   #echo &"exec base: {execBase}\n"
   share.entityTypes[internKey(entityName)] = execBase
 

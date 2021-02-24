@@ -198,6 +198,7 @@ proc applyInput(game: GameState, ev: InputEvent) =
       # TODO: Handle key repeat properly --GM
       var player = game.player
       if player != nil:
+        # TODO: Intern these at compiletime --GM
         player.tickEvent(internKey(&"press{ev.keyType}"))
         player.tickEvent(internKey(&"type{ev.keyType}"))
 
@@ -212,6 +213,7 @@ proc applyInput(game: GameState, ev: InputEvent) =
     else:
       var player = game.player
       if player != nil:
+        # TODO: Intern this at compiletime --GM
         player.tickEvent(internKey(&"release{ev.keyType}"))
 
   #else: discard
