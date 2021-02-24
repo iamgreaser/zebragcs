@@ -26,6 +26,8 @@ type
     frameIdx*: uint16
     alive*: bool
     editing*: bool
+    outputEvents*: seq[tuple[player: Player, ev: NetEvent]]
+    inputEvents*: seq[NetEvent]
   GameState* = ref GameStateObj
 
 proc addGameInput*(game: GameState, player: Player, ev: NetEvent)
@@ -264,7 +266,7 @@ proc applyGameInput(game: GameState, player: Player, ev: NetEvent) =
     player.tickEvent(internKey(&"type{ev.inputKey}"))
 
 proc addGameInput(game: GameState, player: Player, ev: NetEvent) =
-  game.applyGameInput(player, ev)
+  game.inputEvents.add(ev)
 
 proc applyInput(game: GameState, ev: InputEvent) =
   case ev.kind
@@ -296,9 +298,9 @@ proc applyInput(game: GameState, ev: InputEvent) =
     else:
       var player = game.player
       if player != nil:
-        game.applyGameInput(player,
+        game.addGameInput(player,
           NetEvent(kind: nevInputPress, inputKey: ev.keyType))
-        game.applyGameInput(player,
+        game.addGameInput(player,
           NetEvent(kind: nevInputType, inputKey: ev.keyType))
 
   of ievKeyRelease:
@@ -312,7 +314,7 @@ proc applyInput(game: GameState, ev: InputEvent) =
     else:
       var player = game.player
       if player != nil:
-        game.applyGameInput(player,
+        game.addGameInput(player,
           NetEvent(kind: nevInputRelease, inputKey: ev.keyType))
 
   #else: discard
@@ -323,6 +325,15 @@ proc close(game: GameState) =
 
 proc endTick(game: GameState) =
   if game.world != nil:
+    # TODO: Work this out for gtMultiClient --GM
+    var player = game.player
+    if player != nil:
+      for ev in game.inputEvents:
+        game.outputEvents.add((player, ev))
+    game.inputEvents.setLen(0)
+    for pair in game.outputEvents:
+      game.applyGameInput(pair.player, pair.ev)
+    game.outputEvents.setLen(0)
     game.frameIdx += 1'u16
 
   if didLastSleep:
