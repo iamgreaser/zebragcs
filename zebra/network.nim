@@ -99,7 +99,7 @@ proc newServer*(udpPort: Port = Port(22700)): NetServer =
   )
 
 proc readNetObj*(strm: Stream, msg: var NetEvent) =
-  msg.kind = NetEventType(strm.readUint8())
+  msg = NetEvent(kind: NetEventType(strm.readUint8()))
   case msg.kind
   of nevInputPress, nevInputRelease, nevInputType:
     msg.inputKey = InputKeyType(strm.readUint8())
@@ -125,7 +125,7 @@ proc writeNetObj*(strm: Stream, msg: NetInputResultFrame) =
     strm.writeNetObj(ev)
 
 proc readNetObj*(strm: Stream, msg: var NetMessage) =
-  msg.kind = NetMessageType(strm.readUint8())
+  msg = NetMessage(kind: NetMessageType(strm.readUint8()))
   case msg.kind
     of nmtQuit: discard
     of nmtHelloReq: discard

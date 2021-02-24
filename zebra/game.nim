@@ -1,4 +1,5 @@
 import os
+import streams
 import strformat
 import std/monotimes
 import times
@@ -329,7 +330,14 @@ proc endTick(game: GameState) =
     var player = game.player
     if player != nil:
       for ev in game.inputEvents:
-        game.outputEvents.add((player, ev))
+        var s = block:
+          var strm = newStringStream()
+          strm.writeNetObj(ev)
+          strm.data
+        var newEv = NetEvent()
+        var strm = newStringStream(s)
+        strm.readNetObj(newEv)
+        game.outputEvents.add((player, newEv))
     game.inputEvents.setLen(0)
     for pair in game.outputEvents:
       game.applyGameInput(pair.player, pair.ev)
