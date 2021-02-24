@@ -1,4 +1,8 @@
-import ./types
+type
+  GridObj[T] = object
+    w*, h*: int64
+    body*: seq[T]
+  Grid*[T] = ref GridObj[T]
 
 proc `[]`*[T](grid: Grid[T], x: int64, y: int64): var T
 proc `[]=`*[T](grid: var Grid[T], x: int64, y: int64, val: T)

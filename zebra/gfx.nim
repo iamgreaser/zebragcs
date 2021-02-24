@@ -45,7 +45,7 @@ type
     renderer: sdl2.RendererPtr
     window: sdl2.WindowPtr
     fontTex: sdl2.TexturePtr
-    grid: array[0..(gfxHeight-1), array[0..(gfxWidth-1), GfxCell]]
+    grid: array[0..(gfxWidth*gfxHeight-1), GfxCell]
   GfxState* = ref GfxStateObj
 
   GfxCropObj = object
@@ -216,12 +216,12 @@ proc getNextInput*(gfx: GfxState): InputEvent =
 
 proc drawChar(gfx: GfxState, x: int64, y: int64, bg: uint8, fg: uint8, ch: uint16) =
   # Clip out-of-range coordinates
-  if y < low(gfx.grid) or y > high(gfx.grid):
+  if y < 0 or y >= gfxHeight:
     return
-  if x < low(gfx.grid[y]) or x > high(gfx.grid[y]):
+  if x < 0 or x >= gfxWidth:
     return
 
-  gfx.grid[y][x] = GfxCell(
+  gfx.grid[(y*gfxWidth)+x] = GfxCell(
     ch: ch,
     fg: fg,
     bg: bg,
@@ -288,7 +288,7 @@ proc blitToScreen(gfx: GfxState) =
     dstrect.y = cint(y*14)
     for x in 0..(gfxWidth-1):
       dstrect.x = cint(x*8)
-      var cell = gfx.grid[y][x]
+      var cell = gfx.grid[(y*gfxWidth)+x]
 
       var
         bg = defaultPalette[cell.bg and 0xF]
@@ -302,7 +302,7 @@ proc blitToScreen(gfx: GfxState) =
     for x in 0..(gfxWidth-1):
       dstrect.x = cint(x*8)
 
-      var cell = gfx.grid[y][x]
+      var cell = gfx.grid[(y*gfxWidth)+x]
       var
         fg = defaultPalette[cell.fg and 0xF]
         ch = cell.ch

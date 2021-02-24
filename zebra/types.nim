@@ -1,8 +1,9 @@
-import interntables
 import streams
 import strformat
 import tables
 
+import ./interntables
+import ./grid
 import ./vfs/types
 
 const boardVisWidth* = 60
@@ -16,11 +17,6 @@ type
   BoardLoadError* = object of CatchableError
 
   FullQuitException* = object of CatchableError
-
-  GridObj[T] = object
-    w*, h*: int64
-    body*: seq[T]
-  Grid*[T] = ref GridObj[T]
 
   ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
