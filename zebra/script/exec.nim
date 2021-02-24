@@ -94,130 +94,131 @@ method stmtSpawn(execState: ScriptExecState, entityNameIdx: InternKey, dirOrPos:
 
 proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
   while uint64(execState.continuations.len) > lowerBound:
-    var cont = execState.continuations.pop()
-    while cont.codePc < cont.codeBlock.len:
-      var nodePc = cont.codePc
-      var node: ScriptNode = cont.codeBlock[nodePc]
-      cont.codePc += 1
+    var cont = execState.continuations[^1]
+    if not (cont.codePc < cont.codeBlock.len):
+      #echo &"{cont.codePc} < {cont.codeBlock.len}"
+      assert cont.codePc == cont.codeBlock.len
+      execState.continuations.setLen(execState.continuations.len-1)
+      continue
+    var nodePc = cont.codePc
+    var node: ScriptNode = cont.codeBlock[nodePc]
+    cont.codePc += 1
+
+    case node.kind
+
+    of snkAssign:
+      var assignType = node.assignType
+      var assignDstExpr = node.assignDstExpr
+      var assignDst = execState.resolveExpr(node.assignDstExpr)
+      var assignSrc = execState.resolveExpr(node.assignSrcExpr)
+      var assignResult: ScriptVal = case assignType
+        of satSet: assignSrc
+        of satDec: ScriptVal(kind: svkInt, intVal: assignDst.asInt() - assignSrc.asInt())
+        of satInc: ScriptVal(kind: svkInt, intVal: assignDst.asInt() + assignSrc.asInt())
+        of satMul: ScriptVal(kind: svkInt, intVal: assignDst.asInt() * assignSrc.asInt())
+        else:
+          raise newException(ScriptExecError, &"Unhandled assignment type {assignType}")
+
+      execState.storeAtExpr(assignDstExpr, assignResult)
+
+    of snkDie:
+      execState.stmtDie()
+      return
+
+    of snkForceMove:
+      var moveDir = execState.resolveExpr(node.forceMoveDirExpr)
+      case moveDir.kind
+        of svkDir: execState.stmtForceMovePerformRel(moveDir.dirValX, moveDir.dirValY)
+        of svkPos: execState.stmtForceMovePerformAbs(moveDir.posBoardNameIdx, moveDir.posValX, moveDir.posValY)
+        else:
+          raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
+
+    of snkGoto:
+      var stateNameIdx: InternKey = node.gotoStateNameIdx
+      execState.activeStateIdx = stateNameIdx
+      execState.continuations.setLen(0)
+      return
+
+    of snkIfBlock:
+      var test = execState.resolveExpr(node.ifTest)
+      var body =
+        if test.asBool():
+          node.ifBody
+        else:
+          node.ifElse
+      cont = ScriptContinuation(codeBlock: body, codePc: 0)
+      execState.continuations.add(cont)
+
+    of snkWhileBlock:
+      var test = execState.resolveExpr(node.whileTest)
+      var body = node.whileBody
+      if test.asBool():
+        cont.codePc = nodePc # Step back to here
+        cont = ScriptContinuation(codeBlock: body, codePc: 0)
+        execState.continuations.add(cont)
+
+    of snkMove:
+      var moveDir = execState.resolveExpr(node.moveDirExpr)
+      var didMove = case moveDir.kind
+        of svkDir: execState.stmtMovePerformRel(moveDir.dirValX, moveDir.dirValY)
+        of svkPos: execState.stmtMovePerformAbs(moveDir.posBoardNameIdx, moveDir.posValX, moveDir.posValY)
+        else:
+          raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
+
+      if not didMove:
+        var body = node.moveElse
+        cont = ScriptContinuation(codeBlock: body, codePc: 0)
+        execState.continuations.add(cont)
+
+    of snkBroadcast:
+      var eventNameIdx: InternKey = node.broadcastEventNameIdx
+      execState.stmtBroadcast(eventNameIdx)
+
+    of snkSay:
+      var sayExpr = execState.resolveExpr(node.sayExpr)
+      var sayStr: string = sayExpr.asCoercedStr()
+
+      # TODO: Actually put it in the window somewhere --GM
+      echo &"SAY: [{sayStr}]"
+
+    of snkSend:
+      var dirOrPos = execState.resolveExpr(node.sendPos)
+      var eventNameIdx: InternKey = node.sendEventNameIdx
+      execState.stmtSend(dirOrPos, eventNameIdx)
+
+    of snkSleep:
+      var sleepTime = execState.resolveExpr(node.sleepTimeExpr).asInt()
+      if sleepTime >= 1:
+        execState.sleepTicksLeft = sleepTime
+        return
+
+    of snkSpawn, snkSpawnInto:
+      var dstExpr = case node.kind
+        of snkSpawn: nil
+        of snkSpawnInto: node.spawnIntoDstExpr
+        else:
+          raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
+      var dirOrPos = execState.resolveExpr(node.spawnPos)
+      var entityNameIdx: InternKey = node.spawnEntityNameIdx
+      var spawnBody = node.spawnBody
+      var spawnElse = node.spawnElse
+
+      var newEntity = execState.stmtSpawn(entityNameIdx, dirOrPos, spawnBody, spawnElse)
+      if newEntity == nil:
+        cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
+        execState.continuations.add(cont)
+      else:
+        newEntity.customiseFromBody(execState, spawnBody)
 
       case node.kind
-
-      of snkAssign:
-        var assignType = node.assignType
-        var assignDstExpr = node.assignDstExpr
-        var assignDst = execState.resolveExpr(node.assignDstExpr)
-        var assignSrc = execState.resolveExpr(node.assignSrcExpr)
-        var assignResult: ScriptVal = case assignType
-          of satSet: assignSrc
-          of satDec: ScriptVal(kind: svkInt, intVal: assignDst.asInt() - assignSrc.asInt())
-          of satInc: ScriptVal(kind: svkInt, intVal: assignDst.asInt() + assignSrc.asInt())
-          of satMul: ScriptVal(kind: svkInt, intVal: assignDst.asInt() * assignSrc.asInt())
-          else:
-            raise newException(ScriptExecError, &"Unhandled assignment type {assignType}")
-
-        execState.storeAtExpr(assignDstExpr, assignResult)
-
-      of snkDie:
-        execState.stmtDie()
-        return
-
-      of snkForceMove:
-        var moveDir = execState.resolveExpr(node.forceMoveDirExpr)
-        case moveDir.kind
-          of svkDir: execState.stmtForceMovePerformRel(moveDir.dirValX, moveDir.dirValY)
-          of svkPos: execState.stmtForceMovePerformAbs(moveDir.posBoardNameIdx, moveDir.posValX, moveDir.posValY)
-          else:
-            raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
-
-      of snkGoto:
-        var stateNameIdx: InternKey = node.gotoStateNameIdx
-        execState.activeStateIdx = stateNameIdx
-        execState.continuations.setLen(0)
-        return
-
-      of snkIfBlock:
-        var test = execState.resolveExpr(node.ifTest)
-        var body =
-          if test.asBool():
-            node.ifBody
-          else:
-            node.ifElse
-        execState.continuations.add(cont)
-        cont = ScriptContinuation(codeBlock: body, codePc: 0)
-
-      of snkWhileBlock:
-        var test = execState.resolveExpr(node.whileTest)
-        var body = node.whileBody
-        if test.asBool():
-          cont.codePc = nodePc # Step back to here
-          execState.continuations.add(cont)
-          cont = ScriptContinuation(codeBlock: body, codePc: 0)
-
-      of snkMove:
-        var moveDir = execState.resolveExpr(node.moveDirExpr)
-        var didMove = case moveDir.kind
-          of svkDir: execState.stmtMovePerformRel(moveDir.dirValX, moveDir.dirValY)
-          of svkPos: execState.stmtMovePerformAbs(moveDir.posBoardNameIdx, moveDir.posValX, moveDir.posValY)
-          else:
-            raise newException(ScriptExecError, &"Expected dir, got {moveDir} instead")
-
-        if not didMove:
-          var body = node.moveElse
-          execState.continuations.add(cont)
-          cont = ScriptContinuation(codeBlock: body, codePc: 0)
-
-      of snkBroadcast:
-        var eventNameIdx: InternKey = node.broadcastEventNameIdx
-        execState.stmtBroadcast(eventNameIdx)
-
-      of snkSay:
-        var sayExpr = execState.resolveExpr(node.sayExpr)
-        var sayStr: string = sayExpr.asCoercedStr()
-
-        # TODO: Actually put it in the window somewhere --GM
-        echo &"SAY: [{sayStr}]"
-
-      of snkSend:
-        var dirOrPos = execState.resolveExpr(node.sendPos)
-        var eventNameIdx: InternKey = node.sendEventNameIdx
-        execState.stmtSend(dirOrPos, eventNameIdx)
-
-      of snkSleep:
-        var sleepTime = execState.resolveExpr(node.sleepTimeExpr).asInt()
-        if sleepTime >= 1:
-          execState.sleepTicksLeft = sleepTime
-          execState.continuations.add(cont)
-          return
-
-      of snkSpawn, snkSpawnInto:
-        var dstExpr = case node.kind
-          of snkSpawn: nil
-          of snkSpawnInto: node.spawnIntoDstExpr
-          else:
-            raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
-        var dirOrPos = execState.resolveExpr(node.spawnPos)
-        var entityNameIdx: InternKey = node.spawnEntityNameIdx
-        var spawnBody = node.spawnBody
-        var spawnElse = node.spawnElse
-
-        var newEntity = execState.stmtSpawn(entityNameIdx, dirOrPos, spawnBody, spawnElse)
-        if newEntity == nil:
-          execState.continuations.add(cont)
-          cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
+        of snkSpawn: discard
+        of snkSpawnInto:
+          execState.storeAtExpr(dstExpr, ScriptVal(kind: svkEntity, entityRef: newEntity))
         else:
-          newEntity.customiseFromBody(execState, spawnBody)
+          raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
 
-        case node.kind
-          of snkSpawn: discard
-          of snkSpawnInto:
-            execState.storeAtExpr(dstExpr, ScriptVal(kind: svkEntity, entityRef: newEntity))
-          else:
-            raise newException(ScriptExecError, &"EDOOFUS: Unhandled spawn type {node}!")
-
-      else:
-        raise newException(ScriptExecError, &"Unhandled statement/block kind {node.kind}")
-
-    assert cont.codePc == cont.codeBlock.len
+    else:
+      raise newException(ScriptExecError, &"Unhandled statement/block kind {node.kind}")
 
 method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
   var execBase = execState.execBase
