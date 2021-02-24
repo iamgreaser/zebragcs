@@ -31,6 +31,8 @@ import sdl2
 var lastSleepTime: MonoTime
 var didLastSleep: bool = false
 var cpuUsage: float64 = 0.0
+const cpuUsageReportPeriod: int = 20
+var cpuUsageTicksUntilNextReport: int = cpuUsageReportPeriod
 
 const gfxWidth* = 80
 const gfxHeight* = 25
@@ -327,16 +329,23 @@ proc blitToScreen(gfx: GfxState) =
       var sleepDiff = sleepEnd - sleepBeg
       var sleepDiffNanos = lastSleepTime.ticks - now.ticks
       var cpuUsedThisTick = float64(50*1_000_000 - sleepDiffNanos) / float64(50*1_000_000)
-      cpuUsage += (cpuUsedThisTick - cpuUsage) * 0.1
+      cpuUsage += cpuUsedThisTick
+      cpuUsageTicksUntilNextReport -= 1
       assert sleepDiff >= 0
       sleep(int(sleepDiff))
     else:
       # Slipped!
       var cpuUsedThisTick = 1.0
-      cpuUsage += (cpuUsedThisTick - cpuUsage) * 0.1
+      cpuUsage += cpuUsedThisTick
+      cpuUsageTicksUntilNextReport -= 1
       lastSleepTime = now
   else:
     sleep(50)
     lastSleepTime = getMonoTime()
     didLastSleep = true;
-  echo &"cpu: {cpuUsage:9.6f}"
+
+  if cpuUsageTicksUntilNextReport <= 0:
+    cpuUsageTicksUntilNextReport = cpuUsageReportPeriod
+    cpuUsage /= float64(cpuUsageReportPeriod)
+    echo &"cpu: {cpuUsage:9.6f}"
+    cpuUsage = 0.0
