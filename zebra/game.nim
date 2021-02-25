@@ -24,11 +24,24 @@ type
     board*: Board
     cursorX*: int64
     cursorY*: int64
-    frameIdx*: uint16
     alive*: bool
     editing*: bool
-    outputEvents*: seq[tuple[player: Player, ev: NetEvent]]
-    inputEvents*: seq[NetEvent]
+
+    netClient: NetClient
+    netServer: NetServer
+
+    clientReceivedFrame*: bool
+    clientGotFrameIdx*: uint16
+    clientNeedFrameIdx*: uint16
+
+    clientInputEvents*: seq[NetEvent]
+    serverInputEvents*: seq[seq[tuple[player: Player, needFrameIdx: uint16, gotFrameIdx: uint16, events: seq[NetEvent]]]]
+    serverFrameIdx*: uint16
+    serverOutputEvents*: seq[seq[NetInputResultFrame]]
+    clientOutputEvents*: seq[seq[NetInputResultFrame]]
+
+    clientFrameIdx*: uint16
+
   GameState* = ref GameStateObj
 
 proc addGameInput*(game: GameState, player: Player, ev: NetEvent)
@@ -116,7 +129,8 @@ proc newMultiClientGame(ipAddr: string, udpPort: uint16 = 22700): GameState =
     worldName: "",
     world: nil,
     player: nil,
-    frameIdx: 0,
+    clientFrameIdx: 0,
+    clientNeedFrameIdx: 0,
     alive: true,
   )
 
@@ -130,7 +144,9 @@ proc newMultiServerGame(worldName: string, udpPort: uint16 = 22700): GameState =
     worldName: worldName,
     world: nil,
     player: nil,
-    frameIdx: 0,
+    clientFrameIdx: 0,
+    clientNeedFrameIdx: 0,
+    serverFrameIdx: 0,
     alive: true,
   )
 
@@ -222,13 +238,19 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
     ]
 
   of gtMultiClient:
+    statusWidget.textLabels = @[
+      &"CFrame: {game.clientFrameIdx:04X}",
+      &"CNeed:  {game.clientNeedFrameIdx:04X}",
+    ]
     statusWidget.keyLabels = @[
       ("ESC", "Disconnect"),
     ]
 
   of gtMultiServer:
     statusWidget.textLabels = @[
-      &"Frame: {game.frameIdx:04X}",
+      &"CFrame: {game.clientFrameIdx:04X}",
+      &"CNeed:  {game.clientNeedFrameIdx:04X}",
+      &"SFrame: {game.clientFrameIdx:04X}",
     ]
     statusWidget.keyLabels = @[
       ("ESC", "Stop server"),
@@ -267,7 +289,7 @@ proc applyGameInput(game: GameState, player: Player, ev: NetEvent) =
     player.tickEvent(internKey(&"type{ev.inputKey}"))
 
 proc addGameInput(game: GameState, player: Player, ev: NetEvent) =
-  game.inputEvents.add(ev)
+  game.clientInputEvents.add(ev)
 
 proc applyInput(game: GameState, ev: InputEvent) =
   case ev.kind
@@ -324,25 +346,128 @@ proc close(game: GameState) =
   game.alive = false
   # TODO: Close any network sockets we may have --GM
 
+proc serialiseClientInputs(strm: Stream, game: GameState) =
+  var inputs: seq[NetEvent] = @[]
+  for ev in game.clientInputEvents:
+    inputs.add(ev)
+
+  var msg = NetMessage(
+    kind: nmtInputFramePut,
+    inputPutGotFrameIdx: game.clientGotFrameIdx,
+    inputPutNeedFrameIdx: game.clientNeedFrameIdx,
+    inputPutSeq: inputs,
+  )
+  strm.writeNetObj(msg)
+
+proc pushNewServerFrame(game: GameState) =
+  game.serverInputEvents.add(@[])
+
+proc deserialiseClientInputs(strm: Stream, game: GameState, player: Player) =
+  var msg: NetMessage
+  strm.readNetObj(msg)
+  assert msg.kind == nmtInputFramePut
+  game.serverInputEvents[^1].add((
+    player,
+    msg.inputPutNeedFrameIdx,
+    msg.inputPutGotFrameIdx,
+    msg.inputPutSeq,
+  ))
+
+proc serialiseServerInputs(strm: Stream, game: GameState) =
+  var inputs: seq[NetInputResultFrame] = @[]
+  #serverInputEvents*: seq[tuple[player: Player, needFrameIdx: uint16, gotFrameIdx: uint16, events: seq[NetEvent]]]
+  for fr in game.serverInputEvents[^1]:
+    # TODO: Queue up resends for old frames --GM
+    # TODO: Clean up old frames --GM
+    #if fr.gotFrameIdx != fr.needFrameIdx:
+    #  discard fr.needFrameIdx
+
+    inputs.add(NetInputResultFrame(
+      playerId: fr.player.playerId,
+      inputs: fr.events,
+    ))
+
+  var msg = NetMessage(
+    kind: nmtInputFrameTick,
+    inputTickFrameIdx: game.serverFrameIdx,
+    inputTickSeq: inputs,
+  )
+  strm.writeNetObj(msg)
+
+proc applyServerInputs(game: GameState, msg: NetMessage) =
+  assert msg.kind == nmtInputFrameTick
+  var frameIdx = msg.inputTickFrameIdx
+  # FIXME: This doesn't check the order --GM
+  game.clientFrameIdx = frameIdx
+  game.clientGotFrameIdx = frameIdx
+  game.clientNeedFrameIdx = frameIdx
+  game.clientReceivedFrame = true
+  game.clientOutputEvents.add(
+    msg.inputTickSeq
+  )
+
+proc deserialiseServerInputs(strm: Stream, game: GameState) =
+  var msg: NetMessage
+  strm.readNetObj(msg)
+  game.applyServerInputs(msg)
+
 proc endTick(game: GameState) =
   if game.world != nil:
     # TODO: Work this out for gtMultiClient --GM
+    game.pushNewServerFrame()
+
     var player = game.player
+
     if player != nil:
-      for ev in game.inputEvents:
-        var s = block:
+      # Client: Send events
+      var s1 = block:
+        var strm = newStringStream()
+        strm.serialiseClientInputs(game)
+        strm.data
+
+      if game.netClient != nil:
+        # Pass this directly to the server
+        game.netClient.sendRaw(s1)
+      else:
+        # Server: Receive events from client
+        block:
+          var strm = newStringStream(s1)
+          strm.deserialiseClientInputs(game, player)
+
+    game.clientInputEvents.setLen(0)
+
+    block:
+      if game.netClient != nil:
+        # Get events from the server
+        for fr in game.netClient.recvInputs():
+          game.applyServerInputs(fr)
+
+      else:
+        # Server: Send events to all clients
+        var s1 = block:
           var strm = newStringStream()
-          strm.writeNetObj(ev)
+          strm.serialiseServerInputs(game)
           strm.data
-        var newEv = NetEvent()
-        var strm = newStringStream(s)
-        strm.readNetObj(newEv)
-        game.outputEvents.add((player, newEv))
-    game.inputEvents.setLen(0)
-    for pair in game.outputEvents:
-      game.applyGameInput(pair.player, pair.ev)
-    game.outputEvents.setLen(0)
-    game.frameIdx += 1'u16
+
+        if game.netServer != nil:
+          # Tee this off to the clients
+          game.netServer.broadcastRaw(s1)
+
+        # Client: Receive events from server
+        block:
+          var strm = newStringStream(s1)
+          strm.deserialiseServerInputs(game)
+
+    # Server: Advance frame index
+    game.serverFrameIdx += 1'u16
+
+    # Client: Run server events
+    if game.clientOutputEvents.len >= 1:
+      for fr in game.clientOutputEvents[^1]:
+        var player = game.world.players[fr.playerId]
+        for ev in fr.inputs:
+          game.applyGameInput(player, ev)
+      game.clientOutputEvents.setLen(0)
 
   if didLastSleep:
     lastSleepTime = lastSleepTime + initDuration(milliseconds = 50)

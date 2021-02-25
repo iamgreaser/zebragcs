@@ -104,6 +104,7 @@ type
     text: string,
   ]
   PlayerObj = object of ScriptExecStateObj
+    playerId*: uint8
     windowTitle*: string
     windowTextLines*: seq[string]
     windowMenuItems*: seq[MenuItem]

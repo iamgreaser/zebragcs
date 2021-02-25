@@ -63,7 +63,10 @@ proc newPlayer(world: World): Player =
   var execBase = share.getPlayerController()
   assert execBase != nil
 
+  # TODO: Recycle old player IDs --GM
+
   var player = Player(
+    playerId: uint8(world.players.len),
     windowTitle: "",
     windowTextLines: @[],
     windowMenuItems: @[],

@@ -1,3 +1,4 @@
+import nativesockets
 import net
 import streams
 #import tables
@@ -16,9 +17,8 @@ type
   NetEvent* = ref NetEventObj
 
   NetInputResultFrameObj = object
-    seed: uint64
-    playerId: uint16
-    inputs: seq[NetEvent]
+    playerId*: uint16
+    inputs*: seq[NetEvent]
   NetInputResultFrame* = ref NetInputResultFrameObj
 
   NetMessageType* = enum
@@ -26,22 +26,26 @@ type
     nmtHelloReq,
     nmtHelloAck,
     nmtHelloGotAck,
+    nmtStartGameReq,
+    nmtStartGameAck,
     nmtInputFramePut,
-    nmtInputFrameTicks,
+    nmtInputFrameTick,
   NetMessageObj = object
     case kind*: NetMessageType
     of nmtQuit: discard
     of nmtHelloReq: discard
     of nmtHelloAck: discard
     of nmtHelloGotAck: discard
+    of nmtStartGameReq:
+      startGameReqSeed: uint64
+    of nmtStartGameAck: discard
     of nmtInputFramePut:
-      inputPutGotFrameIdx*: uint8
-      inputPutNeedFrameIdx*: uint8
-      inputPutFrameIdx*: uint8
+      inputPutNeedFrameIdx*: uint16
+      inputPutGotFrameIdx*: uint16
       inputPutSeq*: seq[NetEvent]
-    of nmtInputFrameTicks:
-      inputTickFrameBegIdx*: uint8
-      inputTickSeq*: seq[seq[NetInputResultFrame]]
+    of nmtInputFrameTick:
+      inputTickFrameIdx*: uint16
+      inputTickSeq*: seq[NetInputResultFrame]
   NetMessage* = ref NetMessageObj
 
   NetClientState = enum
@@ -55,6 +59,7 @@ type
     ipAddr: string
     udpPort: Port
     state: NetClientState
+    inputTickMessages: seq[NetMessage]
   NetClient* = ref NetClientObj
 
   NetServerState = enum
@@ -64,6 +69,7 @@ type
     sock: Socket
     udpPort: Port
     state: NetServerState
+    peers: seq[NetServerPeer]
   NetServer* = ref NetServerObj
 
   NetServerPeerState = enum
@@ -81,6 +87,7 @@ type
 
 proc newClient*(ipAddr: string, udpPort: Port = Port(22700)): NetClient =
   var sock = newSocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+  #sock.fd.setBlocking(false)
   NetClient(
     sock: sock,
     ipAddr: ipAddr,
@@ -92,6 +99,7 @@ proc newServer*(udpPort: Port = Port(22700)): NetServer =
   # TODO: Work out how to make this work sanely with dual IPv4+IPv6 --GM
   var sock = newSocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
   sock.bindAddr(port = udpPort)
+  #sock.fd.setBlocking(false)
   NetServer(
     sock: sock,
     udpPort: udpPort,
@@ -111,14 +119,12 @@ proc writeNetObj*(strm: Stream, msg: NetEvent) =
     strm.write(uint8(msg.inputKey))
 
 proc readNetObj*(strm: Stream, msg: var NetInputResultFrame) =
-  msg.seed = strm.readUint64()
   msg.playerId = strm.readUint16()
   msg.inputs.setLen(strm.readUint8())
   for idx in 0..(msg.inputs.len-1):
     strm.readNetObj(msg.inputs[idx])
 
 proc writeNetObj*(strm: Stream, msg: NetInputResultFrame) =
-  strm.write(uint64(msg.seed))
   strm.write(uint16(msg.playerId))
   strm.write(uint8(msg.inputs.len))
   for ev in msg.inputs:
@@ -131,23 +137,29 @@ proc readNetObj*(strm: Stream, msg: var NetMessage) =
     of nmtHelloReq: discard
     of nmtHelloAck: discard
     of nmtHelloGotAck: discard
+    of nmtStartGameReq:
+      msg.startGameReqSeed = strm.readUint64()
+    of nmtStartGameAck: discard
     of nmtInputFramePut:
-      msg.inputPutGotFrameIdx = strm.readUint8()
-      msg.inputPutNeedFrameIdx = strm.readUint8()
-      msg.inputPutFrameIdx = strm.readUint8()
+      msg.inputPutNeedFrameIdx = strm.readUint16()
+      msg.inputPutGotFrameIdx = strm.readUint16()
       var putSeqLen: uint32 = strm.readUint8()
-      msg.inputPutSeq.setLen(putSeqLen)
-      for idx in 0..(putSeqLen-1):
-        strm.readNetObj(msg.inputPutSeq[idx])
-    of nmtInputFrameTicks:
-      msg.inputTickFrameBegIdx = strm.readUint8()
+      msg.inputPutSeq.setLen(0)
+      if putSeqLen >= 1:
+        for idx in 0..(putSeqLen-1):
+          var v = NetEvent()
+          strm.readNetObj(v)
+          msg.inputPutSeq.add(v)
+    of nmtInputFrameTick:
+      msg.inputTickFrameIdx = strm.readUint16()
+
       var tickSeqLen: uint32 = strm.readUint8()
-      msg.inputTickSeq.setLen(tickSeqLen)
-      for i in 0..(tickSeqLen-1):
-        var tickSeqSeqLen: uint32 = strm.readUint8()
-        msg.inputTickSeq[i].setLen(tickSeqLen)
-        for j in 0..(tickSeqSeqLen-1):
-          strm.readNetObj(msg.inputTickSeq[i][j])
+      msg.inputTickSeq.setLen(0)
+      if tickSeqLen >= 1:
+        for i in 0..(tickSeqLen-1):
+          var v = NetInputResultFrame()
+          strm.readNetObj(v)
+          msg.inputTickSeq.add(v)
 
 proc writeNetObj*(strm: Stream, msg: NetMessage) =
   strm.write(uint8(msg.kind))
@@ -156,17 +168,41 @@ proc writeNetObj*(strm: Stream, msg: NetMessage) =
     of nmtHelloReq: discard
     of nmtHelloAck: discard
     of nmtHelloGotAck: discard
+    of nmtStartGameReq:
+      strm.write(uint64(msg.startGameReqSeed))
+    of nmtStartGameAck: discard
     of nmtInputFramePut:
-      strm.write(uint8(msg.inputPutGotFrameIdx))
-      strm.write(uint8(msg.inputPutNeedFrameIdx))
-      strm.write(uint8(msg.inputPutFrameIdx))
+      strm.write(uint16(msg.inputPutNeedFrameIdx))
+      strm.write(uint16(msg.inputPutGotFrameIdx))
       strm.write(uint8(msg.inputPutSeq.len))
       for ev in msg.inputPutSeq:
         strm.writeNetObj(ev)
-    of nmtInputFrameTicks:
-      strm.write(uint8(msg.inputTickFrameBegIdx))
+    of nmtInputFrameTick:
+      strm.write(uint16(msg.inputTickFrameIdx))
       strm.write(uint8(msg.inputTickSeq.len))
       for fr in msg.inputTickSeq:
-        strm.write(uint8(fr.len))
-        for ev in fr:
-          strm.writeNetObj(ev)
+        strm.writeNetObj(fr)
+
+proc sendRaw*(netClient: NetClient, msg: string) =
+  netClient.sock.sendTo(netClient.ipAddr, netClient.udpPort, msg)
+
+proc broadcastRaw*(netServer: NetServer, msg: string) =
+  for peer in netServer.peers:
+    netServer.sock.sendTo(peer.ipAddr, peer.udpPort, msg)
+
+proc update*(netClient: NetClient) =
+  var data: string
+  var address: string
+  var port: Port
+  var dataLen: int = netClient.sock.recvFrom(data, 1536, address, port)
+
+proc update*(netServer: NetServer) =
+  var data: string
+  var address: string
+  var port: Port
+  var dataLen: int = netServer.sock.recvFrom(data, 1536, address, port)
+
+iterator recvInputs*(netClient: NetClient): NetMessage =
+  for msg in netClient.inputTickMessages:
+    yield msg
+  netClient.inputTickMessages.setLen(0)
