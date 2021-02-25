@@ -1,9 +1,13 @@
 param entity @playerent noentity
-param pos @camerapos atboard entry 30 12
+param pos @camerapos atboard entry 90 37
+local int %x 0
+local int %y 0
 
 on event initplayer {
-  if not @playerent {
-    spawninto @playerent atboard entry 30 12 player
+  while not @playerent {
+    set %x random 13 166
+    set %y random 13 61
+    spawninto @playerent atboard entry %x %y player
   }
 }
 

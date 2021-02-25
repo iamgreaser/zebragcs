@@ -16,21 +16,7 @@ local dir %movedir east
 local dir %lastmovedir east
 local int %nextcolor 15
 
-on state init {
-  set $foodtoplace 5
-  goto main
-}
-
 on state main {
-  while ge $foodtoplace 1 {
-    set %x random 3 56
-    set %y random 3 21
-    spawn at %x %y food else {
-      inc $foodtoplace 1
-    }
-    dec $foodtoplace 1
-  }
-
   set %oldpos thispos
   set $eatenby self
   send %movedir eat

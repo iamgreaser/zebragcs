@@ -1,0 +1,19 @@
+global int $foodtoplace
+local int %x 0
+local int %y 0
+
+on event initworld {
+  set $foodtoplace 100
+}
+
+on state main {
+  while ge $foodtoplace 1 {
+    set %x random 3 176
+    set %y random 3 71
+    spawn at %x %y food else {
+      inc $foodtoplace 1
+    }
+    dec $foodtoplace 1
+  }
+  sleep 1
+}
