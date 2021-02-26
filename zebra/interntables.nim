@@ -134,6 +134,43 @@ proc `$`*[V](x: InternTable[V]): string =
   accum &= "}"
   accum
 
+macro internCase*(body: untyped): untyped =
+  var caseRoot = case body.kind
+    of nnkStmtListExpr:
+      assert body.len == 1
+      case body[0].kind
+      of nnkCaseStmt: body[0]
+      else:
+        echo body.treeRepr
+        raise newException(Exception, "Expected case block")
+    of nnkCaseStmt: body
+    else:
+      echo body.treeRepr
+      raise newException(Exception, "Expected case block")
+
+  assert caseRoot.kind == nnkCaseStmt
+
+  for caseIdx in (1..(caseRoot.len-1)):
+    var caseNode = caseRoot[caseIdx]
+    case caseNode.kind
+    of nnkOfBranch:
+      for ofIdx in (0..(caseNode.len-1-1)):
+        var ofNode = caseNode[ofIdx]
+        caseNode[ofIdx] = case ofNode.kind
+          of nnkStrLit: newTree(nnkCall, ident("internKeyCT"), ofNode)
+          else:
+            echo ofNode.treeRepr
+            raise newException(Exception, "Unhandled case comparison")
+      #echo caseNode.treeRepr
+
+    of nnkElse: discard
+
+    else:
+      echo caseNode.treeRepr
+      raise newException(Exception, "Unhandled case node")
+
+  body
+
 proc getInternName*(x: InternKey): string =
   globalInternBase.idxToStr[x]
 

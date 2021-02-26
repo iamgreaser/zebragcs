@@ -240,28 +240,6 @@ type
     satMul,
     satSet,
 
-  ScriptFuncType* = enum
-    sftAt,
-    sftAtBoard,
-    sftCcw,
-    sftCw,
-    sftDirX,
-    sftDirY,
-    sftEq,
-    sftGe,
-    sftGt,
-    sftLe,
-    sftLt,
-    sftNe,
-    sftNot,
-    sftOpp,
-    sftPosof,
-    sftRandom,
-    sftRandomDir,
-    sftSeek,
-    sftSelf,
-    sftThispos,
-
   ScriptNodeKind* = enum
     snkAssign,
     snkBroadcast,
@@ -317,7 +295,7 @@ type
     of snkForceMove:
       forceMoveDirExpr*: ScriptNode
     of snkFunc:
-      funcType*: ScriptFuncType
+      funcType*: InternKey
       funcArgs*: seq[ScriptNode]
     of snkDie: discard
     of snkMove:

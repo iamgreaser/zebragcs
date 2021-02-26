@@ -110,14 +110,14 @@ proc asCoercedStr(x: ScriptVal): string =
   of svkDir: &"rel {x.dirValX} {x.dirValY}"
   of svkPos: &"at {x.posValX} {x.posValY}"
 
-method funcDirComponents(execState: ScriptExecState, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base, locks: "unknown".} =
+method funcDirComponents(execState: ScriptExecState, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base, locks: "unknown".} =
   raise newException(ScriptExecError, &"Unexpected type {execState} for builtin func seek")
-method funcDirComponents(board: Board, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] =
+method funcDirComponents(board: Board, dir: ScriptVal): tuple[dx: int64, dy: int64] =
   case dir.kind:
     of svkDir: (dir.dirValX, dir.dirValY)
     else:
       raise newException(ScriptExecError, &"Expected dir, got {dir} instead")
-method funcDirComponents(entity: Entity, funcType: ScriptFuncType, dir: ScriptVal): tuple[dx: int64, dy: int64] =
+method funcDirComponents(entity: Entity, dir: ScriptVal): tuple[dx: int64, dy: int64] =
   case dir.kind:
     of svkDir: (dir.dirValX, dir.dirValY)
     of svkPos:
@@ -216,12 +216,12 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
     return ScriptVal(kind: svkStr, strVal: accum)
 
   of snkFunc:
-    case expr.funcType
+    internCase case expr.funcType
 
-    of sftThisPos:
+    of "thispos":
       return execState.funcThisPos()
 
-    of sftCw, sftOpp, sftCcw:
+    of "cw", "opp", "ccw":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
       var (dx, dy) = case v0.kind
@@ -230,16 +230,16 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         else:
           raise newException(ScriptExecError, &"Unhandled dir kind {v0.kind}")
 
-      (dx, dy) = case expr.funcType
-        of sftCw: (-dy, dx)
-        of sftOpp: (-dx, -dy)
-        of sftCcw: (dy, -dx)
+      (dx, dy) = internCase (case expr.funcType
+        of "cw": (-dy, dx)
+        of "opp": (-dx, -dy)
+        of "ccw": (dy, -dx)
         else:
-          raise newException(ScriptExecError, &"EDOOFUS: Unhandled rotation function {expr.funcType}")
+          raise newException(ScriptExecError, &"EDOOFUS: Unhandled rotation function {expr.funcType.getInternName()}"))
 
       return ScriptVal(kind: svkDir, dirValX: dx, dirValY: dy)
 
-    of sftEq, sftNe:
+    of "eq", "ne":
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0])
       var v1 = execState.resolveExpr(expr.funcArgs[1])
@@ -260,31 +260,31 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
           v1.kind == svkStr and v0.strVal == v1.strVal
         #else:
         #  raise newException(ScriptExecError, &"Unhandled bool kind {v0.kind}")
-      return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == sftEq)))
+      return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == internKeyCT("eq"))))
 
-    of sftNot:
+    of "not":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
       return ScriptVal(kind: svkBool, boolVal: not v0.asBool())
 
-    of sftLt, sftLe, sftGt, sftGe:
+    of "lt", "le", "gt", "ge":
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
-      var b0 = case expr.funcType
-        of sftLt: v0 < v1
-        of sftLe: v0 <= v1
-        of sftGt: v0 > v1
-        of sftGe: v0 >= v1
+      var b0 = internCase (case expr.funcType
+        of "lt": v0 < v1
+        of "le": v0 <= v1
+        of "gt": v0 > v1
+        of "ge": v0 >= v1
         else:
-          raise newException(ScriptExecError, &"EDOOFUS: ScriptFuncType unknown for {expr}!")
+          raise newException(ScriptExecError, &"EDOOFUS: ScriptFuncType unknown for {expr}!"))
       return ScriptVal(kind: svkBool, boolVal: b0)
 
-    of sftSelf:
+    of "self":
       assert expr.funcArgs.len == 0
       return execState.funcSelf()
 
-    of sftPosof:
+    of "posof":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
       case v0.kind
@@ -297,32 +297,32 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       else:
         raise newException(ScriptExecError, &"Expected entity, got {v0} instead")
 
-    of sftAt:
+    of "at":
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
       return execState.funcAt(v0, v1)
 
-    of sftAtBoard:
+    of "atboard":
       assert expr.funcArgs.len == 3
       var boardName = execState.resolveExpr(expr.funcArgs[0]).asStr()
       var v0 = execState.resolveExpr(expr.funcArgs[1]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[2]).asInt()
       return execState.funcAtBoard(boardName, v0, v1)
 
-    of sftDirX:
+    of "dirx":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
-      var (dx, _) = execState.funcDirComponents(expr.funcType, v0)
+      var (dx, _) = execState.funcDirComponents(v0)
       return ScriptVal(kind: svkInt, intVal: dx)
 
-    of sftDirY:
+    of "diry":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
-      var (_, dy) = execState.funcDirComponents(expr.funcType, v0)
+      var (_, dy) = execState.funcDirComponents(v0)
       return ScriptVal(kind: svkInt, intVal: dy)
 
-    of sftRandom:
+    of "random":
       assert expr.funcArgs.len == 2
       var v0 = execState.resolveExpr(expr.funcArgs[0]).asInt()
       var v1 = execState.resolveExpr(expr.funcArgs[1]).asInt()
@@ -337,7 +337,7 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
 
       return ScriptVal(kind: svkInt, intVal: vout)
 
-    of sftRandomDir:
+    of "randomdir":
       assert expr.funcArgs.len == 0
       case execState.randomUintBelow(4'u64)
         of 0'i64: return ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1)
@@ -347,12 +347,12 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         else:
           raise newException(ScriptExecError, &"EDOOFUS: Missing a case for randomdir!")
 
-    of sftSeek:
+    of "seek":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
       return execState.funcSeek(v0)
 
-    #else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType} for expr {expr}")
+    else: raise newException(ScriptExecError, &"Unhandled func kind {expr.funcType.getInternName()} for expr {expr}")
 
   of snkGlobalVar:
     var k0 = expr.globalVarNameIdx
