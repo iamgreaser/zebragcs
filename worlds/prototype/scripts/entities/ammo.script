@@ -38,7 +38,7 @@ on event push {
 on event touch {
   if @physblock {
     set @physblock false
-    if not $didmsgammoget {
+    if [not $didmsgammoget] {
       set $didmsgammoget true
       say "Ammunition - 5 shots per container."
     }

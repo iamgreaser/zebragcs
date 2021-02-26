@@ -26,9 +26,9 @@ on state main {
   if @physblock {
     set $pushdir randomdir
     if $playerent {
-      set %playerpos posof $playerent
-      if le random 0 9 @intelligence {
-        set $pushdir seek %playerpos
+      set %playerpos [posof $playerent]
+      if [le [random 0 9] @intelligence] {
+        set $pushdir [seek %playerpos]
       }
     }
 
@@ -43,24 +43,24 @@ on state main {
 
       # Now attempt the shot
       if $playerent {
-        if le random 0 26 @firingrate {
-          set %playerdirx dirx %playerpos
-          set %playerdiry diry %playerpos
+        if [le [random 0 26] @firingrate] {
+          set %playerdirx [dirx %playerpos]
+          set %playerdiry [diry %playerpos]
           set %playerdirax %playerdirx
           set %playerdiray %playerdiry
-          if lt %playerdirax 0 { mul %playerdirax -1 }
-          if lt %playerdiray 0 { mul %playerdiray -1 }
+          if [lt %playerdirax 0] { mul %playerdirax -1 }
+          if [lt %playerdiray 0] { mul %playerdiray -1 }
 
           set %bulletdir idle
-          if le %playerdirax 2 {
-            if gt %playerdiry 0 {
+          if [le %playerdirax 2] {
+            if [gt %playerdiry 0] {
               set %bulletdir south
             } else {
               set %bulletdir north
             }
           } else {
-            if le %playerdiray 2 {
-              if gt %playerdirx 0 {
+            if [le %playerdiray 2] {
+              if [gt %playerdirx 0] {
                 set %bulletdir east
               } else {
                 set %bulletdir west
@@ -68,7 +68,7 @@ on state main {
             }
           }
 
-          if ne %bulletdir idle {
+          if [ne %bulletdir idle] {
             spawn %bulletdir bullet {
               set @movedir %bulletdir
               set @harmenemy false

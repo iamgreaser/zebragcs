@@ -10,18 +10,18 @@ on event initworld {
   #spawn at 30 12 player
 
   set %y 17
-  while lt %y 22 {
+  while [lt %y 22] {
     set %x 20
-    while lt %x 25 {
-      set %rnd random 0 1
-      if eq %rnd 0 { spawn at %x %y lion {} }
-      if eq %rnd 1 { spawn at %x %y tiger {} }
+    while [lt %x 25] {
+      set %rnd [random 0 1]
+      if [eq %rnd 0] { spawn [at %x %y] lion {} }
+      if [eq %rnd 1] { spawn [at %x %y] tiger {} }
       inc %x 1
     }
 
     set %x 40
-    while lt %x 45 {
-      spawn at %x %y ammo
+    while [lt %x 45] {
+      spawn [at %x %y] ammo
       inc %x 1
     }
     inc %y 1

@@ -1,14 +1,14 @@
 param entity @playerent noentity
-param pos @camerapos atboard entry 30 12
+param pos @camerapos [atboard entry 30 12]
 
 on event initplayer {
-  if not @playerent {
-    spawninto @playerent atboard entry 30 12 player
+  if [not @playerent] {
+    spawninto @playerent [atboard entry 30 12] player
   }
 }
 
 on state main {
-  if not @playerent { die }
+  if [not @playerent] { die }
   sleep 1
 }
 

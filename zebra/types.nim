@@ -148,6 +148,8 @@ type
     stkParamVar,
     stkParenClosed,
     stkParenOpen,
+    stkSquareClosed,
+    stkSquareOpen,
     stkStrClosed,
     stkStrConst,
     stkStrExprClosed,
@@ -164,6 +166,7 @@ type
     of stkInt: intVal*: int64
     of stkLocalVar: localName*: string
     of stkParamVar: paramName*: string
+    of stkSquareOpen, stkSquareClosed: discard
     of stkParenOpen, stkParenClosed: discard
     of stkStrOpen, stkStrClosed: discard
     of stkStrExprOpen, stkStrExprClosed: discard
@@ -419,6 +422,8 @@ proc `$`*(x: ScriptToken): string =
   of stkParamVar: return &"ParamT({x.paramName})"
   of stkParenClosed: return ")T"
   of stkParenOpen: return "(T"
+  of stkSquareClosed: return "]T"
+  of stkSquareOpen: return "[T"
   of stkStrClosed: return "\">T"
   of stkStrConst: return &"StringConstT({x.strConst})"
   of stkStrExprClosed: return ")\"T"

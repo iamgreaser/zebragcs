@@ -1,5 +1,5 @@
 param entity @playerent noentity
-param pos @camerapos atboard entry 30 12
+param pos @camerapos [atboard entry 30 12]
 
 local bool %awaitrespawn false
 
@@ -8,7 +8,7 @@ on state doingrespawn {
     send @playerent disown
     set @playerent noentity
   }
-  spawninto @playerent atboard entry 30 12 player {
+  spawninto @playerent [atboard entry 30 12] player {
     set @parentplayer self
   }
   goto main
@@ -19,7 +19,7 @@ on state awaitrespawn {
 }
 
 on state main {
-  if not @playerent {
+  if [not @playerent] {
     send self needrespawn
   }
   sleep 1

@@ -6,7 +6,7 @@ local dir %movedir idle
 
 on state main {
   sleep 1
-  if ne %movedir idle {
+  if [ne %movedir idle] {
     send %movedir touch
     send %movedir push
     move %movedir

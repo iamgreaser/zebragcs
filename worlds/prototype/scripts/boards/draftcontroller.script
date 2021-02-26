@@ -12,27 +12,27 @@ local int %y 0
 local entity %tmppassage noentity
 
 on event initworld {
-  spawninto %tmppassage at 40 14 passage {
-    set @targetpos atboard second 42 15
+  spawninto %tmppassage [at 40 14] passage {
+    set @targetpos [atboard second 42 15]
     set @bgcolor 2
   }
   # I am so getting banned from everywhere for making it possible to spawn stuff on unloaded boards. --GM
-  spawn atboard second 42 15 passage {
-    set @targetpos posof %tmppassage
+  spawn [atboard second 42 15] passage {
+    set @targetpos [posof %tmppassage]
     set @bgcolor 2
   }
 
   set %x 20
-  while lt %x 40 {
-    spawn at %x 7 breakable
+  while [lt %x 40] {
+    spawn [at %x 7] breakable
     inc %x 1
   }
 
   set %y 15
-  while lt %y 20 {
+  while [lt %y 20] {
     set %x 20
-    while lt %x 25 {
-      spawn at %x %y gem
+    while [lt %x 25] {
+      spawn [at %x %y] gem
       inc %x 1
     }
     inc %y 1

@@ -26,13 +26,13 @@ on state main {
     goto dead
   }
   if @physblock {
-    if ge @foodtoembed 1 {
+    if [ge @foodtoembed 1] {
       if @follower {
         send @follower extend
       } else {
         set %nextcolor @fgcolor
         dec %nextcolor 1
-        if lt %nextcolor 9 {
+        if [lt %nextcolor 9] {
           set %nextcolor 14
         }
         set @physblock false
@@ -73,7 +73,7 @@ on event atefood {
   say "Score: [\(@score)]"
 }
 
-on event typeup { if ne %lastmovedir south { set %movedir north } }
-on event typedown { if ne %lastmovedir north { set %movedir south } }
-on event typeleft { if ne %lastmovedir east { set %movedir west } }
-on event typeright { if ne %lastmovedir west { set %movedir east } }
+on event typeup { if [ne %lastmovedir south] { set %movedir north } }
+on event typedown { if [ne %lastmovedir north] { set %movedir south } }
+on event typeleft { if [ne %lastmovedir east] { set %movedir west } }
+on event typeright { if[ ne %lastmovedir west] { set %movedir east } }

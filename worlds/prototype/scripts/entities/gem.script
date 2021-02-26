@@ -36,7 +36,7 @@ on event shot { die }
 on event touch {
   if @physblock {
     set @physblock false
-    if not $didmsggemget {
+    if [not $didmsggemget] {
       set $didmsggemget true
       say "Gems give you health!"
     }

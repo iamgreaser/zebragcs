@@ -23,11 +23,11 @@ local pos %prevpos thispos
 
 on state main {
   set $playerent self
-  if eq @nextdir idle {
+  if [eq @nextdir idle] {
     sleep 1
   } else {
     if @shiftpressed {
-      if ge @ammo 1 {
+      if [ge @ammo 1] {
         dec @ammo 1
         spawn @nextdir bullet {
           set @harmplayer false
@@ -40,7 +40,7 @@ on state main {
         }
       } else {
         # TODO: Play sound --GM
-        if not $didmsgoutofammo {
+        if [not $didmsgoutofammo] {
           set $didmsgoutofammo true
           say "You don't have any ammo!"
         }
@@ -51,7 +51,7 @@ on state main {
       set %prevpos thispos
       set $touchsrc self
       send @nextdir touch
-      if eq %prevpos thispos {
+      if [eq %prevpos thispos] {
         move @nextdir
       }
     }
@@ -60,7 +60,7 @@ on state main {
 }
 
 on state dead {
-  if eq $playerent self {
+  if [eq $playerent self] {
     set $playerent noentity
   }
   set @char 1
@@ -93,7 +93,7 @@ on event typew {
 on event enemydamage {
   dec @health $givecount
   send $damagesrc ackenemydamage
-  if ge @health 1 {
+  if [ge @health 1] {
     say "Ouch!"
   } else {
     #say "Game over - Press ESCAPE"
@@ -106,7 +106,7 @@ on event enemydamage {
 
 on event enemyshot {
   dec @health 10
-  if ge @health 1 {
+  if [ge @health 1] {
     say "Ouch!"
   } else {
     #say "Game over - Press ESCAPE"

@@ -18,8 +18,8 @@ on state main {
   if @physblock {
     set $pushdir randomdir
     if $playerent {
-      if le random 0 9 @intelligence {
-        set $pushdir seek $playerent
+      if [le [random 0 9] @intelligence] {
+        set $pushdir [seek $playerent]
       }
     }
 

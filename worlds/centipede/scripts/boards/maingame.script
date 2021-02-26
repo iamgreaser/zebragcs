@@ -7,10 +7,10 @@ on event initworld {
 }
 
 on state main {
-  while ge $foodtoplace 1 {
-    set %x random 3 176
-    set %y random 3 71
-    spawn at %x %y food else {
+  while [ge $foodtoplace 1] {
+    set %x [random 3 176]
+    set %y [random 3 71]
+    spawn [at %x %y] food else {
       inc $foodtoplace 1
     }
     dec $foodtoplace 1

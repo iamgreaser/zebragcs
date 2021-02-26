@@ -35,6 +35,29 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
       else:
         raise newScriptParseError(sps, &"Expected string expression, got {tok} instead")
 
+  of stkSquareOpen:
+    var kw = sps.readKeywordToken()
+    var funcType = internKey(kw)
+    var funcArgs: seq[ScriptNode] = internCase (case funcType
+      of "atboard": @[
+        ScriptNode(kind: snkConst, constVal: ScriptVal(
+          kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
+        )),
+        sps.parseExpr(), sps.parseExpr(),
+      ]
+      else: @[])
+
+    while true:
+      var tok = sps.readToken()
+      case tok.kind:
+        of stkSquareClosed: break
+        else:
+          sps.pushBackToken(tok)
+          var arg = sps.parseExpr()
+          funcArgs.add(arg)
+
+    return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: funcArgs)
+
   of stkWord:
     var funcType = internKey(tok.wordVal.toLowerAscii())
     internCase case funcType
@@ -50,43 +73,13 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
     of "w", "west": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: -1, dirValY: 0))
     of "e", "east": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: +1, dirValY: 0))
 
+    # Implement some of these as argless functions for now
+    of "randomdir": return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+    of "self": return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+    of "thispos": return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+
     else:
-      var funcArgs = internCase (case funcType
-        of "self": @[]
-        of "posof": @[sps.parseExpr()]
-
-        of "cw": @[sps.parseExpr()]
-        of "opp": @[sps.parseExpr()]
-        of "ccw": @[sps.parseExpr()]
-
-        of "eq": @[sps.parseExpr(), sps.parseExpr()]
-        of "ne": @[sps.parseExpr(), sps.parseExpr()]
-        of "lt": @[sps.parseExpr(), sps.parseExpr()]
-        of "le": @[sps.parseExpr(), sps.parseExpr()]
-        of "gt": @[sps.parseExpr(), sps.parseExpr()]
-        of "ge": @[sps.parseExpr(), sps.parseExpr()]
-
-        of "not": @[sps.parseExpr()]
-
-        of "thispos": @[]
-
-        of "at": @[sps.parseExpr(), sps.parseExpr()]
-        of "atboard": @[
-          ScriptNode(kind: snkConst, constVal: ScriptVal(
-            kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
-          )),
-          sps.parseExpr(), sps.parseExpr(),
-        ]
-
-        of "dirx": @[sps.parseExpr()]
-        of "diry": @[sps.parseExpr()]
-        of "random": @[sps.parseExpr(), sps.parseExpr()]
-        of "randomdir": @[]
-        of "seek": @[sps.parseExpr()]
-
-        else:
-          raise newScriptParseError(sps, &"Expected expression, got {tok} instead"))
-      return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: funcArgs)
+      raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
   else:
     raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
 

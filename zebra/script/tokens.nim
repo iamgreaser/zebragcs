@@ -127,6 +127,12 @@ proc readTokenDirect(sps: ScriptParseState): ScriptToken =
   elif scanf(s, "$s$w$*", mid, post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkWord, wordVal: mid)
+  elif scanf(s, "$s[$*", post):
+    skipBytes(sps, s.len - post.len)
+    return ScriptToken(kind: stkSquareOpen)
+  elif scanf(s, "$s]$*", post):
+    skipBytes(sps, s.len - post.len)
+    return ScriptToken(kind: stkSquareClosed)
   elif scanf(s, "$s{$*", post):
     skipBytes(sps, s.len - post.len)
     return ScriptToken(kind: stkBraceOpen)
