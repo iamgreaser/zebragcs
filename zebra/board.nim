@@ -44,7 +44,7 @@ proc getBoard(world: World, boardName: string): var Board =
     discard world.loadBoardFromFile(boardName)
     return world.boards[boardName]
 
-proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
+proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
   var boardInfo = BoardInfo(
     boardNameIdx: internKey(boardName),
     controllerNameIdx: internKey("default"),
@@ -56,6 +56,7 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
   var hasControllerName = false
   var sps = ScriptParseState(
     strm: strm,
+    fname: fname,
     row: 1, col: 1,
     tokenPushStack: @[],
   )
@@ -125,14 +126,14 @@ proc loadBoardInfo(strm: Stream, boardName: string): BoardInfo =
   # Return!
   boardInfo
 
-proc loadBoard(world: World, boardName: string, strm: Stream): Board =
+proc loadBoard(world: World, boardName: string, strm: Stream, fname: string): Board =
   var share = world.share
   assert share != nil
 
   if world.boards.contains(boardName):
     raise newException(BoardLoadError, &"board \"{boardName}\" already assigned")
 
-  var boardInfo = loadBoardInfo(strm, boardName)
+  var boardInfo = loadBoardInfo(strm, boardName, fname)
   assert boardInfo != nil
 
   var execBase = share.getBoardController(boardInfo.controllerNameIdx.getInternName())
@@ -184,7 +185,7 @@ proc loadBoardFromFile(world: World, boardName: string): Board =
   if strm == nil:
     raise newException(IOError, &"\"{fname}\" could not be opened")
   try:
-    world.loadBoard(boardName, strm)
+    world.loadBoard(boardName, strm, fname.join("/"))
   finally:
     strm.close()
 
