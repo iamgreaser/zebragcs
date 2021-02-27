@@ -22,6 +22,15 @@ on event initworld {
     set @bgcolor 2
   }
 
+  spawninto %tmppassage [at 40 16] passage {
+    set @targetpos [atboard mazegen 1 1]
+    set @bgcolor 1
+  }
+  spawn [atboard mazegen 1 1] passage {
+    set @targetpos [posof %tmppassage]
+    set @bgcolor 1
+  }
+
   set %x 20
   while [lt %x 40] {
     spawn [at %x 7] breakable

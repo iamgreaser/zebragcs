@@ -1,0 +1,4 @@
+size 59 25
+controller mazegen
+
+entity 0 57 23 gem { set @fgcolor 10 }

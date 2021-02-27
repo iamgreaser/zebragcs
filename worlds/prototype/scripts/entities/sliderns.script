@@ -1,5 +1,5 @@
 param int @fgcolor 15
-param int @char 254
+param int @char 18
 
 local entity %froment noentity
 local dir %pushdir idle
@@ -12,6 +12,9 @@ on event touch %froment %pushdir {
 }
 
 on event push %pushdir {
-  send %pushdir push %pushdir
-  move %pushdir
+  if [eq [dirx %pushdir] 0] {
+    send %pushdir push %pushdir
+    move %pushdir
+  }
 }
+

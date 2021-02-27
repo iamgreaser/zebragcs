@@ -1,0 +1,19 @@
+param int @fgcolor 7
+param int @bgcolor 0
+param int @char 32
+param int @nextchar 178
+
+local entity %froment noentity
+local dir %pushdir idle
+
+on state idle {
+}
+
+on event touch %froment %pushdir {
+  if [eq @char 32] {
+    say "You are blocked by an invisible wall."
+    set @char @nextchar
+  }
+}
+
+on event delete { die }

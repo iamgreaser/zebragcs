@@ -82,19 +82,19 @@ Also this document isn't actually Markdown.
       - This would ideally be a forest layer.
     - [x] Breakable
     - [x] Boulder
-    - [ ] Sliderns
-    - [ ] Sliderew
+    - [x] Sliderns
+    - [x] Sliderew
     - [ ] Fake
       - I intend to have a floor layer, but if someone wants the "A fake wall - secret passage!" text then that can possibly be tracked on a layer by the player entity.
-    - [ ] Invisible
+    - [x] Invisible
     - [ ] Blink wall
     - [ ] Transporter
     - [ ] Ricochet
-    - [ ] Various unbreakable walls which will probably be the same entity type and/or a wall layer:
-      - [ ] Solid
-      - [ ] Normal
-      - [ ] Line
-      - [ ] Text
+    - [x] Various unbreakable walls which will probably be the same entity type and/or a wall layer:
+      - [x] Solid
+      - [x] Normal
+      - [x] Line
+      - [x] Text
 
   - [ ] Other
     - [-] Various hacks I probably won't be supporting:

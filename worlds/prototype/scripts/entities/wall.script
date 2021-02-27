@@ -1,0 +1,8 @@
+param int @fgcolor 7
+param int @bgcolor 0
+param int @char 178
+
+on state idle {
+}
+
+on event delete { die }

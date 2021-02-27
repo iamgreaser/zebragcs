@@ -1,0 +1,85 @@
+local int %x 0
+local int %y 0
+local int %px 0
+local int %py 0
+
+on event initworld {
+  # Set up the borders
+  set %x 0
+  while [lt %x 59] {
+    spawn [at %x 0] wall
+    spawn [at %x 24] wall
+    inc %x 1
+  }
+  set %y 0
+  while [lt %y 24] {
+    spawn [at 0 %y] wall
+    spawn [at 58 %y] wall
+    inc %y 1
+  }
+
+  # Set up the grid
+  set %y 2
+  while [le %y 22] {
+    set %x 2
+    while [le %x 56] {
+      spawn [at %x %y] wall
+      inc %x 2
+    }
+    set %x 1
+    while [le %x 57] {
+      if [eq [random 1 10] 1] {
+        spawn [at %x %y] invisible
+      } else {
+        spawn [at %x %y] wall
+      }
+      inc %x 2
+    }
+    inc %y 2
+  }
+  set %y 1
+  while [le %y 23] {
+    set %x 2
+    while [le %x 56] {
+      if [eq [random 1 10] 1] {
+        spawn [at %x %y] invisible
+      } else {
+        spawn [at %x %y] wall
+      }
+      inc %x 2
+    }
+    inc %y 2
+  }
+
+  # Now generate a BINARY TREE maze (these are hot garbage by the way)
+  set %y 2
+  while [le %y 22] {
+    send [at 1 %y] delete
+    inc %y 2
+  }
+  set %x 2
+  while [le %x 56] {
+    send [at %x 1] delete
+    inc %x 2
+  }
+  set %y 3
+  while [le %y 23] {
+    set %x 3
+    while [le %x 57] {
+      # Delete north or west.
+      set %px %x
+      set %py %y
+      if [eq [random 0 1] 0] {
+        dec %px 1
+      } else {
+        dec %py 1
+      }
+      send [at %px %py] delete
+      inc %x 2
+    }
+    inc %y 2
+  }
+}
+
+on state main {
+}
