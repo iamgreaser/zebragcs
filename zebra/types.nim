@@ -43,6 +43,7 @@ type
   ScriptStateBaseObj = object
     stateBody*: seq[ScriptNode]
   ScriptEventBaseObj = object
+    eventParams*: seq[ScriptNode]
     eventBody*: seq[ScriptNode]
 
   ScriptExecBase* = ref ScriptExecBaseObj
@@ -279,6 +280,7 @@ type
       onStateBody*: seq[ScriptNode]
     of snkOnEventBlock:
       onEventNameIdx*: InternKey
+      onEventParams*: seq[ScriptNode]
       onEventBody*: seq[ScriptNode]
     of snkIfBlock:
       ifTest*: ScriptNode
@@ -313,6 +315,7 @@ type
     of snkSend:
       sendEventNameIdx*: InternKey
       sendPos*: ScriptNode
+      sendArgs*: seq[ScriptNode]
     of snkSpawn, snkSpawnInto:
       spawnIntoDstExpr*: ScriptNode
       spawnEntityNameIdx*: InternKey
@@ -397,13 +400,13 @@ proc `$`*(x: ScriptNode): string =
   of snkLocalDef: return &"LocalDef(@{x.localDefNameIdx.getInternName()}: {x.localDefType} := {x.localDefInitValue})"
   of snkLocalVar: return &"LocalVar(@{x.localVarNameIdx.getInternName()})"
   of snkMove: return &"Move({x.moveDirExpr} else {x.moveElse})"
-  of snkOnEventBlock: return &"OnEvent({x.onEventNameIdx.getInternName()}: {x.onEventBody})"
+  of snkOnEventBlock: return &"OnEvent({x.onEventNameIdx.getInternName()} / {x.onEventParams}: {x.onEventBody})"
   of snkOnStateBlock: return &"OnState({x.onStateNameIdx.getInternName()}: {x.onStateBody})"
   of snkParamDef: return &"ParamDef(@{x.paramDefNameIdx.getInternName()}: {x.paramDefType} := {x.paramDefInitValue})"
   of snkParamVar: return &"ParamVar(@{x.paramVarNameIdx.getInternName()})"
   of snkRootBlock: return &"Root({x.rootBody})"
   of snkSay: return &"Say({x.sayExpr})"
-  of snkSend: return &"Send({x.sendEventNameIdx.getInternName()} -> {x.sendPos})"
+  of snkSend: return &"Send({x.sendEventNameIdx.getInternName()} {x.sendArgs} -> {x.sendPos})"
   of snkSleep: return &"Sleep({x.sleepTimeExpr})"
   of snkSpawn: return &"Spawn({x.spawnEntityNameIdx.getInternName()} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
   of snkSpawnInto: return &"SpawnInto({x.spawnIntoDstExpr} := {x.spawnEntityNameIdx.getInternName()} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"

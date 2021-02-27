@@ -107,10 +107,19 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
 
   of "event":
     var eventName = sps.readKeywordToken()
-    sps.expectToken(stkBraceOpen)
+    var eventParams: seq[ScriptNode] = @[]
+    while true:
+      var tok = sps.readToken()
+      case tok.kind
+        of stkBraceOpen: break # Terminate and consume
+        of stkLocalVar:
+          eventParams.add(ScriptNode(kind: snkLocalVar, localVarNameIdx: internKey(tok.localName)))
+        else:
+          raise newScriptParseError(sps, &"Expected varname or '" & "{" & &"', got {tok} instead")
     return ScriptNode(
       kind: snkOnEventBlock,
       onEventNameIdx: internKey(eventName),
+      onEventParams: eventParams,
       onEventBody: sps.parseCodeBlock(stkBraceClosed),
     )
 
@@ -221,12 +230,26 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
 
       of "send":
         var posExpr = sps.parseExpr()
-        var eventName = sps.readKeywordToken().toLowerAscii()
-        awaitingEol = true
+        var eventNameIdx = internKey(sps.readKeywordToken())
+        var sendArgs: seq[ScriptNode] = @[]
+        while true:
+          var tok = sps.readToken()
+          case tok.kind
+          of stkEol: break # Terminate and consume
+          else:
+            if tok.kind == endKind:
+              # Terminate and push back
+              sps.pushBackToken(tok)
+              break
+            else:
+              sps.pushBackToken(tok)
+              sendArgs.add(sps.parseExpr())
+
         nodes.add(ScriptNode(
           kind: snkSend,
-          sendEventNameIdx: internKey(eventName),
           sendPos: posExpr,
+          sendEventNameIdx: eventNameIdx,
+          sendArgs: sendArgs,
         ))
 
       of "sleep":

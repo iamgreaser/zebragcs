@@ -14,7 +14,7 @@ proc getBoard*(world: World, boardName: string): var Board
 proc loadBoardFromFile*(world: World, boardName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
-proc sendEventToPos*(board: Board, eventNameIdx: InternKey, x: int64, y: int64)
+proc sendEventToPos*(board: Board, eventNameIdx: InternKey, x: int64, y: int64, args: seq[ScriptVal] = @[])
 
 import ./script/exec
 
@@ -242,12 +242,12 @@ proc broadcastEvent(board: Board, eventNameIdx: InternKey) =
       entity.tickEvent(eventNameIdx)
     i += 1
 
-proc sendEventToPos(board: Board, eventNameIdx: InternKey, x: int64, y: int64) =
+proc sendEventToPos(board: Board, eventNameIdx: InternKey, x: int64, y: int64, args: seq[ScriptVal] = @[]) =
   if (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
     var entseq = board.grid[x, y]
     if entseq.len >= 1:
       var entity = entseq[entseq.len-1]
-      entity.tickEvent(eventNameIdx)
+      entity.tickEvent(eventNameIdx, args)
 
 method tick(board: Board) =
   procCall tick(ScriptExecState(board))

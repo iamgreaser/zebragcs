@@ -88,6 +88,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
     of snkOnEventBlock:
       execBase.events[node.onEventNameIdx] = ScriptEventBase(
         eventBody: node.onEventBody,
+        eventParams: node.onEventParams,
       )
 
     else:

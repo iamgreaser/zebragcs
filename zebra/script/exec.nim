@@ -3,7 +3,7 @@ import ../interntables
 import ../types
 
 method tick*(execState: ScriptExecState) {.base, locks: "unknown".}
-proc tickEvent*(execState: ScriptExecState, eventNameIdx: InternKey)
+proc tickEvent*(execState: ScriptExecState, eventNameIdx: InternKey, args: seq[ScriptVal] = @[])
 
 import ../board
 import ../entity
@@ -46,19 +46,23 @@ method stmtBroadcast(entity: Entity, eventNameIdx: InternKey) =
   assert board != nil
   board.broadcastEvent(eventNameIdx)
 
-method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventNameIdx: InternKey) {.base, locks: "unknown".} =
+method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventNameIdx: InternKey, sendArgNodes: seq[ScriptNode]) {.base, locks: "unknown".} =
+  var sendArgs: seq[ScriptVal] = @[]
+  for argNode in sendArgNodes:
+    sendArgs.add(execState.resolveExpr(argNode))
+
   case dirOrPos.kind
   of svkEntity:
     var entity = dirOrPos.entityRef
     if entity != nil:
       if entity.alive:
-        entity.tickEvent(eventNameIdx)
+        entity.tickEvent(eventNameIdx, sendArgs)
 
   of svkPlayer:
     var player = dirOrPos.playerRef
     if player != nil:
       if player.alive:
-        player.tickEvent(eventNameIdx)
+        player.tickEvent(eventNameIdx, sendArgs)
 
   else:
     var share = execState.share
@@ -72,7 +76,7 @@ method stmtSend(execState: ScriptExecState, dirOrPos: ScriptVal, eventNameIdx: I
       except KeyError:
         raise newException(ScriptExecError, &"Board \"{boardNameIdx.getInternName()}\" does not exist")
     assert board != nil
-    board.sendEventToPos(eventNameIdx, x, y)
+    board.sendEventToPos(eventNameIdx, x, y, sendArgs)
 
 method stmtSpawn(execState: ScriptExecState, entityNameIdx: InternKey, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
   var share = execState.share
@@ -184,7 +188,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
     of snkSend:
       var dirOrPos = execState.resolveExpr(node.sendPos)
       var eventNameIdx: InternKey = node.sendEventNameIdx
-      execState.stmtSend(dirOrPos, eventNameIdx)
+      execState.stmtSend(dirOrPos, eventNameIdx, node.sendArgs)
 
     of snkSleep:
       var sleepTime = execState.resolveExpr(node.sleepTimeExpr).asInt()
@@ -257,13 +261,21 @@ method tick(execState: ScriptExecState) {.base, locks: "unknown".} =
 
   execState.tickContinuations(lowerBound=0'u64)
 
-proc tickEvent(execState: ScriptExecState, eventNameIdx: InternKey) =
+proc tickEvent(execState: ScriptExecState, eventNameIdx: InternKey, args: seq[ScriptVal] = @[]) =
   var execBase = execState.execBase
   assert execBase != nil
   var eventBlock = try:
       execBase.events[eventNameIdx]
     except KeyError:
       return # If we don't have a handler for this event, then ignore it.
+
+  # Set variables
+  # TODO: Tie this to some sort of dynamic binding stack --GM
+  assert args.len == eventBlock.eventParams.len
+  for i in 0..(args.len-1):
+    var arg = args[i]
+    var param = eventBlock.eventParams[i]
+    execState.storeAtExpr(param, arg)
 
   # Push a continuation and tick away
   execState.continuations.add(
