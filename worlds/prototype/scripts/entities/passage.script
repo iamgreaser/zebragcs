@@ -5,15 +5,14 @@ param int @fgcolor 15
 param int @char 240
 param bool @physblock false
 param pos @targetpos thispos
-global pos $teleportpos
-global dir $pushdir
-global entity $touchsrc
+
+local entity %froment noentity
+local dir %pushdir idle
 
 on state idle {
 }
 
-on event touch {
+on event touch %froment %pushdir {
   say "Touched."
-  set $teleportpos @targetpos
-  send $touchsrc teleport
+  send %froment teleport @targetpos
 }

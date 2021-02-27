@@ -8,9 +8,10 @@ param int @intelligence 4
 
 global entity $playerent
 
-local entity %froment idle
+local entity %froment noentity
+local entity %blameent noentity
 local dir %pushdir idle
-
+local dir %shotdir idle
 
 on state main {
   sleep 2
@@ -55,7 +56,7 @@ on event push %pushdir {
   }
 }
 
-on event playershot {
+on event playershot %froment %shotdir %blameent {
   if @physblock {
     set @physblock false
     goto dead

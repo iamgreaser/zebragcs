@@ -3,10 +3,10 @@
 param int @fgcolor 9
 param int @char 4
 param bool @physblock true
-global int $givecount
-global dir $pushdir
 global bool $didmsggemget
-global entity $touchsrc
+
+local entity %froment noentity
+local dir %pushdir idle
 
 on state idle {
 }
@@ -33,19 +33,16 @@ on event push %pushdir {
 
 on event shot { die }
 
-on event touch {
+on event touch %froment %pushdir {
   if @physblock {
     set @physblock false
     if [not $didmsggemget] {
       set $didmsggemget true
       say "Gems give you health!"
     }
-    set $givecount 1
-    send $touchsrc givegems
-    set $givecount 1
-    send $touchsrc givehealth
-    set $givecount 10
-    send $touchsrc givescore
+    send %froment givegems 1
+    send %froment givehealth 1
+    send %froment givescore 10
     goto taken
   }
 }

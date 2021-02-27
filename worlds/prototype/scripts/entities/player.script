@@ -31,11 +31,10 @@ on state main {
         spawn @nextdir bullet {
           set @harmplayer false
           set @movedir @nextdir
+          set @ownerentity self
         } else {
-          set $shotdir @nextdir
-          send @nextdir shot
-          set $shotdir @nextdir
-          send @nextdir playershot
+          send @nextdir playershot self @nextdir self
+          send @nextdir shot self @nextdir self
         }
       } else {
         # TODO: Play sound --GM
@@ -69,7 +68,7 @@ on event disown {
 }
 
 on event teleport %teleportpos {
-  move $teleportpos
+  move %teleportpos
 }
 
 on event pressshift { set @shiftpressed true }

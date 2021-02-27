@@ -5,7 +5,10 @@ param int @fgcolor 7
 param int @bgcolor 0
 param int @char 177
 param dir @hitdir idle
-global dir $shotdir
+
+local dir %shotdir idle
+local entity %froment noentity
+local entity %blameent noentity
 
 on state idle {
 }
@@ -18,10 +21,10 @@ on state shot {
   die
 }
 
-on event shot {
+on event shot %froment %shotdir %blameent {
   if @physblock {
     set @physblock false
-    set @hitdir $shotdir
+    set @hitdir %shotdir
     goto shot
   }
 }

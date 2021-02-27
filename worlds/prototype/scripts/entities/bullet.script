@@ -5,23 +5,18 @@ param int @char 248
 param bool @harmenemy true
 param bool @harmplayer true
 param dir @movedir idle
-global dir $shotdir
+param entity @ownerentity noentity
 
 on state main {
   move @movedir else {
-    set $shotdir @movedir
-    send @movedir shot
     if @harmplayer {
-      set $shotdir @movedir
-      send @movedir enemyshot
+      send @movedir enemyshot self @movedir @ownerentity
     }
     if @harmenemy {
-      set $shotdir @movedir
-      send @movedir playershot
+      send @movedir playershot self @movedir @ownerentity
     }
+    send @movedir shot self @movedir @ownerentity
     die
   }
   sleep 1
 }
-
-on event shot { die }
