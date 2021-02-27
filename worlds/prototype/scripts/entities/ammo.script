@@ -3,10 +3,9 @@
 param int @fgcolor 3
 param int @char 132
 param bool @physblock true
-global int $givecount
-global dir $pushdir
 global bool $didmsgammoget
-global entity $touchsrc
+local entity %froment noentity
+local dir %pushdir idle
 
 on state idle {
 }
@@ -28,22 +27,21 @@ on state taken {
   die
 }
 
-on event push {
+on event push %pushdir {
   if @physblock {
-    send $pushdir push
-    move $pushdir
+    send %pushdir push %pushdir
+    move %pushdir
   }
 }
 
-on event touch {
+on event touch %froment %pushdir {
   if @physblock {
     set @physblock false
     if [not $didmsgammoget] {
       set $didmsgammoget true
       say "Ammunition - 5 shots per container."
     }
-    set $givecount 5
-    send $touchsrc giveammo
+    send %froment giveammo 5
     goto taken
   }
 }

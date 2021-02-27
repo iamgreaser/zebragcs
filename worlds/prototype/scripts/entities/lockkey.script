@@ -3,7 +3,6 @@
 param int @fgcolor 10
 param int @char 12
 param bool @physblock true
-global dir $pushdir
 global int $invkey1
 global int $invkey2
 global int $invkey3
@@ -11,6 +10,9 @@ global int $invkey4
 global int $invkey5
 global int $invkey6
 global int $invkey7
+
+local entity %froment noentity
+local dir %pushdir idle
 
 on state idle {
 }
@@ -30,14 +32,14 @@ on state taken {
   die
 }
 
-on event push {
+on event push %pushdir {
   if @physblock {
-    send $pushdir push
-    move $pushdir
+    send %pushdir push %pushdir
+    move %pushdir
   }
 }
 
-on event touch {
+on event touch %froment %pushdir {
   if @physblock {
     if [eq @fgcolor 9] {
       inc $invkey1 1

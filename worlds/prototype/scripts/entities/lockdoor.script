@@ -11,6 +11,9 @@ global int $invkey5
 global int $invkey6
 global int $invkey7
 
+local entity %froment noentity
+local dir %pushdir idle
+
 on state idle {
 }
 
@@ -28,7 +31,7 @@ on state unlocked {
   die
 }
 
-on event touch {
+on event touch %froment %pushdir {
   if @physblock {
     if [eq @fgcolor 9] {
       if [ge $invkey1 1] {

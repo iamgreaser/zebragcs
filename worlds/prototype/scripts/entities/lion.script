@@ -6,31 +6,28 @@ param bool @physblock true
 
 param int @intelligence 4
 
-global int $givecount
-global dir $pushdir
-global bool $didmsgammoget
 global entity $playerent
-global entity $touchsrc
-global entity $damagesrc
+
+local entity %froment idle
+local dir %pushdir idle
+
 
 on state main {
   sleep 2
   if @physblock {
-    set $pushdir randomdir
+    set %pushdir randomdir
     if $playerent {
       if [le [random 0 9] @intelligence] {
-        set $pushdir [seek $playerent]
+        set %pushdir [seek $playerent]
       }
     }
 
-    set $givecount 10
-    set $damagesrc self
-    send $pushdir enemydamage
+    send %pushdir enemydamage self 10
     # The ack should kill this but just in case
     # (apparently it sometimes doesn't? I do want to fix that. --GM)
     if @physblock {
-      send $pushdir push
-      move $pushdir
+      send %pushdir push %pushdir
+      move %pushdir
     } else {
       say "...wait, what?"
     }
@@ -44,17 +41,17 @@ on state dead {
   die
 }
 
-on event ackenemydamage {
+on event ackenemydamage %froment {
   if @physblock {
     set @physblock false
     goto dead
   }
 }
 
-on event push {
+on event push %pushdir {
   if @physblock {
-    send $pushdir push
-    move $pushdir else { die }
+    send %pushdir push %pushdir
+    move %pushdir else { die }
   }
 }
 
@@ -65,12 +62,10 @@ on event playershot {
   }
 }
 
-on event touch {
+on event touch %froment %pushdir {
   if @physblock {
     set @physblock false
-    set $givecount 10
-    set $damagesrc self
-    send $touchsrc enemydamage
+    send %froment enemydamage self 10
     goto dead
   }
 }

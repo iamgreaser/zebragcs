@@ -272,7 +272,7 @@ proc tickEvent(execState: ScriptExecState, node: ScriptNode, eventNameIdx: Inter
   # Set variables
   # TODO: Tie this to some sort of dynamic binding stack --GM
   if args.len != eventBlock.eventParams.len:
-    raise node.newScriptExecError(&"send arg mismatch: expected {eventBlock.eventParams.len}, got {args.len}")
+    raise node.newScriptExecError(&"send arg mismatch for event {eventNameIdx.getInternName()} to entity type {execBase.entityNameIdx.getInternName()}: expected {eventBlock.eventParams.len}, got {args.len}")
     
   for i in 0..(args.len-1):
     var arg = args[i]

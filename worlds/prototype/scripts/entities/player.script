@@ -10,16 +10,15 @@ param int @score 0
 param bool @shiftpressed false
 param dir @nextdir idle
 param player @parentplayer noplayer
-global entity $touchsrc
-global entity $damagesrc
 global entity $playerent
-global pos $playerpos
-global int $givecount
-global dir $pushdir
-global dir $shotdir
 global bool $didmsgoutofammo
-global pos $teleportpos
 local pos %prevpos thispos
+
+local int %givecount 0
+local entity %froment noentity
+local pos %teleportpos idle
+local dir %pushdir idle
+local dir %shotdir idle
 
 on state main {
   set $playerent self
@@ -47,10 +46,8 @@ on state main {
       }
       sleep 1
     } else {
-      set $pushdir @nextdir
       set %prevpos thispos
-      set $touchsrc self
-      send @nextdir touch
+      send @nextdir touch self @nextdir
       if [eq %prevpos thispos] {
         move @nextdir
       }
@@ -71,7 +68,7 @@ on event disown {
   die
 }
 
-on event teleport {
+on event teleport %teleportpos {
   move $teleportpos
 }
 
@@ -84,15 +81,15 @@ on event typeleft { set @nextdir west }
 on event typeright { set @nextdir east }
 
 on event typew {
-  set $pushdir n
-  send $pushdir push
+  set %pushdir n
+  send %pushdir push %pushdir
   spawn n ammo {
   }
 }
 
-on event enemydamage {
-  dec @health $givecount
-  send $damagesrc ackenemydamage
+on event enemydamage %froment %givecount {
+  dec @health %givecount
+  send %froment ackenemydamage self
   if [ge @health 1] {
     say "Ouch!"
   } else {
@@ -117,7 +114,7 @@ on event enemyshot {
   }
 }
 
-on event giveammo { inc @ammo $givecount }
-on event givegems { inc @gems $givecount }
-on event givehealth { inc @health $givecount }
-on event givescore { inc @score $givecount }
+on event giveammo %givecount { inc @ammo %givecount }
+on event givegems %givecount { inc @gems %givecount }
+on event givehealth %givecount { inc @health %givecount }
+on event givescore %givecount { inc @score %givecount }

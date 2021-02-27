@@ -4,7 +4,6 @@ param int @fgcolor 15
 param int @bgcolor 0
 
 param int @score 0
-global entity $eatenby
 global int $foodtoplace
 param int @foodtoembed 5
 param entity @follower noentity
@@ -18,8 +17,7 @@ local int %nextcolor 15
 
 on state main {
   set %oldpos thispos
-  set $eatenby self
-  send %movedir eat
+  send %movedir eat self
   set %lastmovedir %movedir
   move %movedir else {
     set @physblock false

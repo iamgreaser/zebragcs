@@ -24,10 +24,10 @@ on state taken {
   die
 }
 
-on event push {
+on event push %pushdir {
   if @physblock {
-    send $pushdir push
-    move $pushdir else { die }
+    send %pushdir push %pushdir
+    move %pushdir else { die }
   }
 }
 

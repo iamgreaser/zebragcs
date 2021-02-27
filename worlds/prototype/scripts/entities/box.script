@@ -2,17 +2,19 @@
 
 param int @fgcolor 15
 param int @char 254
-global dir $pushdir
+
+local entity %froment noentity
+local dir %pushdir idle
 
 on state idle {
 }
 
-on event touch {
-  send $pushdir push
-  move $pushdir
+on event touch %froment %pushdir {
+  send %pushdir push %pushdir
+  move %pushdir
 }
 
-on event push {
-  send $pushdir push
-  move $pushdir
+on event push %pushdir {
+  send %pushdir push %pushdir
+  move %pushdir
 }
