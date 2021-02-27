@@ -8,6 +8,8 @@ import ../types
 proc expectEolOrEof*(sps: ScriptParseState)
 proc expectToken*(sps: ScriptParseState, kind: ScriptTokenKind)
 proc newScriptParseError*(sps: ScriptParseState, message: string): ref ScriptParseError
+proc newScriptParseError*(tok: ScriptToken, message: string): ref ScriptParseError
+proc newScriptParseError*(node: ScriptNode, message: string): ref ScriptParseError
 proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
 proc readExpectedToken*(sps: ScriptParseState, kind: ScriptTokenKind): ScriptToken
 proc readGlobalName*(sps: ScriptParseState): string
@@ -23,6 +25,10 @@ const maxPeekDist = 200
 
 proc newScriptParseError(sps: ScriptParseState, message: string): ref ScriptParseError =
   newException(ScriptParseError, &"{sps.fname}:{sps.row}:{sps.col}: {message}")
+proc newScriptParseError(tok: ScriptToken, message: string): ref ScriptParseError =
+  newException(ScriptParseError, &"{tok.fname}:{tok.row}:{tok.col}: {message}")
+proc newScriptParseError(node: ScriptNode, message: string): ref ScriptParseError =
+  newException(ScriptParseError, &"{node.fname}:{node.row}:{node.col}: {message}")
 
 proc skipBytes(sps: ScriptParseState, count: int) =
   var skipped = sps.strm.readstr(count)
@@ -31,9 +37,9 @@ proc skipBytes(sps: ScriptParseState, count: int) =
       sps.col = 1
       sps.row += 1
     elif c == '\r':
-      raise newException(ScriptParseError, &"unexpected CR character at {sps.row}:{sps.col}, stop using Windows newlines")
+      raise sps.newScriptParseError(&"unexpected CR character, stop using Windows newlines")
     elif c == '\t':
-      raise newException(ScriptParseError, &"unexpected tab character at {sps.row}:{sps.col}")
+      raise sps.newScriptParseError(&"unexpected tab character")
     else:
       sps.col += 1
 
@@ -149,7 +155,14 @@ proc readToken(sps: ScriptParseState): ScriptToken =
   var tok = if sps.tokenPushStack.len >= 1:
       sps.tokenPushStack.pop()
     else:
-      sps.readTokenDirect()
+      var fname = sps.fname
+      var row = sps.row
+      var col = sps.col
+      var tok = sps.readTokenDirect()
+      tok.fname = fname
+      tok.row = row
+      tok.col = col
+      tok
   #echo &"Token: {tok}"
   return tok
 

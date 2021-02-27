@@ -56,7 +56,7 @@ proc newDemoGame(worldName: string): GameState =
   echo &"Starting new demo of world \"{worldName}\""
   var world = loadWorld(worldName)
   world.tickTitle = true
-  world.broadcastEvent(internKeyCT("initworld"))
+  world.broadcastEvent(nil, internKeyCT("initworld"))
 
   var game = GameState(
     gameType: gtDemo,
@@ -92,11 +92,11 @@ proc newEditorSinglePlayerGame(worldName: string): GameState =
 proc newSinglePlayerGame(worldName: string): GameState =
   echo &"Starting new single-player game of world \"{worldName}\""
   var world = loadWorld(worldName)
-  world.broadcastEvent(internKeyCT("initworld"))
+  world.broadcastEvent(nil, internKeyCT("initworld"))
 
   echo "Spawning new player"
   var player = world.newPlayer()
-  player.tickEvent(internKeyCT("initplayer"))
+  player.tickEvent(nil, internKeyCT("initplayer"))
 
   var game = GameState(
     gameType: gtSingle,
@@ -137,12 +137,12 @@ proc startMultiServerGame(game: GameState) =
   assert game.world == nil
   echo &"Starting multi-player server game of world \"{game.worldName}\""
   var world = loadWorld(game.worldName)
-  world.broadcastEvent(internKeyCT("initworld"))
+  world.broadcastEvent(nil, internKeyCT("initworld"))
   game.world = world
 
   echo "Spawning new player"
   var player = world.newPlayer()
-  player.tickEvent(internKeyCT("initplayer"))
+  player.tickEvent(nil, internKeyCT("initplayer"))
   game.player = player
 
 
@@ -256,11 +256,11 @@ proc applyGameInput(game: GameState, player: Player, ev: InputEvent) =
   # TODO: Intern these names at compiletime --GM
   case ev.kind
   of ievKeyPress:
-    player.tickEvent(internKey(&"press{ev.keyType}"))
-    player.tickEvent(internKey(&"type{ev.keyType}"))
+    player.tickEvent(nil, internKey(&"press{ev.keyType}"))
+    player.tickEvent(nil, internKey(&"type{ev.keyType}"))
 
   of ievKeyRelease:
-    player.tickEvent(internKey(&"release{ev.keyType}"))
+    player.tickEvent(nil, internKey(&"release{ev.keyType}"))
 
   else:
     discard # Don't handle these events

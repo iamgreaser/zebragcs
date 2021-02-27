@@ -7,6 +7,7 @@ import ../interntables
 import ../types
 import ../vfs/types as vfsTypes
 
+proc newScriptCompileError*(node: ScriptNode, message: string): ref ScriptCompileError
 proc newScriptParseState*(strm: Stream, fname: string): ScriptParseState
 proc newScriptSharedExecState*(vfs: FsBase): ScriptSharedExecState
 proc newScriptSharedExecState*(vfs: FsBase, seed: uint64): ScriptSharedExecState
@@ -17,6 +18,9 @@ proc loadPlayerControllerFromFile*(share: ScriptSharedExecState)
 
 import ./nodes
 
+
+proc newScriptCompileError(node: ScriptNode, message: string): ref ScriptCompileError =
+  newException(ScriptCompileError, &"{node.fname}:{node.row}:{node.col}: {message}")
 
 proc newScriptParseState(strm: Stream, fname: string): ScriptParseState =
   ScriptParseState(
@@ -44,6 +48,7 @@ proc newScriptSharedExecState(vfs: FsBase, seed: uint64): ScriptSharedExecState 
     seed: seed,
   )
 
+
 proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   var execBase = ScriptExecBase(
     entityNameIdx: internKey(entityName),
@@ -56,7 +61,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   )
 
   if node.kind != snkRootBlock:
-    raise newException(ScriptCompileError, &"EDOOFUS: compileRoot needs a root, not kind {node.kind}")
+    raise node.newScriptCompileError(&"EDOOFUS: compileRoot needs a root, not kind {node.kind}")
 
   for node in node.rootBody:
     case node.kind
@@ -92,12 +97,12 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
       )
 
     else:
-      raise newException(ScriptCompileError, &"Unhandled root node kind {node.kind}")
-    #raise newException(ScriptCompileError, &"TODO: Compile things")
+      raise node.newScriptCompileError(&"Unhandled root node kind {node.kind}")
+    #raise node.newScriptCompileError(&"TODO: Compile things")
 
   # Validate a few things
   if execBase.initStateIdx == -1:
-    raise newException(ScriptCompileError, &"No states defined - define something using \"on state\"!")
+    raise node.newScriptCompileError(&"No states defined - define something using \"on state\"!")
 
   # TODO: Validate state names
 

@@ -10,78 +10,92 @@ proc parseRoot*(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode
 import ./tokens
 
 
+proc tagPos(sps: ScriptParseState, node: ScriptNode): ScriptNode =
+  node.fname = sps.fname
+  node.row = sps.row
+  node.col = sps.col
+  node
+proc tagPos(tok: ScriptToken, node: ScriptNode): ScriptNode =
+  node.fname = tok.fname
+  node.row = tok.row
+  node.col = tok.col
+  node
+
+
 proc parseExpr(sps: ScriptParseState): ScriptNode =
   var tok = sps.readToken()
   case tok.kind
-  of stkInt: return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkInt, intVal: tok.intVal))
-  of stkGlobalVar: return ScriptNode(kind: snkGlobalVar, globalVarNameIdx: internKey(tok.globalName))
-  of stkParamVar: return ScriptNode(kind: snkParamVar, paramVarNameIdx: internKey(tok.paramName))
-  of stkLocalVar: return ScriptNode(kind: snkLocalVar, localVarNameIdx: internKey(tok.localName))
+    of stkInt: return tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkInt, intVal: tok.intVal)))
+    of stkGlobalVar: return tok.tagPos(ScriptNode(kind: snkGlobalVar, globalVarNameIdx: internKey(tok.globalName)))
+    of stkParamVar: return tok.tagPos(ScriptNode(kind: snkParamVar, paramVarNameIdx: internKey(tok.paramName)))
+    of stkLocalVar: return tok.tagPos(ScriptNode(kind: snkLocalVar, localVarNameIdx: internKey(tok.localName)))
 
-  of stkStrOpen:
-    var accum: seq[ScriptNode] = @[]
-    while true:
-      var tok = sps.readToken()
-      case tok.kind
-      of stkStrClosed:
-        #echo &"Nodes: {accum}"
-        return ScriptNode(kind: snkStringBlock, stringNodes: accum)
-      of stkStrConst:
-        accum.add(ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkStr, strVal: tok.strConst)))
-      of stkStrExprOpen:
-        var subNode = sps.parseExpr()
-        sps.expectToken(stkStrExprClosed)
-        accum.add(subNode)
-      else:
-        raise newScriptParseError(sps, &"Expected string expression, got {tok} instead")
-
-  of stkSquareOpen:
-    var kw = sps.readKeywordToken()
-    var funcType = internKey(kw)
-    var funcArgs: seq[ScriptNode] = internCase (case funcType
-      of "atboard": @[
-        ScriptNode(kind: snkConst, constVal: ScriptVal(
-          kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
-        )),
-        sps.parseExpr(), sps.parseExpr(),
-      ]
-      else: @[])
-
-    while true:
-      var tok = sps.readToken()
-      case tok.kind:
-        of stkSquareClosed: break
+    of stkStrOpen:
+      var accum: seq[ScriptNode] = @[]
+      var outerTok = tok
+      while true:
+        var tok = sps.readToken()
+        case tok.kind
+        of stkStrClosed:
+          #echo &"Nodes: {accum}"
+          return outerTok.tagPos(ScriptNode(kind: snkStringBlock, stringNodes: accum))
+        of stkStrConst:
+          accum.add(tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkStr, strVal: tok.strConst))))
+        of stkStrExprOpen:
+          var subNode = sps.parseExpr()
+          sps.expectToken(stkStrExprClosed)
+          accum.add(subNode)
         else:
-          sps.pushBackToken(tok)
-          var arg = sps.parseExpr()
-          funcArgs.add(arg)
+          raise tok.newScriptParseError(&"Expected string expression, got {tok} instead")
 
-    return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: funcArgs)
+    of stkSquareOpen:
+      var kw = sps.readKeywordToken()
+      var funcType = internKey(kw)
+      var funcArgs: seq[ScriptNode] = internCase (case funcType
+        of "atboard": @[
+          tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(
+            kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
+          ))),
+          sps.parseExpr(), sps.parseExpr(),
+        ]
+        else: @[])
 
-  of stkWord:
-    var funcType = internKey(tok.wordVal.toLowerAscii())
-    internCase case funcType
-    of "false": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: false))
-    of "true": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: true))
+      while true:
+        var tok = sps.readToken()
+        case tok.kind:
+          of stkSquareClosed: break
+          else:
+            sps.pushBackToken(tok)
+            var arg = sps.parseExpr()
+            funcArgs.add(arg)
 
-    of "noentity": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkEntity, entityRef: nil))
-    of "noplayer": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkPlayer, playerRef: nil))
+      return tok.tagPos(ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: funcArgs))
 
-    of "i", "idle": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0))
-    of "n", "north": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1))
-    of "s", "south": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: +1))
-    of "w", "west": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: -1, dirValY: 0))
-    of "e", "east": return ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: +1, dirValY: 0))
+    of stkWord:
+      var funcType = internKey(tok.wordVal.toLowerAscii())
+      var node = internCase (case funcType
+        of "false": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: false))
+        of "true": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkBool, boolVal: true))
 
-    # Implement some of these as argless functions for now
-    of "randomdir": return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
-    of "self": return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
-    of "thispos": return ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+        of "noentity": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkEntity, entityRef: nil))
+        of "noplayer": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkPlayer, playerRef: nil))
 
+        of "i", "idle": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0))
+        of "n", "north": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1))
+        of "s", "south": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: +1))
+        of "w", "west": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: -1, dirValY: 0))
+        of "e", "east": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: +1, dirValY: 0))
+
+        # Implement some of these as argless functions for now
+        of "randomdir": ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+        of "self": ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+        of "thispos": ScriptNode(kind: snkFunc, funcType: funcType, funcArgs: @[])
+
+        else:
+          raise tok.newScriptParseError(&"Expected expression, got {tok} instead"))
+      return tok.tagPos(node)
     else:
-      raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
-  else:
-    raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
+      raise tok.newScriptParseError(&"Expected expression, got {tok} instead")
 
 
 proc parseEolOrElse(sps: ScriptParseState): seq[ScriptNode] =
@@ -94,12 +108,12 @@ proc parseEolOrElse(sps: ScriptParseState): seq[ScriptNode] =
       sps.expectToken(stkBraceOpen)
       return sps.parseCodeBlock(stkBraceClosed)
     else:
-      raise newScriptParseError(sps, &"Expected EOL or \"else\" keyword, got {tok} instead")
+      raise tok.newScriptParseError(&"Expected EOL or \"else\" keyword, got {tok} instead")
   of stkBraceClosed:
     sps.pushBackToken(tok)
     return @[]
   else:
-    raise newScriptParseError(sps, &"Expected EOL or \"else\" keyword, got {tok} instead")
+    raise tok.newScriptParseError(&"Expected EOL or \"else\" keyword, got {tok} instead")
 
 proc parseOnBlock(sps: ScriptParseState): ScriptNode =
   var typeName = sps.readKeywordToken()
@@ -113,27 +127,27 @@ proc parseOnBlock(sps: ScriptParseState): ScriptNode =
       case tok.kind
         of stkBraceOpen: break # Terminate and consume
         of stkLocalVar:
-          eventParams.add(ScriptNode(kind: snkLocalVar, localVarNameIdx: internKey(tok.localName)))
+          eventParams.add(tok.tagPos(ScriptNode(kind: snkLocalVar, localVarNameIdx: internKey(tok.localName))))
         else:
-          raise newScriptParseError(sps, &"Expected varname or '" & "{" & &"', got {tok} instead")
-    return ScriptNode(
+          raise tok.newScriptParseError(&"Expected varname or '" & "{" & &"', got {tok} instead")
+    return sps.tagPos(ScriptNode(
       kind: snkOnEventBlock,
       onEventNameIdx: internKey(eventName),
       onEventParams: eventParams,
       onEventBody: sps.parseCodeBlock(stkBraceClosed),
-    )
+    ))
 
   of "state":
     var stateName = sps.readKeywordToken()
     sps.expectToken(stkBraceOpen)
-    return ScriptNode(
+    return sps.tagPos(ScriptNode(
       kind: snkOnStateBlock,
       onStateNameIdx: internKey(stateName),
       onStateBody: sps.parseCodeBlock(stkBraceClosed),
-    )
+    ))
 
   else:
-    raise newScriptParseError(sps, &"Unexpected keyword \"{typeName}\" after \"on\" keyword")
+    raise sps.newScriptParseError(&"Unexpected keyword \"{typeName}\" after \"on\" keyword")
 
 proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode] =
   var nodes: seq[ScriptNode] = @[]
@@ -145,25 +159,25 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
       awaitingEol = false
     of stkWord:
       if awaitingEol:
-        raise newScriptParseError(sps, &"Expected EOL, got {tok} instead")
+        raise tok.newScriptParseError(&"Expected EOL, got {tok} instead")
 
       case tok.wordVal.toLowerAscii()
 
       of "goto":
         var stateName = sps.readKeywordToken()
         awaitingEol = true
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkGoto,
           gotoStateNameIdx: internKey(stateName),
-        ))
+        )))
 
       of "broadcast":
         var eventName = sps.readKeywordToken()
         awaitingEol = true
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkBroadcast,
           broadcastEventNameIdx: internKey(eventName),
-        ))
+        )))
 
       of "dec", "fdiv", "inc", "mul", "set":
         var assignType = case tok.wordVal.toLowerAscii()
@@ -174,59 +188,58 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
         of "set": satSet
         else:
           # SHOULD NOT REACH HERE!
-          raise newScriptParseError(sps, &"EDOOFUS: ScriptAssignType unknown for {tok}!")
+          raise tok.newScriptParseError(&"EDOOFUS: ScriptAssignType unknown for {tok}!")
 
         var dstExpr = sps.parseExpr()
         var srcExpr = sps.parseExpr()
         awaitingEol = true
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkAssign,
           assignType: assignType,
           assignDstExpr: dstExpr,
           assignSrcExpr: srcExpr,
-        ))
+        )))
 
       of "die":
         awaitingEol = true
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkDie,
-        ))
+        )))
 
       of "forcemove":
         var dirExpr = sps.parseExpr()
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkForceMove,
           forceMoveDirExpr: dirExpr,
-        ))
-
+        )))
 
       of "if":
         var ifTest = sps.parseExpr()
         sps.expectToken(stkBraceOpen)
         var ifBody = sps.parseCodeBlock(stkBraceClosed)
         var ifElse = sps.parseEolOrElse()
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkIfBlock,
           ifTest: ifTest,
           ifBody: ifBody,
           ifElse: ifElse,
-        ))
+        )))
 
       of "move":
         var dirExpr = sps.parseExpr()
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkMove,
           moveDirExpr: dirExpr,
           moveElse: sps.parseEolOrElse(),
-        ))
+        )))
 
       of "say":
         var sayExpr = sps.parseExpr()
         awaitingEol = true
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkSay,
           sayExpr: sayExpr,
-        ))
+        )))
 
       of "send":
         var posExpr = sps.parseExpr()
@@ -245,27 +258,27 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
               sps.pushBackToken(tok)
               sendArgs.add(sps.parseExpr())
 
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkSend,
           sendPos: posExpr,
           sendEventNameIdx: eventNameIdx,
           sendArgs: sendArgs,
-        ))
+        )))
 
       of "sleep":
         var timeExpr = sps.parseExpr()
         awaitingEol = true
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkSleep,
           sleepTimeExpr: timeExpr,
-        ))
+        )))
 
       of "spawn", "spawninto":
         var dstExpr = case tok.wordVal.toLowerAscii()
           of "spawninto": sps.parseExpr()
           of "spawn": nil
           else:
-            raise newScriptParseError(sps, &"EDOOFUS: Unhandled spawn type {tok}!")
+            raise tok.newScriptParseError(&"EDOOFUS: Unhandled spawn type {tok}!")
 
         var posExpr = sps.parseExpr()
         var entityName = sps.readKeywordToken().toLowerAscii()
@@ -279,7 +292,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
               sps.expectToken(stkBraceOpen)
               (@[], sps.parseCodeBlock(stkBraceClosed))
             else:
-              raise newScriptParseError(sps, &"Unexpected spawn block token {braceToken}")
+              raise tok.newScriptParseError(&"Unexpected spawn block token {braceToken}")
 
           of stkBraceOpen:
             var bodyExpr: seq[ScriptNode] = @[]
@@ -293,62 +306,62 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
                 of "set":
                   var dstExpr = sps.parseExpr()
                   if dstExpr.kind != snkParamVar:
-                    raise newScriptParseError(sps, &"Expected param in spawn block set, got {dstExpr} instead")
+                    raise tok.newScriptParseError(&"Expected param in spawn block set, got {dstExpr} instead")
                   var srcExpr = sps.parseExpr()
-                  bodyExpr.add(ScriptNode(
+                  bodyExpr.add(tok.tagPos(ScriptNode(
                     kind: snkAssign,
                     assignType: satSet,
                     assignDstExpr: dstExpr,
                     assignSrcExpr: srcExpr,
-                  ))
+                  )))
                 else:
-                  raise newScriptParseError(sps, &"Unexpected spawn block keyword {tok}")
+                  raise tok.newScriptParseError(&"Unexpected spawn block keyword {tok}")
               else:
-                raise newScriptParseError(sps, &"Unexpected token {tok}")
+                raise tok.newScriptParseError(&"Unexpected token {tok}")
 
             (bodyExpr, sps.parseEolOrElse())
 
           else:
-            raise newScriptParseError(sps, &"Unexpected spawn block token {braceToken}")
+            raise tok.newScriptParseError(&"Unexpected spawn block token {braceToken}")
 
         case tok.wordVal.toLowerAscii()
           of "spawn":
-            nodes.add(ScriptNode(
+            nodes.add(sps.tagPos(ScriptNode(
               kind: snkSpawn,
               spawnEntityNameIdx: internKey(entityName),
               spawnPos: posExpr,
               spawnBody: bodyExpr,
               spawnElse: elseExpr,
-            ))
+            )))
           of "spawninto":
-            nodes.add(ScriptNode(
+            nodes.add(sps.tagPos(ScriptNode(
               kind: snkSpawnInto,
               spawnIntoDstExpr: dstExpr,
               spawnEntityNameIdx: internKey(entityName),
               spawnPos: posExpr,
               spawnBody: bodyExpr,
               spawnElse: elseExpr,
-            ))
+            )))
           else:
-            raise newScriptParseError(sps, &"EDOOFUS: Unhandled spawn type {tok}!")
+            raise tok.newScriptParseError(&"EDOOFUS: Unhandled spawn type {tok}!")
 
       of "while":
         var whileTest = sps.parseExpr()
         sps.expectToken(stkBraceOpen)
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkWhileBlock,
           whileTest: whileTest,
           whileBody: sps.parseCodeBlock(stkBraceClosed),
-        ))
+        )))
         awaitingEol = true
 
       else:
-        raise newScriptParseError(sps, &"Unexpected word token \"{tok.wordVal}\"")
+        raise tok.newScriptParseError(&"Unexpected word token \"{tok.wordVal}\"")
     else:
       if tok.kind == endKind:
         return nodes
       else:
-        raise newScriptParseError(sps, &"Unexpected token {tok}")
+        raise tok.newScriptParseError(&"Unexpected token {tok}")
 
 proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
   var nodes: seq[ScriptNode] = @[]
@@ -365,43 +378,43 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
       of "global":
         var varType = sps.readVarTypeKeyword()
         var varName = sps.readGlobalName()
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkGlobalDef,
           globalDefType: varType,
           globalDefNameIdx: internKey(varName),
-        ))
+        )))
 
       of "param":
         var varType = sps.readVarTypeKeyword()
         var varName = sps.readParamName()
         var valueNode = sps.parseExpr()
 
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkParamDef,
           paramDefType: varType,
           paramDefNameIdx: internKey(varName),
           paramDefInitValue: valueNode,
-        ))
+        )))
 
       of "local":
         var varType = sps.readVarTypeKeyword()
         var varName = sps.readLocalName()
         var valueNode = sps.parseExpr()
 
-        nodes.add(ScriptNode(
+        nodes.add(sps.tagPos(ScriptNode(
           kind: snkLocalDef,
           localDefType: varType,
           localDefNameIdx: internKey(varName),
           localDefInitValue: valueNode,
-        ))
+        )))
 
       else:
-        raise newScriptParseError(sps, &"Unexpected word token \"{tok.wordVal}\"")
+        raise tok.newScriptParseError(&"Unexpected word token \"{tok.wordVal}\"")
     else:
       if tok.kind == endKind:
-        return ScriptNode(
+        return tok.tagPos(ScriptNode(
           kind: snkRootBlock,
           rootBody: nodes,
-        )
+        ))
       else:
-        raise newScriptParseError(sps, &"Unexpected token {tok}")
+        raise tok.newScriptParseError(&"Unexpected token {tok}")

@@ -130,11 +130,11 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
           var execBase = entity.execBase
           assert execBase != nil
 
-          var ch = try: uint64(entity.params["char"].asInt())
+          var ch = try: uint64(entity.params["char"].asInt(nil))
             except KeyError: uint64('?')
-          var fgcolor = try: uint64(entity.params["fgcolor"].asInt())
+          var fgcolor = try: uint64(entity.params["fgcolor"].asInt(nil))
             except KeyError: 0x07'u64
-          var bgcolor = try: uint64(entity.params["bgcolor"].asInt())
+          var bgcolor = try: uint64(entity.params["bgcolor"].asInt(nil))
             except KeyError: 0x00'u64
 
           (fgcolor, bgcolor, ch)

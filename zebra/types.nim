@@ -159,6 +159,8 @@ type
     stkWord,
   ScriptToken* = ref ScriptTokenObj
   ScriptTokenObj = object
+    fname*: string
+    row*, col*: int64
     case kind*: ScriptTokenKind
     of stkBraceOpen, stkBraceClosed: discard
     of stkEof: discard
@@ -272,6 +274,8 @@ type
     snkWhileBlock,
   ScriptNode* = ref ScriptNodeObj
   ScriptNodeObj = object
+    fname*: string
+    row*, col*: int64
     case kind*: ScriptNodeKind
     of snkRootBlock:
       rootBody*: seq[ScriptNode]

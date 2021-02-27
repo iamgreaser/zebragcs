@@ -8,13 +8,13 @@ import ./types
 
 proc addEntityToGrid*(board: Board, entity: Entity)
 proc addEntityToList*(board: Board, entity: Entity)
-proc broadcastEvent*(board: Board, eventNameIdx: InternKey)
+proc broadcastEvent*(board: Board, node: ScriptNode, eventNameIdx: InternKey)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
 proc getBoard*(world: World, boardName: string): var Board
 proc loadBoardFromFile*(world: World, boardName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
-proc sendEventToPos*(board: Board, eventNameIdx: InternKey, x: int64, y: int64, args: seq[ScriptVal] = @[])
+proc sendEventToPos*(board: Board, node: ScriptNode, eventNameIdx: InternKey, x: int64, y: int64, args: seq[ScriptVal] = @[])
 
 import ./script/exec
 
@@ -233,21 +233,21 @@ proc removeEntityFromList(board: Board, entity: Entity) =
   discard # Handled in Board.tick --GM
 
 
-proc broadcastEvent(board: Board, eventNameIdx: InternKey) =
-  board.tickEvent(eventNameIdx)
+proc broadcastEvent(board: Board, node: ScriptNode, eventNameIdx: InternKey) =
+  board.tickEvent(node, eventNameIdx)
   var i: int64 = 0
   while i < board.entities.len:
     var entity = board.entities[i]
     if entity.alive:
-      entity.tickEvent(eventNameIdx)
+      entity.tickEvent(node, eventNameIdx)
     i += 1
 
-proc sendEventToPos(board: Board, eventNameIdx: InternKey, x: int64, y: int64, args: seq[ScriptVal] = @[]) =
+proc sendEventToPos(board: Board, node: ScriptNode, eventNameIdx: InternKey, x: int64, y: int64, args: seq[ScriptVal] = @[]) =
   if (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
     var entseq = board.grid[x, y]
     if entseq.len >= 1:
       var entity = entseq[entseq.len-1]
-      entity.tickEvent(eventNameIdx, args)
+      entity.tickEvent(node, eventNameIdx, args)
 
 method tick(board: Board) =
   procCall tick(ScriptExecState(board))
