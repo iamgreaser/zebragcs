@@ -51,6 +51,7 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
     w: 0, h: 0,
     entityDefList: @[],
     entityDefMap: initTable[int64, BoardEntityDef](),
+    layerInfoMap: initInternTable[LayerInfo](),
   )
   var hasSize = false
   var hasControllerName = false
@@ -60,6 +61,8 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
     row: 1, col: 1,
     tokenPushStack: @[],
   )
+
+  var nextLayerZorder: int64 = 0
 
   while true:
     var tok = sps.readToken()
@@ -71,7 +74,7 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
 
       of "controller":
         if hasControllerName:
-          raise newScriptParseError(sps, &"\"controller\" already defined earlier")
+          raise tok.newScriptParseError(&"\"controller\" already defined earlier")
         boardInfo.controllerNameIdx = internKey(sps.readExpectedToken(stkWord).wordVal)
         sps.expectEolOrEof()
         hasControllerName = true
@@ -80,7 +83,7 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
         var entityId = sps.readInt()
         var entityX = sps.readInt()
         var entityY = sps.readInt()
-        var entityTypeName = sps.readKeywordToken().toLowerAscii()
+        var entityTypeName = sps.readKeywordToken()
         var tok = sps.readToken()
         var entityBody: seq[ScriptNode] = case tok.kind
           of stkEol:
@@ -89,7 +92,7 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
           of stkBraceOpen:
             sps.parseCodeBlock(stkBraceClosed)
           else:
-            raise newScriptParseError(sps, &"Unexpected entity body token {tok}")
+            raise tok.newScriptParseError(&"Unexpected entity body token {tok}")
         sps.expectToken(stkEol)
 
         var entityDef = BoardEntityDef(
@@ -100,23 +103,101 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
           body: entityBody,
         )
         if boardInfo.entityDefMap.contains(entityDef.id):
-          raise newScriptParseError(sps, &"Entity ID {entityDef.id} already allocated for this board")
+          raise sps.newScriptParseError(&"Entity ID {entityDef.id} already allocated for this board")
         else:
           boardInfo.entityDefMap[entityDef.id] = entityDef
         boardInfo.entityDefList.add(entityDef)
 
+      of "layer":
+        var layerName = sps.readKeywordToken()
+        sps.expectToken(stkBraceOpen)
+
+        var hasDefaultChar: bool = false
+        var hasDefaultBgColor: bool = false
+        var hasDefaultFgColor: bool = false
+        var defaultChar: int64 = 0
+        var defaultBgColor: int64 = 0
+        var defaultFgColor: int64 = 0
+        var solidityCheck: ScriptNode = nil
+
+        var expectEol: bool = false
+        while true:
+          var tok = sps.readToken()
+
+          # EOL-or-'}' check
+          case tok.kind
+          of stkEol:
+            expectEol = false
+            continue
+          of stkBraceClosed:
+            break
+          else:
+            if expectEol:
+              raise tok.newScriptParseError(&"Expected EOL or '" & "}" & &"', got {tok} instead")
+
+          case tok.kind
+          of stkWord:
+            var word = tok.wordVal.toLowerAscii()
+            case word
+            of "defaultchar":
+              if hasDefaultChar:
+                raise tok.newScriptParseError(&"\"defaultchar\" already defined earlier for layer {layerName}")
+              defaultChar = sps.readInt()
+              hasDefaultChar = true
+
+            of "defaultfgcolor":
+              if hasDefaultFgColor:
+                raise tok.newScriptParseError(&"\"defaultfgcolor\" already defined earlier for layer {layerName}")
+              defaultFgColor = sps.readInt()
+              hasDefaultFgColor = true
+
+            of "defaultbgcolor":
+              if hasDefaultBgColor:
+                raise tok.newScriptParseError(&"\"defaultbgcolor\" already defined earlier for layer {layerName}")
+              defaultBgColor = sps.readInt()
+              hasDefaultBgColor = true
+
+            of "solid":
+              if solidityCheck != nil:
+                raise tok.newScriptParseError(&"\"solid\" already defined earlier for layer {layerName}")
+              solidityCheck = sps.parseExpr()
+
+            else:
+              raise tok.newScriptParseError(&"Unexpected layer body token {tok}")
+          else:
+            raise tok.newScriptParseError(&"Unexpected layer body token {tok}")
+
+        if solidityCheck == nil:
+          raise sps.newScriptParseError(&"Layer \"{layerName}\" was not given a \"solid\" check in \"boards/{boardName}/board.info\"")
+
+        var layerInfo = LayerInfo(
+          layerNameIdx: internKey(layerName),
+          solidityCheck: solidityCheck,
+          zorder: nextLayerZorder,
+          defaultCell: LayerCell(
+            ch: uint16(defaultChar),
+            fg: uint8(defaultFgColor),
+            bg: uint8(defaultBgColor),
+          ),
+        )
+        nextLayerZorder += 1
+        if boardInfo.layerInfoMap.contains(layerInfo.layerNameIdx):
+          raise sps.newScriptParseError(&"Layer \"{layerInfo.layerNameIdx.getInternName()}\" already allocated for this board")
+        else:
+          boardInfo.layerInfoMap[layerInfo.layerNameIdx] = layerInfo
+
       of "size":
         if hasSize:
-          raise newScriptParseError(sps, &"\"size\" already defined earlier")
+          raise tok.newScriptParseError(&"\"size\" already defined earlier")
         boardInfo.w = sps.readExpectedToken(stkInt).intVal
         boardInfo.h = sps.readExpectedToken(stkInt).intVal
         sps.expectEolOrEof()
         hasSize = true
 
       else:
-        raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
+        raise tok.newScriptParseError(&"Expected expression, got {tok} instead")
     else:
-      raise newScriptParseError(sps, &"Expected expression, got {tok} instead")
+      raise tok.newScriptParseError(&"Expected expression, got {tok} instead")
 
   if not hasSize:
     raise newException(BoardLoadError, &"board \"{boardName}\" was not given a size in \"boards/{boardName}/board.info\"")
@@ -146,6 +227,7 @@ proc loadBoard(world: World, boardName: string, strm: Stream, fname: string): Bo
       h = boardInfo.h,
       default = (proc(): seq[Entity] = newSeq[Entity]())),
     entities: @[],
+    layers: initInternTable[Layer](),
     execBase: execBase,
     activeStateIdx: execBase.initStateIdx,
     params: initInternTable[ScriptVal](),
@@ -161,6 +243,18 @@ proc loadBoard(world: World, boardName: string, strm: Stream, fname: string): Bo
     board.params[k0] = board.resolveExpr(v0.varDefault)
   for k0, v0 in execBase.locals.indexedPairs():
     board.locals[k0] = board.resolveExpr(v0.varDefault)
+
+  # Add all layers
+  # TODO: Load stuff from files --GM
+  for k0, layerInfo in boardInfo.layerInfoMap.indexedPairs():
+    board.layers[k0] = Layer(
+      layerInfo: layerInfo,
+      board: board,
+      grid: newGrid[LayerCell](
+        w = boardInfo.w,
+        h = boardInfo.h,
+        default = (proc(): LayerCell = layerInfo.defaultCell)),
+    )
 
   # Add all entities
   var entityMap: Table[int64, Entity] = initTable[int64, Entity]()

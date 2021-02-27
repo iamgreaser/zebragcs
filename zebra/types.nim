@@ -118,6 +118,7 @@ type
     w*, h*: int64
     entityDefList*: seq[BoardEntityDef]
     entityDefMap*: Table[int64, BoardEntityDef]
+    layerInfoMap*: InternTable[LayerInfo]
   BoardInfo* = ref BoardInfoObj
   BoardEntityDefObj = object
     id*: int64
@@ -131,12 +132,28 @@ type
     boardNameIdx*: InternKey
     grid*: Grid[seq[Entity]]
     entities*: seq[Entity]
+    layers*: InternTable[Layer]
   Board* = ref BoardObj
 
   EntityObj = object of ScriptExecStateObj
     board*: Board
     x*, y*: int64
   Entity* = ref EntityObj
+
+  LayerCell* = object
+    ch*: uint16
+    fg*, bg*: uint8
+  LayerInfoObj = object
+    layerNameIdx*: InternKey
+    zorder*: int64
+    solidityCheck*: ScriptNode
+    defaultCell*: LayerCell
+  LayerInfo* = ref LayerInfoObj
+  LayerObj = object
+    layerInfo*: LayerInfo
+    board*: Board
+    grid*: Grid[LayerCell]
+  Layer* = ref LayerObj
 
   ScriptTokenKind* = enum
     stkBraceClosed,

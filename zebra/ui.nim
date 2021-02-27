@@ -125,6 +125,7 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
     for x in 0..(min(crop.w, board.grid.w)-1):
       var px = x + crop.scrollX
       var entseq = board.grid[px, py]
+      var bestZorder: int64 = -100
       var (fgcolor, bgcolor, ch) = if entseq.len >= 1:
           var entity = entseq[entseq.len-1]
           var execBase = entity.execBase
@@ -137,10 +138,24 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
           var bgcolor = try: uint64(entity.params["bgcolor"].asInt(nil))
             except KeyError: 0x00'u64
 
+          bestZorder = 100
           (fgcolor, bgcolor, ch)
 
         else:
           (0x07'u64, 0x00'u64, uint64(' '))
+
+      for layerIdx, layer in board.layers.indexedPairs():
+        var layerInfo = layer.layerInfo
+        if layerInfo.zorder < bestZorder:
+          continue
+
+        var cell = layer.grid[px, py]
+        if cell != LayerCell(ch: 0, fg: 0, bg: 0):
+          bestZorder = layerInfo.zorder
+          ch = cell.ch
+          fgcolor = cell.fg
+          bgcolor = cell.bg
+
       crop.drawChar(
         x = px, y = py,
         bg = uint8(bgcolor),

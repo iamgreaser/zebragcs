@@ -1,2 +1,12 @@
 size 60 25
 controller default
+
+layer floor {
+  solid false
+  defaultchar 178
+  defaultfgcolor 9
+  defaultbgcolor 1
+}
+layer walls {
+  solid true
+}

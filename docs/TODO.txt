@@ -15,11 +15,11 @@ Also this document isn't actually Markdown.
       - [ ] Actually serialise and parse this stuff.
     - [ ] Serialise and deserialise everything else.
 
-- [ ] Add layers to boards.
+- [x] Add layers to boards.
       While to some extent this is to cut down on entity spam, I do have every intention to have a floor layer.
   - [ ] Come up with a layer file format.
-  - [ ] Add a floor layer.
-  - [ ] Add a wall layer.
+  - [x] Add a floor layer.
+  - [x] Add a wall layer.
   - [ ] Add custom layer support and produce the following layers to demonstrate it:
     - [ ] Water layer
     - [ ] Forest layer?

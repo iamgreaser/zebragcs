@@ -5,6 +5,7 @@ import ../interntables
 import ../types
 
 proc parseCodeBlock*(sps: ScriptParseState, endKind: ScriptTokenKind): seq[ScriptNode]
+proc parseExpr*(sps: ScriptParseState): ScriptNode
 proc parseRoot*(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode
 
 import ./tokens
