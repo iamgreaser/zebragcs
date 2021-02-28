@@ -38,36 +38,15 @@ method funcAt(board: Board, node: ScriptNode, x: int64, y: int64): ScriptVal {.l
 method funcAt(entity: Entity, node: ScriptNode, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
   return entity.board.funcAt(node, x, y)
 
-method funcLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey, x: int64, y: int64): ScriptVal {.base, locks: "unknown".} =
-  raise node.newScriptExecError(&"Unexpected type {execState} for builtin func layer")
-method funcLayer(board: Board, node: ScriptNode, layerNameIdx: InternKey, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
-  var layer = try:
-      board.layers[layerNameIdx]
-    except KeyError:
-      raise node.newScriptExecError(&"Undeclared layer \"{layerNameIdx.getInternName()}\"")
-
-  if x >= 0 and x < layer.grid.w and y >= 0 and y < layer.grid.h:
-    return ScriptVal(kind: svkCell, cellVal: layer.grid[x, y])
-  else:
-    return ScriptVal(kind: svkCell, cellVal: layer.layerInfo.defaultCell)
-method funcLayer(entity: Entity, node: ScriptNode, layerNameIdx: InternKey, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
-  return entity.board.funcLayer(node, layerNameIdx, x, y)
-
-method setfuncLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey, x: int64, y: int64, val: ScriptVal) {.base, locks: "unknown".} =
-  raise node.newScriptExecError(&"Unexpected type {execState} for builtin setfunc layer")
-method setfuncLayer(board: Board, node: ScriptNode, layerNameIdx: InternKey, x: int64, y: int64, val: ScriptVal) {.locks: "unknown".} =
-  assert val.kind == svkCell
-  var layer = try:
-      board.layers[layerNameIdx]
-    except KeyError:
-      raise node.newScriptExecError(&"Undeclared layer \"{layerNameIdx.getInternName()}\"")
-  if x >= 0 and x < layer.grid.w and y >= 0 and y < layer.grid.h:
-    layer.grid[x, y] = val.cellVal
-method setfuncLayer(entity: Entity, node: ScriptNode, layerNameIdx: InternKey, x: int64, y: int64, val: ScriptVal) {.locks: "unknown".} =
-  entity.board.setfuncLayer(node, layerNameIdx, x, y, val)
-
 method funcAtBoard(execState: ScriptExecState, boardName: string, x: int64, y: int64): ScriptVal {.base.} =
   return ScriptVal(kind: svkPos, posBoardNameIdx: internKey(boardName), posValX: x, posValY: y)
+
+method funcHasLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey): ScriptVal {.base, locks: "unknown".} =
+  return ScriptVal(kind: svkBool, boolVal: false)
+method funcHasLayer(board: Board, node: ScriptNode, layerNameIdx: InternKey): ScriptVal {.locks: "unknown".} =
+  return ScriptVal(kind: svkBool, boolVal: board.layers.contains(layerNameIdx))
+method funcHasLayer(entity: Entity, node: ScriptNode, layerNameIdx: InternKey): ScriptVal {.locks: "unknown".} =
+  return entity.board.funcHasLayer(node, layerNameIdx)
 
 method resolvePos*(execState: ScriptExecState, node: ScriptNode, val: ScriptVal): tuple[boardNameIdx: InternKey, x: int64, y: int64] {.base, locks: "unknown".} =
   case val.kind:
@@ -96,6 +75,39 @@ method resolvePos*(entity: Entity, node: ScriptNode, val: ScriptVal): tuple[boar
 
     else:
       raise node.newScriptExecError(&"Expected dir, pos or entity, got {val} instead")
+
+method funcLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey, pos: ScriptVal): ScriptVal {.base, locks: "unknown".} =
+  var (boardNameIdx, x, y) = execState.resolvePos(node, pos)
+  var board = try:
+      execState.share.world.boards[boardNameIdx]
+    except KeyError:
+      raise node.newScriptExecError(&"Board \"{boardNameIdx.getInternName()}\" does not exist")
+  var layer = try:
+      board.layers[layerNameIdx]
+    except KeyError:
+      raise node.newScriptExecError(&"Undeclared layer \"{layerNameIdx.getInternName()}\"")
+  return ScriptVal(
+    kind: svkCell,
+    cellVal: (if x >= 0 and x < layer.grid.w and y >= 0 and y < layer.grid.h:
+        layer.grid[x, y]
+      else:
+        layer.layerInfo.defaultCell),
+  )
+
+method setfuncLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey, pos: ScriptVal, val: ScriptVal) {.base, locks: "unknown".} =
+  if val.kind != svkCell:
+    raise node.newScriptExecError(&"Attempted to write {val.kind} into layer cell")
+  var (boardNameIdx, x, y) = execState.resolvePos(node, pos)
+  var board = try:
+      execState.share.world.boards[boardNameIdx]
+    except KeyError:
+      raise node.newScriptExecError(&"Board \"{boardNameIdx.getInternName()}\" does not exist")
+  var layer = try:
+      board.layers[layerNameIdx]
+    except KeyError:
+      raise node.newScriptExecError(&"Undeclared layer \"{layerNameIdx.getInternName()}\"")
+  if x >= 0 and x < layer.grid.w and y >= 0 and y < layer.grid.h:
+    layer.grid[x, y] = val.cellVal
 
 proc randomUintBelow(execState: ScriptExecState, n: uint64): int64 =
   # xorshift64*
@@ -240,13 +252,19 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
   of snkFunc:
     internCase case dst.funcType
     of "layer":
-      assert dst.funcArgs.len == 3
-      var layerName = execState.resolveExpr(dst.funcArgs[0]).asStr(dst.funcArgs[0])
-      var v0 = execState.resolveExpr(dst.funcArgs[1]).asInt(dst.funcArgs[1])
-      var v1 = execState.resolveExpr(dst.funcArgs[2]).asInt(dst.funcArgs[2])
-      if val.kind != svkCell:
-        raise dst.newScriptExecError(&"Attempted to write {val.kind} into {dst} which is of type {svkCell}")
-      execState.setfuncLayer(dst, internKey(layerName), v0, v1, val)
+      case dst.funcArgs.len
+      of 2:
+        var layerName = execState.resolveExpr(dst.funcArgs[0]).asStr(dst.funcArgs[0])
+        var pos = execState.resolveExpr(dst.funcArgs[1])
+        execState.setfuncLayer(dst, internKey(layerName), pos, val)
+      of 3:
+        var layerName = execState.resolveExpr(dst.funcArgs[0]).asStr(dst.funcArgs[0])
+        var v0 = execState.resolveExpr(dst.funcArgs[1]).asInt(dst.funcArgs[1])
+        var v1 = execState.resolveExpr(dst.funcArgs[2]).asInt(dst.funcArgs[2])
+        var pos = execState.funcAt(dst.funcArgs[1], v0, v1)
+        execState.setfuncLayer(dst, internKey(layerName), pos, val)
+      else:
+        raise dst.newScriptExecError(&"Invalid arg count for setfunc \"{dst.funcType.getInternName()}\" for expr {dst} - expected 2 or 3")
 
     else: raise dst.newScriptExecError(&"Unhandled setfunc kind \"{dst.funcType.getInternName()}\" for expr {dst}")
 
@@ -313,6 +331,20 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         #  raise v0.newScriptExecError(&"Unhandled bool kind {v0.kind}")
       return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == internKeyCT("eq"))))
 
+    of "and":
+      for arg in expr.funcArgs:
+        var v0 = execState.resolveExpr(arg)
+        if not v0.asBool(arg):
+          return ScriptVal(kind: svkBool, boolVal: false)
+      return ScriptVal(kind: svkBool, boolVal: true)
+
+    of "or":
+      for arg in expr.funcArgs:
+        var v0 = execState.resolveExpr(arg)
+        if v0.asBool(arg):
+          return ScriptVal(kind: svkBool, boolVal: true)
+      return ScriptVal(kind: svkBool, boolVal: false)
+
     of "not":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
@@ -368,12 +400,25 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       var bg = execState.resolveExpr(expr.funcArgs[2]).asInt(expr.funcArgs[2])
       return ScriptVal(kind: svkCell, cellVal: LayerCell(ch: uint16(ch), fg: uint8(fg), bg: uint8(bg)))
 
-    of "layer":
-      assert expr.funcArgs.len == 3
+    of "haslayer":
+      assert expr.funcArgs.len == 1
       var layerName = execState.resolveExpr(expr.funcArgs[0]).asStr(expr.funcArgs[0])
-      var v0 = execState.resolveExpr(expr.funcArgs[1]).asInt(expr.funcArgs[1])
-      var v1 = execState.resolveExpr(expr.funcArgs[2]).asInt(expr.funcArgs[2])
-      return execState.funcLayer(expr, internKey(layerName), v0, v1)
+      return execState.funcHasLayer(expr, internKey(layerName))
+
+    of "layer":
+      case expr.funcArgs.len
+      of 2:
+        var layerName = execState.resolveExpr(expr.funcArgs[0]).asStr(expr.funcArgs[0])
+        var pos = execState.resolveExpr(expr.funcArgs[1])
+        return execState.funcLayer(expr, internKey(layerName), pos)
+      of 3:
+        var layerName = execState.resolveExpr(expr.funcArgs[0]).asStr(expr.funcArgs[0])
+        var v0 = execState.resolveExpr(expr.funcArgs[1]).asInt(expr.funcArgs[1])
+        var v1 = execState.resolveExpr(expr.funcArgs[2]).asInt(expr.funcArgs[2])
+        var pos = execState.funcAt(expr.funcArgs[1], v0, v1)
+        return execState.funcLayer(expr, internKey(layerName), pos)
+      else:
+        raise expr.newScriptExecError(&"Invalid arg count for func \"{expr.funcType.getInternName()}\" for expr {expr} - expected 2 or 3")
 
     of "dirx":
       assert expr.funcArgs.len == 1

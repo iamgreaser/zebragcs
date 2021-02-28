@@ -68,6 +68,28 @@ on event initworld {
   set [layer walls 23 20] [cell 178 13 3]
   set [layer walls 24 20] [cell 178 14 4]
   set [layer walls 25 20] [cell 178 15 5]
+
+  # Make some forest
+  set %y 15
+  while [lt %y 20] {
+    set %x 10
+    while [lt %x 15] {
+      set [layer forest %x %y] [cell 176 0 2]
+      inc %x 1
+    }
+    inc %y 1
+  }
+
+  # Make some water
+  set %y 5
+  while [lt %y 10] {
+    set %x 10
+    while [lt %x 15] {
+      set [layer water %x %y] [cell 176 15 1]
+      inc %x 1
+    }
+    inc %y 1
+  }
 }
 
 on state main {

@@ -20,9 +20,9 @@ Also this document isn't actually Markdown.
   - [ ] Come up with a layer file format.
   - [x] Add a floor layer.
   - [x] Add a wall layer.
-  - [ ] Add custom layer support and produce the following layers to demonstrate it:
-    - [ ] Water layer
-    - [ ] Forest layer?
+  - [x] Add custom layer support and produce the following layers to demonstrate it:
+    - [x] Water layer
+    - [x] Forest layer?
 
 - [x] Combine multiple boards into a world.
 

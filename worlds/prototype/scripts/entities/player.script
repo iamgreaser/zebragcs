@@ -12,10 +12,13 @@ param dir @nextdir idle
 param player @parentplayer noplayer
 global entity $playerent
 global bool $didmsgoutofammo
+global bool $didmsgforest
 local pos %prevpos thispos
+
 
 local int %givecount 0
 local entity %froment noentity
+local entity %blameent noentity
 local pos %teleportpos idle
 local dir %pushdir idle
 local dir %shotdir idle
@@ -48,6 +51,16 @@ on state main {
       set %prevpos thispos
       send @nextdir touch self @nextdir
       if [eq %prevpos thispos] {
+        if [and [haslayer forest]
+                [ne [layer forest @nextdir]
+                    [cell 0 0 0]]] {
+          set [layer forest @nextdir] [cell 0 0 0]
+          # TODO: Play sound --GM
+          if [not $didmsgforest] {
+            set $didmsgforest true
+            say "A path is cleared through the forest."
+          }
+        }
         move @nextdir
       }
     }
@@ -100,7 +113,7 @@ on event enemydamage %froment %givecount {
   }
 }
 
-on event enemyshot {
+on event enemyshot %froment %shotdir %blameent {
   dec @health 10
   if [ge @health 1] {
     say "Ouch!"

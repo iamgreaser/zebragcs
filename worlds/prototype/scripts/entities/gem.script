@@ -6,7 +6,9 @@ param bool @physblock true
 global bool $didmsggemget
 
 local entity %froment noentity
+local entity %blameent noentity
 local dir %pushdir idle
+local dir %shotdir idle
 
 on state idle {
 }
@@ -31,7 +33,7 @@ on event push %pushdir {
   }
 }
 
-on event shot { die }
+on event shot %froment %shotdir %blameent { die }
 
 on event touch %froment %pushdir {
   if @physblock {

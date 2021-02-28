@@ -57,13 +57,16 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
           tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(
             kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
           ))),
-          sps.parseExpr(), sps.parseExpr(),
+        ]
+        of "haslayer": @[
+          tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(
+            kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
+          ))),
         ]
         of "layer": @[
           tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(
             kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
           ))),
-          sps.parseExpr(), sps.parseExpr(),
         ]
         else: @[])
 
@@ -71,6 +74,7 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
         var tok = sps.readToken()
         case tok.kind:
           of stkSquareClosed: break
+          of stkEol: discard
           else:
             sps.pushBackToken(tok)
             var arg = sps.parseExpr()

@@ -40,6 +40,7 @@ on state main {
 
       # Now attempt the shot
       if $playerent {
+        set %playerpos [posof $playerent]
         if [le [random 0 26] @firingrate] {
           set %playerdirx [dirx %playerpos]
           set %playerdiry [diry %playerpos]

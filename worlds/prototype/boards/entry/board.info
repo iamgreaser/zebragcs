@@ -10,6 +10,15 @@ layer floor {
 layer walls {
   solid true
 }
+layer forest {
+  solid true
+}
+layer water {
+  solid [not [or
+    [eq @char 248] # Bullet
+    [eq @char 94]  # Shark
+  ]]
+}
 
 entity 0 30 15 ammo
 entity 1 29 12 lockkey { set @fgcolor 12 }
@@ -20,7 +29,10 @@ entity 5 31 11 box
 entity 6 31 10 box
 entity 7 31 9 lockkey { set @fgcolor 13 }
 
-entity 8 1 1 lion
+entity 20 1 1 tiger
+entity 21 2 1 tiger
+entity 22 1 2 tiger
+entity 23 2 2 tiger
 
 entity 10 29 11 sliderns
 entity 11 29 10 sliderew
