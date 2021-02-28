@@ -76,9 +76,9 @@ Also this document isn't actually Markdown.
     - [ ] Segment
 
   - [ ] Terrain
-    - [ ] Water
+    - [x] Water
       - This would ideally be a water layer.
-    - [ ] Forest
+    - [x] Forest
       - This would ideally be a forest layer.
     - [x] Breakable
     - [x] Boulder
