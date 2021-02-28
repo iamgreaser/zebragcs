@@ -18,6 +18,13 @@ local int %nextcolor 15
 on state main {
   set %oldpos thispos
   send %movedir eat self
+  if [ne [layer food %movedir] [cell 0 0 0]] {
+    set [layer food %movedir] [cell 0 0 0]
+    inc $foodtoplace 1
+    inc @foodtoembed 3
+    inc @score 1
+    say "Score: [\(@score)]"
+  }
   set %lastmovedir %movedir
   move %movedir else {
     set @physblock false
@@ -63,12 +70,6 @@ on state actuallydead {
 
 on event actuallydie {
   goto actuallydead
-}
-
-on event atefood {
-  inc @foodtoembed 3
-  inc @score 1
-  say "Score: [\(@score)]"
 }
 
 on event typeup { if [ne %lastmovedir south] { set %movedir north } }

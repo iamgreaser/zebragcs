@@ -1,2 +1,6 @@
 size 60 25
 controller title
+
+layer food {
+  solid false
+}

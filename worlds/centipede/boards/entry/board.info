@@ -1,2 +1,6 @@
 size 180 75
 controller maingame
+
+layer food {
+  solid false
+}

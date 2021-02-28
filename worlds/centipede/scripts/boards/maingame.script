@@ -10,10 +10,10 @@ on state main {
   while [ge $foodtoplace 1] {
     set %x [random 3 176]
     set %y [random 3 71]
-    spawn [at %x %y] food else {
-      inc $foodtoplace 1
+    if [eq [layer food %x %y] [cell 0 0 0]] {
+      set [layer food %x %y] [cell 4 10 0]
+      dec $foodtoplace 1
     }
-    dec $foodtoplace 1
   }
   sleep 1
 }
