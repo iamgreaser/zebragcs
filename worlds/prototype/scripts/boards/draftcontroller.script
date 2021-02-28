@@ -46,6 +46,28 @@ on event initworld {
     }
     inc %y 1
   }
+
+  # Yellow border made of walls on the wall layer
+  set %x 0
+  while [lt %x 56] {
+    set [layer walls %x 0] [cell 178 14 0]
+    set [layer walls %x 22] [cell 178 14 0]
+    inc %x 1
+  }
+
+  set %y 0
+  while [lt %y 23] {
+    set [layer walls 0 %y] [cell 178 14 0]
+    set [layer walls 55 %y] [cell 178 14 0]
+    inc %y 1
+  }
+
+  set [layer walls 20 20] [cell 178 10 0]
+  set [layer walls 21 20] [cell 178 11 1]
+  set [layer walls 22 20] [cell 178 12 2]
+  set [layer walls 23 20] [cell 178 13 3]
+  set [layer walls 24 20] [cell 178 14 4]
+  set [layer walls 25 20] [cell 178 15 5]
 }
 
 on state main {

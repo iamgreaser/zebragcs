@@ -365,6 +365,7 @@ type
 
   ScriptValKind* = enum
     svkBool,
+    svkCell,
     svkDir,
     svkEntity,
     svkInt,
@@ -375,6 +376,7 @@ type
   ScriptValObj = object
     case kind*: ScriptValKind
     of svkBool: boolVal*: bool
+    of svkCell: cellVal*: LayerCell
     of svkDir: dirValX*, dirValY*: int64
     of svkEntity: entityRef*: Entity
     of svkInt: intVal*: int64
@@ -388,9 +390,13 @@ type
 proc `$`*(x: Entity): string
 proc `$`*(x: Player): string
 
+proc `$`*(x: LayerCell): string =
+  &"Cell(ch={x.ch}, fg={x.fg}, bg={x.bg})"
+
 proc `$`*(x: ScriptVal): string =
   case x.kind
   of svkBool: &"BoolV({x.boolVal})"
+  of svkCell: &"CellV({x.cellVal})"
   of svkDir: &"DirV({x.dirValX}, {x.dirValY})"
   of svkEntity:
     if x.entityRef != nil:

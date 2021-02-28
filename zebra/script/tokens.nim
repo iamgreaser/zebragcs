@@ -197,6 +197,7 @@ proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
   var varTypeName = sps.readKeywordToken()
   case varTypeName
   of "bool": svkBool
+  of "cell": svkCell
   of "dir": svkDir
   of "entity": svkEntity
   of "int": svkInt

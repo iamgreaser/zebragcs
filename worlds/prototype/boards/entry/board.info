@@ -20,7 +20,7 @@ entity 5 31 11 box
 entity 6 31 10 box
 entity 7 31 9 lockkey { set @fgcolor 13 }
 
-entity 8 0 0 lion
+entity 8 1 1 lion
 
 entity 10 29 11 sliderns
 entity 11 29 10 sliderew

@@ -291,16 +291,24 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bo
       return true
 
     var entseq = board.grid[x, y]
-    if entseq.len == 0:
-      return true
+    if entseq.len != 0:
+      var i: int64 = entseq.len-1
+      while i >= 0:
+        var other = entseq[i]
+        if other.hasPhysBlock():
+          return false
+        i -= 1
 
-    var i: int64 = entseq.len-1
-    while i >= 0:
-      var other = entseq[i]
-      if other.hasPhysBlock():
-        return false
-      i -= 1
+    for layerNameIdx, layer in board.layers.indexedPairs():
+      var layerInfo = layer.layerInfo
+      var cell = if x >= 0 and x < layer.grid.w and y >= 0 and y < layer.grid.h:
+          layer.grid[x, y]
+        else:
+          layerInfo.defaultCell
 
+      if cell != LayerCell(ch: 0, fg: 0, bg: 0):
+        if entity.resolveExpr(layerInfo.solidityCheck).asBool(layerInfo.solidityCheck):
+          return false
     true
 
 proc addEntityToGrid(board: Board, entity: Entity) =

@@ -59,6 +59,12 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
           ))),
           sps.parseExpr(), sps.parseExpr(),
         ]
+        of "layer": @[
+          tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(
+            kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
+          ))),
+          sps.parseExpr(), sps.parseExpr(),
+        ]
         else: @[])
 
       while true:
