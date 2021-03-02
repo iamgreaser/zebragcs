@@ -5,7 +5,8 @@ import times
 
 import ./interntables
 import ./types
-import ./ui
+import ./ui/boardview
+import ./ui/statusbar
 
 var lastSleepTime: MonoTime
 var didLastSleep: bool = false

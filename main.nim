@@ -10,7 +10,11 @@ import ./zebra/game
 import ./zebra/gfx
 import ./zebra/interntables
 import ./zebra/types
-import ./zebra/ui
+import ./zebra/ui/bag
+import ./zebra/ui/boardview
+import ./zebra/ui/statusbar
+import ./zebra/ui/widget
+import ./zebra/ui/window
 import ./zebra/vfs/disk
 #import ./zebra/vfs/types as vfsTypes
 
