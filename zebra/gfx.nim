@@ -35,7 +35,7 @@ type
     renderer: sdl2.RendererPtr
     window: sdl2.WindowPtr
     fontTex: sdl2.TexturePtr
-    grid: array[0..(gfxWidth*gfxHeight-1), GfxCell]
+    grid*: array[0..(gfxWidth*gfxHeight-1), GfxCell]
   GfxState* = ref GfxStateObj
 
   GfxCropObj = object

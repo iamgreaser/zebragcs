@@ -1,5 +1,5 @@
 import strformat
-from ./widget import UiWidget, UiWidgetObj, drawWidget
+from ./types import UiWidget, UiWidgetObj, drawWidget, drawText, UiThemeTextType
 from ../gfx import GfxCrop, drawChar, drawCharArray
 
 type
@@ -15,10 +15,6 @@ method drawWidgetBase*(widget: UiWindow, crop: GfxCrop)
 
 
 method drawWidgetBase*(widget: UiWindow, crop: GfxCrop) =
-  for y in 1..(crop.h-2):
-    for x in 1..(crop.w-2):
-      crop.drawChar(x = x, y = y, bg = widget.bg, fg = widget.fgBorder, ch = uint16(' '))
-
   for x in 1..(crop.w-2):
     crop.drawChar(x = x, y = 0, bg = widget.bg, fg = widget.fgBorder, ch = 196'u16)
     crop.drawChar(x = x, y = crop.h-1, bg = widget.bg, fg = widget.fgBorder, ch = 196'u16)
@@ -34,13 +30,7 @@ method drawWidgetBase*(widget: UiWindow, crop: GfxCrop) =
   if widget.textLines.len >= 1:
     for i in 0..(widget.textLines.len-1):
       var text = widget.textLines[i]
-      crop.drawCharArray(
-        x = 2,
-        y = i + 1,
-        bg = widget.bg,
-        fg = widget.fgText,
-        chs = text,
-      )
+      widget.drawText(crop, 2, i + 1, themeTextNormal, text)
     yOffset += widget.textLines.len
 
   if widget.menuLines.len >= 1:
@@ -53,22 +43,10 @@ method drawWidgetBase*(widget: UiWindow, crop: GfxCrop) =
 
     for i in 0..(widget.menuLines.len-1):
       var text = widget.menuLines[i]
-      crop.drawCharArray(
-        x = 4,
-        y = i + yOffset,
-        bg = widget.bg,
-        fg = widget.fgText,
-        chs = text,
-      )
+      widget.drawText(crop, 4, i + yOffset, themeTextNormal, text)
     crop.drawChar(x = 2, y = widget.cursorY + yOffset, bg = widget.bg, fg = widget.fgPointer, ch = 16'u16)
     yOffset += widget.menuLines.len
 
   if widget.title != "":
     var title = &" {widget.title} "
-    crop.drawCharArray(
-      x = (crop.w - title.len) div 2, y = 0,
-      # Intentionally inverted here --GM
-      bg = widget.fgBorder,
-      fg = widget.bg,
-      chs = title,
-    )
+    widget.drawText(crop, (widget.innerRect.w - title.len) div 2, 0, themeTextNormal, title)

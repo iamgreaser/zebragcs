@@ -1,4 +1,4 @@
-from ./widget import UiWidget, UiWidgetObj, drawWidget
+from ./types import UiWidget, UiWidgetObj, drawWidget
 from ../gfx import GfxCrop, clearToState, drawChar
 
 type

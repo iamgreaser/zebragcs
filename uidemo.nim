@@ -10,7 +10,8 @@ import ./zebra/interntables
 import ./zebra/types
 
 import ./zebra/ui/bag
-import ./zebra/ui/widget
+import ./zebra/ui/themes/classic as classicTheme
+import ./zebra/ui/types as uiTypes
 import ./zebra/ui/window
 
 type
@@ -33,16 +34,20 @@ proc main() =
   withOpenGfx gfx:
     var
       rootWidget = UiBag(
-        x: 0, y: 0, w: 80, h: 25,
-        ch: uint16(' '), bg: 8, fg: 15,
+        innerRect: UiRect(x: 0, y: 0, w: 80, h: 25),
+        theme: UiClassicTheme(),
+        themeRectType: themeRectRootBackground,
+        borderType: themeBorderNone,
         widgets: @[],
       )
 
     rootWidget.widgets.add(
       UiWindow(
-        w: 38, h: 7,
-        x: ((gfxWidth div 2) - 38) div 2,
-        y: (gfxHeight - 7) div 2,
+        innerRect: UiRect(
+          w: 38, h: 7,
+          x: ((gfxWidth div 2) - 38) div 2,
+          y: (gfxHeight - 7) div 2,
+        ),
         bg: 1, fgText: 14, fgBorder: 7, fgPointer: 13,
         cursorY: 0,
         title: "Default window",
@@ -59,9 +64,11 @@ proc main() =
 
     rootWidget.widgets.add(
       UiWindow(
-        w: 38, h: 7,
-        x: ((gfxWidth div 2) - 38) div 2 + (gfxWidth div 2),
-        y: (gfxHeight - 7) div 2,
+        innerRect: UiRect(
+          w: 38, h: 7,
+          x: ((gfxWidth div 2) - 38) div 2 + (gfxWidth div 2),
+          y: (gfxHeight - 7) div 2,
+        ),
         bg: 1, fgText: 14, fgBorder: 7, fgPointer: 13,
         cursorY: 0,
         title: "Default window",
@@ -92,6 +99,7 @@ proc main() =
 proc run(mainState: MainState) =
   try:
     while mainState.alive:
+      mainState.rootWidget.refreshLayout()
       mainState.gfx.drawWidget(mainState.rootWidget)
       mainState.gfx.blitToScreen()
       sdl2.delay(10)
@@ -106,9 +114,14 @@ proc run(mainState: MainState) =
 
         if ev.kind == ievKeyRelease:
           case ev.keyType
-          of ikEsc: # World select
+          of ikEsc: # Quit
             # Bail out once the event queue is drained
             mainState.alive = false
+
+          of ik0: # Theme 0: Base
+            mainState.rootWidget.theme = UiTheme()
+          of ik1: # Theme 1: Classic
+            mainState.rootWidget.theme = UiClassicTheme()
           else: discard
 
   finally:

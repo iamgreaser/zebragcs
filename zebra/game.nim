@@ -188,16 +188,16 @@ proc updatePlayerBoardView(game: GameState, boardWidget: UiBoardView) =
       else:
         boardWidget.cursorVisible = false
 
-      boardWidget.w = min(boardVisWidth, playerBoard.grid.w)
-      boardWidget.h = min(boardVisHeight, playerBoard.grid.h)
-      boardWidget.x = max(0, (boardVisWidth - playerBoard.grid.w) div 2)
-      boardWidget.y = max(0, (boardVisHeight - playerBoard.grid.h) div 2)
+      boardWidget.innerRect.w = min(boardVisWidth, playerBoard.grid.w)
+      boardWidget.innerRect.h = min(boardVisHeight, playerBoard.grid.h)
+      boardWidget.innerRect.x = max(0, (boardVisWidth - playerBoard.grid.w) div 2)
+      boardWidget.innerRect.y = max(0, (boardVisHeight - playerBoard.grid.h) div 2)
       boardWidget.scrollX = max(0,
-        min(playerBoard.grid.w - boardWidget.w,
-          playerBoardX - (boardWidget.w div 2)))
+        min(playerBoard.grid.w - boardWidget.innerRect.w,
+          playerBoardX - (boardWidget.innerRect.w div 2)))
       boardWidget.scrollY = max(0,
-        min(playerBoard.grid.h - boardWidget.h,
-          playerBoardY - (boardWidget.h div 2)))
+        min(playerBoard.grid.h - boardWidget.innerRect.h,
+          playerBoardY - (boardWidget.innerRect.h div 2)))
 
 proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
   statusWidget.textLabels.setLen(0)

@@ -1,6 +1,6 @@
-from ./widget import UiWidget, UiWidgetObj, drawWidget
+from ./types import UiWidget, UiWidgetObj, drawWidget
 from ../gfx import GfxCrop, drawChar
-from ../types import Board, Entity, LayerCell
+from ../types as gameTypes import Board, Entity, LayerCell
 from ../script/exprs import asInt
 import ../grid
 import ../interntables

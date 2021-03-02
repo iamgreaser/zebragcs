@@ -13,7 +13,8 @@ import ./zebra/types
 import ./zebra/ui/bag
 import ./zebra/ui/boardview
 import ./zebra/ui/statusbar
-import ./zebra/ui/widget
+import ./zebra/ui/themes/classic as classicTheme
+import ./zebra/ui/types as uiTypes
 import ./zebra/ui/window
 import ./zebra/vfs/disk
 #import ./zebra/vfs/types as vfsTypes
@@ -51,24 +52,41 @@ proc main() =
   withOpenGfx gfx:
     # FIXME: Needs a "waiting to load the thing" screen --GM
     var
+      rootWidget = UiBag(
+        innerRect: UiRect(
+          x: 0, y: 0, w: 80, h: 25,
+        ),
+        outerRect: UiRect(
+          x: 0, y: 0, w: 80, h: 25,
+        ),
+        themeRectType: themeRectRootBackground,
+        borderType: themeBorderNone,
+        widgets: @[],
+        #theme: UiTheme(),
+        theme: UiClassicTheme(),
+      )
+
       boardViewWidget = UiBoardView(
-        x: 0, y: 0, w: 60, h: 25,
+        innerRect: UiRect(
+          #x: 0, y: 0, w: 60, h: 25,
+          x: 0, y: 0, w: 0, h: 0,
+        ),
+        themeRectType: themeRectBoardViewBackground,
         board: nil,
       )
       statusBarWidget = UiStatusBar(
-        x: 60, y: 0, w: 20, h: 25,
-      )
-
-      rootWidget = UiBag(
-        x: 0, y: 0, w: 80, h: 25,
-        ch: uint16(' '), bg: 8, fg: 15,
-        widgets: @[],
+        innerRect: UiRect(
+          x: 60, y: 0, w: 20, h: 25,
+        ),
+        borderType: themeBorderNone,
       )
 
       textWindowWidget = UiWindow(
-        w: 44, h: 6,
-        x: (boardVisWidth - 44) div 2,
-        y: (boardVisHeight - 6) div 2,
+        innerRect: UiRect(
+          w: 44, h: 6,
+          x: (boardVisWidth - 44) div 2,
+          y: (boardVisHeight - 6) div 2,
+        ),
         bg: 1, fgText: 14, fgBorder: 7, fgPointer: 13,
         cursorY: 0,
         title: "Default window",
@@ -81,8 +99,8 @@ proc main() =
         ],
       )
 
-    rootWidget.widgets.add(statusBarWidget)
     rootWidget.widgets.add(boardViewWidget)
+    rootWidget.widgets.add(statusBarWidget)
     rootWidget.widgets.add(textWindowWidget)
 
     var mainState = MainState(
@@ -129,6 +147,7 @@ proc runGame(mainState: MainState, game: GameState): GameType =
 
       mainState.updateTextWindow(mainState.textWindowWidget)
 
+      mainState.rootWidget.refreshLayout()
       mainState.gfx.drawWidget(mainState.rootWidget)
       mainState.gfx.blitToScreen()
 
@@ -273,18 +292,18 @@ proc updateTextWindow(mainState: MainState, textWindowWidget: UiWindow) =
         textWindowWidget.cursorY = 0
 
 
-  textWindowWidget.h = 0
+  textWindowWidget.innerRect.h = 0
   if textWindowWidget.textLines.len >= 1:
-    textWindowWidget.h += textWindowWidget.textLines.len
+    textWindowWidget.innerRect.h += textWindowWidget.textLines.len
   if textWindowWidget.menuLines.len >= 1:
-    if textWindowWidget.h != 0:
-      textWindowWidget.h += 1
-    textWindowWidget.h += textWindowWidget.menuLines.len
-  if textWindowWidget.h != 0:
-    textWindowWidget.h += 2
+    if textWindowWidget.innerRect.h != 0:
+      textWindowWidget.innerRect.h += 1
+    textWindowWidget.innerRect.h += textWindowWidget.menuLines.len
+  if textWindowWidget.innerRect.h != 0:
+    textWindowWidget.innerRect.h += 2
 
-  textWindowWidget.w = (2 + 40 + 2)
-  textWindowWidget.x = (boardVisWidth - textWindowWidget.w) div 2
-  textWindowWidget.y = (boardVisHeight - textWindowWidget.h) div 2
+  textWindowWidget.innerRect.w = (2 + 40 + 2)
+  textWindowWidget.innerRect.x = (boardVisWidth - textWindowWidget.innerRect.w) div 2
+  textWindowWidget.innerRect.y = (boardVisHeight - textWindowWidget.innerRect.h) div 2
 
 main()
