@@ -134,6 +134,15 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
         of nnkRecCase:
           assert field.len >= 2
 
+          output.add(
+            newCall(
+              ident("saveAddPair"),
+              st,
+              newStrLitNode(field[0].strVal),
+              newDotExpr(x, field[0]),
+            )
+          )
+          discard
           var caseBlock = newTree(
             nnkCaseStmt,
             newDotExpr(x, field[0]),
