@@ -1,6 +1,7 @@
 # Output
 /main
 profile_results.txt
+*.zebrasave
 
 # VIM
 .sw?

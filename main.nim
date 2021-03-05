@@ -9,6 +9,7 @@ import strutils
 import ./zebra/game
 import ./zebra/gfx
 import ./zebra/interntables
+import ./zebra/save
 import ./zebra/types
 import ./zebra/ui/bag
 import ./zebra/ui/boardview
@@ -36,7 +37,7 @@ type
   MainState = ref MainStateObj
 
 proc openWorldMenu(mainState: MainState)
-proc runGame(mainState: MainState, game: GameState): GameType
+proc runGame(mainState: MainState, game: var GameState): GameType
 proc updateTextWindow(mainState: MainState, textWindowWidget: UiWindow)
 
 proc main() =
@@ -136,7 +137,7 @@ proc main() =
     finally:
       echo "Quitting!"
 
-proc runGame(mainState: MainState, game: GameState): GameType =
+proc runGame(mainState: MainState, game: var GameState): GameType =
   mainState.game = game
   try:
     while mainState.worldMenuOpen or (game != nil and game.alive):
@@ -210,6 +211,15 @@ proc runGame(mainState: MainState, game: GameState): GameType =
                   return gtSingle
                 of ikW: # World select
                   mainState.openWorldMenu()
+                else: discard
+
+            elif game.gameType == gtSingle:
+              if ev.kind == ievKeyRelease:
+                case ev.keyType
+                of ikF3: # Save
+                  game.save("game.zebrasave")
+                of ikF4: # Load
+                  game.load("game.zebrasave")
                 else: discard
 
   finally:

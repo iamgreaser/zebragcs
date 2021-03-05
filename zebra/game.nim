@@ -15,6 +15,10 @@ const cpuUsageReportPeriod: int = 20
 var cpuUsageTicksUntilNextReport: int = cpuUsageReportPeriod
 
 type
+  ClientOutputEventObj* = object
+    player*: Player
+    events*: seq[InputEvent]
+
   GameStateObj = object
     gameType*: GameType
     worldName*: string
@@ -27,7 +31,7 @@ type
     editing*: bool
 
     clientInputEvents*: seq[InputEvent]
-    clientOutputEvents*: seq[tuple[player: Player, events: seq[InputEvent]]]
+    clientOutputEvents*: seq[ClientOutputEventObj]
 
   GameState* = ref GameStateObj
 
@@ -210,7 +214,7 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
       ("E", "Edit world"),
       ("N", "Net server"),
       ("C", "Net client"),
-      #("L", "Load game"),
+      ("F4", "Load game"),
       ("ESC", "Exit to BSD"),
     ]
 
@@ -235,6 +239,8 @@ proc updatePlayerStatusBar(game: GameState, statusWidget: UiStatusBar) =
 
   of gtSingle:
     statusWidget.keyLabels = @[
+      ("F3", "Save game"),
+      ("F4", "Load game"),
       ("ESC", "Quit game"),
     ]
 
@@ -326,7 +332,10 @@ proc endTick(game: GameState) =
     var player = game.player
 
     if player != nil:
-      game.clientOutputEvents.add((player, game.clientInputEvents))
+      game.clientOutputEvents.add(ClientOutputEventObj(
+        player: player,
+        events: game.clientInputEvents,
+      ))
     game.clientInputEvents.setLen(0)
 
     for fr in game.clientOutputEvents:

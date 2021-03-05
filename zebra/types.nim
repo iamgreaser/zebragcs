@@ -2,6 +2,7 @@ import streams
 import strformat
 import tables
 
+#import ./ezpack
 import ./interntables
 import ./grid
 import ./vfs/types
@@ -18,7 +19,6 @@ type
 
   FullQuitException* = object of CatchableError
 
-  ScriptParseState* = ref ScriptParseStateObj
   ScriptParseStateObj = object
     strm*: Stream
     fname*: string
@@ -26,25 +26,65 @@ type
     isParsingString*: bool
     stringInterpLevel*: int64
     tokenPushStack*: seq[ScriptToken]
+  ScriptParseState* = ref ScriptParseStateObj
 
-  ScriptGlobalBase* = ref ScriptGlobalBaseObj
-  ScriptParamBase* = ref ScriptParamBaseObj
-  ScriptLocalBase* = ref ScriptLocalBaseObj
-  ScriptStateBase* = ref ScriptStateBaseObj
-  ScriptEventBase* = ref ScriptEventBaseObj
+  ScriptTokenKind* = enum
+    stkBraceClosed,
+    stkBraceOpen,
+    stkEof,
+    stkEol,
+    stkGlobalVar,
+    stkInt,
+    stkLocalVar,
+    stkParamVar,
+    stkParenClosed,
+    stkParenOpen,
+    stkSquareClosed,
+    stkSquareOpen,
+    stkStrClosed,
+    stkStrConst,
+    stkStrExprClosed,
+    stkStrExprOpen,
+    stkStrOpen,
+    stkWord,
+  ScriptTokenObj = object
+    fname*: string
+    row*, col*: int64
+    case kind*: ScriptTokenKind
+    of stkBraceOpen, stkBraceClosed: discard
+    of stkEof: discard
+    of stkEol: discard
+    of stkGlobalVar: globalName*: string
+    of stkInt: intVal*: int64
+    of stkLocalVar: localName*: string
+    of stkParamVar: paramName*: string
+    of stkSquareOpen, stkSquareClosed: discard
+    of stkParenOpen, stkParenClosed: discard
+    of stkStrOpen, stkStrClosed: discard
+    of stkStrExprOpen, stkStrExprClosed: discard
+    of stkStrConst: strConst*: string
+    of stkWord: wordVal*: string
+  ScriptToken* = ref ScriptTokenObj
+
+type
   ScriptGlobalBaseObj = object
     varType*: ScriptValKind
+  ScriptGlobalBase* = ref ScriptGlobalBaseObj
   ScriptParamBaseObj = object
     varType*: ScriptValKind
     varDefault*: ScriptNode
+  ScriptParamBase* = ref ScriptParamBaseObj
   ScriptLocalBaseObj = object
     varType*: ScriptValKind
     varDefault*: ScriptNode
+  ScriptLocalBase* = ref ScriptLocalBaseObj
   ScriptStateBaseObj = object
     stateBody*: seq[ScriptNode]
+  ScriptStateBase* = ref ScriptStateBaseObj
   ScriptEventBaseObj = object
     eventParams*: seq[ScriptNode]
     eventBody*: seq[ScriptNode]
+  ScriptEventBase* = ref ScriptEventBaseObj
 
   ScriptExecBase* = ref ScriptExecBaseObj
   ScriptExecBaseObj = object
@@ -56,11 +96,6 @@ type
     events*: InternTable[ScriptEventBase]
     initStateIdx*: InternKey
 
-  ScriptContinuation* = ref ScriptContinuationObj
-  ScriptContinuationObj = object
-    codeBlock*: seq[ScriptNode]
-    codePc*: int64
-
   ScriptSharedExecState* = ref ScriptSharedExecStateObj
   ScriptSharedExecStateObj = object
     globals*: InternTable[ScriptVal]
@@ -71,6 +106,34 @@ type
     world*: World
     vfs*: FsBase
     seed*: uint64
+
+  ScriptValKind* = enum
+    svkBool,
+    svkCell,
+    svkDir,
+    svkEntity,
+    svkInt,
+    svkPlayer,
+    svkPos,
+    svkStr,
+  ScriptVal* = ref ScriptValObj
+  ScriptValObj = object
+    case kind*: ScriptValKind
+    of svkBool: boolVal*: bool
+    of svkCell: cellVal*: LayerCell
+    of svkDir: dirValX*, dirValY*: int64
+    of svkEntity: entityRef*: Entity
+    of svkInt: intVal*: int64
+    of svkPlayer: playerRef*: Player
+    of svkPos:
+      posBoardNameIdx*: InternKey
+      posValX*, posValY*: int64
+    of svkStr: strVal*: string
+
+  ScriptContinuation* = ref ScriptContinuationObj
+  ScriptContinuationObj = object
+    codeBlock*: seq[ScriptNode]
+    codePc*: int64
 
   ScriptExecStateObj = object of RootObj
     share*: ScriptSharedExecState
@@ -100,10 +163,11 @@ type
     players*: seq[Player]
   World* = ref WorldObj
 
-  MenuItem* = tuple[
-    eventName: string,
-    text: string,
-  ]
+  MenuItemObj = object
+    eventName*: string
+    text*: string
+  MenuItem* = ref MenuItemObj
+
   PlayerObj = object of ScriptExecStateObj
     playerId*: uint8
     windowTitle*: string
@@ -155,44 +219,6 @@ type
     grid*: Grid[LayerCell]
   Layer* = ref LayerObj
 
-  ScriptTokenKind* = enum
-    stkBraceClosed,
-    stkBraceOpen,
-    stkEof,
-    stkEol,
-    stkGlobalVar,
-    stkInt,
-    stkLocalVar,
-    stkParamVar,
-    stkParenClosed,
-    stkParenOpen,
-    stkSquareClosed,
-    stkSquareOpen,
-    stkStrClosed,
-    stkStrConst,
-    stkStrExprClosed,
-    stkStrExprOpen,
-    stkStrOpen,
-    stkWord,
-  ScriptToken* = ref ScriptTokenObj
-  ScriptTokenObj = object
-    fname*: string
-    row*, col*: int64
-    case kind*: ScriptTokenKind
-    of stkBraceOpen, stkBraceClosed: discard
-    of stkEof: discard
-    of stkEol: discard
-    of stkGlobalVar: globalName*: string
-    of stkInt: intVal*: int64
-    of stkLocalVar: localName*: string
-    of stkParamVar: paramName*: string
-    of stkSquareOpen, stkSquareClosed: discard
-    of stkParenOpen, stkParenClosed: discard
-    of stkStrOpen, stkStrClosed: discard
-    of stkStrExprOpen, stkStrExprClosed: discard
-    of stkStrConst: strConst*: string
-    of stkWord: wordVal*: string
-
   InputKeyType* = enum
     ikNone = ""
     ikUp = "up"
@@ -241,6 +267,19 @@ type
     ikX = "x",
     ikY = "y",
     ikZ = "z",
+
+    ikF1 = "f1",
+    ikF2 = "f2",
+    ikF3 = "f3",
+    ikF4 = "f4",
+    ikF5 = "f5",
+    ikF6 = "f6",
+    ikF7 = "f7",
+    ikF8 = "f8",
+    ikF9 = "f9",
+    ikF10 = "f10",
+    ikF11 = "f11",
+    ikF12 = "f12",
 
 
   InputEventType* = enum
@@ -362,29 +401,6 @@ type
       localDefInitValue*: ScriptNode
     of snkLocalVar:
       localVarNameIdx*: InternKey
-
-  ScriptValKind* = enum
-    svkBool,
-    svkCell,
-    svkDir,
-    svkEntity,
-    svkInt,
-    svkPlayer,
-    svkPos,
-    svkStr,
-  ScriptVal* = ref ScriptValObj
-  ScriptValObj = object
-    case kind*: ScriptValKind
-    of svkBool: boolVal*: bool
-    of svkCell: cellVal*: LayerCell
-    of svkDir: dirValX*, dirValY*: int64
-    of svkEntity: entityRef*: Entity
-    of svkInt: intVal*: int64
-    of svkPlayer: playerRef*: Player
-    of svkPos:
-      posBoardNameIdx*: InternKey
-      posValX*, posValY*: int64
-    of svkStr: strVal*: string
 
 # Forward declarations
 proc `$`*(x: Entity): string

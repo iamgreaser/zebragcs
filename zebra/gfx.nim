@@ -192,6 +192,20 @@ proc getNextInput*(gfx: GfxState): InputEvent =
         of SDL_SCANCODE_Y: ikY
         of SDL_SCANCODE_Z: ikZ
 
+        of SDL_SCANCODE_F1: ikF1
+        of SDL_SCANCODE_F2: ikF2
+        of SDL_SCANCODE_F3: ikF3
+        of SDL_SCANCODE_F4: ikF4
+        of SDL_SCANCODE_F5: ikF5
+        of SDL_SCANCODE_F6: ikF6
+        of SDL_SCANCODE_F7: ikF7
+        of SDL_SCANCODE_F8: ikF8
+        of SDL_SCANCODE_F9: ikF9
+        of SDL_SCANCODE_F10: ikF10
+        of SDL_SCANCODE_F11: ikF11
+        of SDL_SCANCODE_F12: ikF12
+        # The extra F keys on a Mac keyboard are kinda nice aside from the fact that they're never used despite Apple insisting on clobbering the normal F keys with a bunch of crap nobody uses. --GM
+
         else: continue
 
       if sev.kind == KeyDown:
