@@ -141,6 +141,9 @@ proc runGame(mainState: MainState, game: var GameState): GameType =
   mainState.game = game
   try:
     while mainState.worldMenuOpen or (game != nil and game.alive):
+      var doSave: bool = false
+      var doLoad: bool = false
+
       if game != nil:
         game.tick()
         game.updatePlayerBoardView(mainState.boardViewWidget)
@@ -209,6 +212,8 @@ proc runGame(mainState: MainState, game: var GameState): GameType =
                   return gtMultiServer
                 of ikP: # Play game
                   return gtSingle
+                of ikF4: # Load game
+                  doLoad = true
                 of ikW: # World select
                   mainState.openWorldMenu()
                 else: discard
@@ -217,10 +222,26 @@ proc runGame(mainState: MainState, game: var GameState): GameType =
               if ev.kind == ievKeyRelease:
                 case ev.keyType
                 of ikF3: # Save
-                  game.save("game.zebrasave")
+                  doSave = true
                 of ikF4: # Load
-                  game.load("game.zebrasave")
+                  doLoad = true
                 else: discard
+
+      if doSave:
+        echo "Saving game..."
+        game.world.save("game.zebrasave")
+        echo "Game saved!"
+      if doLoad:
+        if mainState.gameType == gtDemo:
+          echo "Switching to single-player"
+          mainState.gameType = gtSingle
+        game = loadSinglePlayerGame("game.zebrasave")
+        mainState.game = game
+        # TODO: Work out whether or not we want to switch to the world in question.
+        # It's "somewhat convenient I guess", but could result in errors if the world no longer exists.
+        # But that's probably going to require better error handling, which is needed anyway...
+        # --GM
+        mainState.worldName = game.worldName
 
   finally:
     if mainState.game != nil:

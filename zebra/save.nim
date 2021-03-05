@@ -427,9 +427,7 @@ proc save[T](x: var T, fname: string) =
       strm: strm,
       refs: initTable[pointer, uint32](),
     )
-    echo "Saving game..."
     st.saveAdd(x)
-    echo "Game saved!"
   finally:
     strm.close()
 
@@ -440,9 +438,7 @@ proc load[T](x: var T, fname: string) =
       strm: strm,
       refs: initTable[uint32, pointer](),
     )
-    echo "Loading game..."
     lt.loadAdd(x)
-    echo "Game loaded!"
   finally:
     strm.close()
 

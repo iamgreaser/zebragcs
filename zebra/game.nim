@@ -4,6 +4,7 @@ import std/monotimes
 import times
 
 import ./interntables
+import ./save
 import ./types
 import ./ui/boardview
 import ./ui/statusbar
@@ -40,6 +41,7 @@ proc applyInput*(game: GameState, ev: InputEvent)
 proc applyGameInput*(game: GameState, player: Player, ev: InputEvent)
 proc close*(game: GameState)
 proc endTick*(game: GameState)
+proc loadSinglePlayerGame*(fname: string): GameState
 proc newDemoGame*(worldName: string): GameState
 proc newEditorSinglePlayerGame*(worldName: string): GameState
 proc newMultiClientGame*(ipAddr: string, udpPort: uint16 = 22700): GameState
@@ -106,6 +108,25 @@ proc newSinglePlayerGame(worldName: string): GameState =
   var game = GameState(
     gameType: gtSingle,
     worldName: worldName,
+    world: world,
+    player: player,
+    alive: true,
+  )
+
+  game
+
+proc loadSinglePlayerGame(fname: string): GameState =
+  echo &"Loading single-player game from \"{fname}\""
+  var world: World
+  world.load(fname)
+  echo "Game loaded!"
+
+  echo "Finding first player"
+  var player = world.players[0]
+
+  var game = GameState(
+    gameType: gtSingle,
+    worldName: world.name,
     world: world,
     player: player,
     alive: true,
