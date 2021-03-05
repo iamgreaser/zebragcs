@@ -7,7 +7,7 @@ import tables
 type
   InternTableError* = object of CatchableError
 
-  InternKey* = int
+  InternKey* = distinct int
 
   InternTableBaseObj = object
     idxToStr: seq[string]
@@ -36,7 +36,7 @@ proc internKey*(key: string): InternKey =
     #echo "Grabbing interned key " & $key
     globalInternBase.strToIdx[key]
   except KeyError:
-    var r = globalInternBase.idxToStr.len
+    var r: InternKey = InternKey(globalInternBase.idxToStr.len)
     globalInternBase.idxToStr.add(key)
     echo "Interning key " & $key
     globalInternBase.strToIdx[key] = r
@@ -49,45 +49,45 @@ proc internKeyCT*(key: string): InternKey {.compileTime.} =
 
   let k = globalInternInitStrings.find(key)
   assert k >= 0
-  return k
+  return InternKey(k)
 
-proc `[]`*[V](itab: InternTable[V], idx: int): var V =
-  if idx < itab.presence.len and itab.presence[idx]:
-    result = itab.values[idx]
+proc `==`*(a, b: InternKey): bool =
+  return int(a) == int(b)
+
+
+proc `[]`*[V](itab: InternTable[V], idx: InternKey): var V =
+  if int(idx) < itab.presence.len and itab.presence[int(idx)]:
+    result = itab.values[int(idx)]
   else:
     raise newException(KeyError, &"index {idx} not found")
 
-proc `[]=`*[V](itab: var InternTable[V], idx: int, val: V) =
+proc `[]=`*[V](itab: var InternTable[V], idx: InternKey, val: V) =
   assert itab != nil
-  while itab.presence.len <= idx:
+  while itab.presence.len <= int(idx):
     itab.presence.add(false)
     itab.values.add(nil)
-  itab.presence[idx] = true
-  itab.values[idx] = val
+  itab.presence[int(idx)] = true
+  itab.values[int(idx)] = val
 
 macro `[]`*[V](itab: InternTable[V], key: string): var V =
   if key.kind == nnkStrLit:
     let idx: InternKey = internKeyCT(key.strVal)
-    quote do:
-      `itab`[`idx`]
+    quote: `itab`[InternKey(`idx`)]
   else:
-    quote do:
-      `itab`[internKey(`key`)]
+    quote: `itab`[internKey(`key`)]
 
 macro `[]=`*[V](itab: var InternTable[V], key: string, val: V) =
   if key.kind == nnkStrLit:
     let idx = internKeyCT(key.strVal)
-    quote do:
-      `itab`[`idx`] = `val`
+    quote: `itab`[InternKey(`idx`)] = `val`
   else:
-    quote do:
-      `itab`[internKey(`key`)] = `val`
+    quote: `itab`[internKey(`key`)] = `val`
 
 iterator indexedPairs*[V](itab: InternTable[V]): tuple[idx: InternKey, val: V] =
   assert itab != nil
   for i in 0..itab.presence.high:
     if itab.presence[i]:
-      yield (i, itab.values[i])
+      yield (InternKey(i), itab.values[i])
 
 iterator values*[V](itab: InternTable[V]): V =
   assert itab != nil
@@ -95,13 +95,13 @@ iterator values*[V](itab: InternTable[V]): V =
     if itab.presence[i]:
       yield itab.values[i]
 
-proc contains*[V](itab: InternTable[V], idx: int): bool =
-  assert idx >= 0
-  (idx < itab.presence.len and itab.presence[idx])
+proc contains*[V](itab: InternTable[V], idx: InternKey): bool =
+  assert int(idx) >= 0
+  (int(idx) < itab.presence.len and itab.presence[int(idx)])
 
 proc contains*[V](itab: InternTable[V], key: string): bool =
   try:
-    var idx = globalInternBase.strToIdx[key]
+    var idx = int(globalInternBase.strToIdx[key])
     (idx < itab.presence.len and itab.presence[idx])
   except KeyError:
     false
@@ -172,7 +172,7 @@ macro internCase*(body: untyped): untyped =
   body
 
 proc getInternName*(x: InternKey): string =
-  globalInternBase.idxToStr[x]
+  globalInternBase.idxToStr[int(x)]
 
 proc initInternTableBase*(initStrings: seq[string]) =
   globalInternBase = InternTableBase(
@@ -183,6 +183,9 @@ proc initInternTableBase*(initStrings: seq[string]) =
   for i in 0..initStrings.high:
     let k = initStrings[i]
     globalInternBase.idxToStr.add(k)
-    globalInternBase.strToIdx[k] = i
+    globalInternBase.strToIdx[k] = InternKey(i)
   echo "Globals: " & $globalInternBase
   echo "Base done."
+
+proc `$`*(x: InternKey): string =
+  &"IK({int(x)}: {x.getInternName()})"

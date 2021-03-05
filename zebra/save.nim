@@ -8,6 +8,7 @@ import tables
 #import typetraits # WARNING: This is considered by the Nim developers to be unsafe and an unstable API.
 
 #import ./game
+import ./interntables
 #import ./types
 
 type
@@ -42,9 +43,6 @@ type
     saveRefGet = 0x05
 
     # []... TODO
-    saveTuple = 0x06
-
-    # []... TODO
     saveObject = 0x07
 
     # []
@@ -52,6 +50,9 @@ type
 
     # []... TODO
     saveSequence = 0x0B
+
+    # []... TODO
+    saveMapping = 0x0C
 
 proc save*[T](x: var T, fname: string)
 proc load*[T](x: var T, fname: string)
@@ -61,6 +62,8 @@ proc saveAdd*[T](st: SaveTracker, x: var seq[T])
 proc saveAdd*(st: SaveTracker, x: var (bool or uint8 or uint16 or uint32 or uint64 or uint))
 proc saveAdd*(st: SaveTracker, x: var (int8 or int16 or int32 or int64 or int))
 proc saveAdd*(st: SaveTracker, x: var string)
+proc saveAdd*(st: SaveTracker, x: var InternKey)
+proc saveAdd*[T](st: SaveTracker, x: var InternTable[T])
 proc saveAdd*[T](st: SaveTracker, x: var (ref[T] or ptr[T]))
 
 proc loadTag*(lt: LoadTracker): SaveNodeType
@@ -70,6 +73,8 @@ proc loadAdd*[T](lt: LoadTracker, x: var seq[T])
 proc loadAdd*(lt: LoadTracker, x: var (bool or uint or uint8 or uint16 or uint32 or uint64))
 proc loadAdd*(lt: LoadTracker, x: var (int or int8 or int16 or int32 or int64))
 proc loadAdd*(lt: LoadTracker, x: var string)
+proc loadAdd*(lt: LoadTracker, x: var InternKey)
+proc loadAdd*[T](lt: LoadTracker, x: var InternTable[T])
 proc loadAdd*[T](lt: LoadTracker, x: var (ref[T] or ptr[T]))
 
 proc saveLoadAddPair*[T](st: SaveTracker, key: string, x: var T) =
@@ -378,8 +383,21 @@ proc saveAdd(st: SaveTracker, x: var (int8 or int16 or int32 or int64 or int)) =
 
 proc saveAdd(st: SaveTracker, x: var string) =
   var xlen: uint64 = uint64(x.len)
+  st.strm.write(uint8(saveString))
   st.saveAdd(xlen)
   st.strm.write(x)
+
+proc saveAdd(st: SaveTracker, x: var InternKey) =
+  var xv: string = x.getInternName()
+  st.saveAdd(xv)
+
+proc saveAdd[T](st: SaveTracker, x: var InternTable[T]) =
+  st.strm.write(uint8(saveMapping))
+  for k, v in x.indexedPairs():
+    var name: string = k.getInternName()
+    st.saveAdd(name)
+    st.saveAdd(x[k])
+  st.strm.write(uint8(saveEnd))
 
 proc saveAdd[T](st: SaveTracker, x: var (ref[T] or ptr[T])) =
   if x == nil:
@@ -490,10 +508,20 @@ proc loadAdd(lt: LoadTracker, x: var (int or int8 or int16 or int32 or int64)) =
     raise newException(Exception, &"Unhandled uint tag {tag}")
 
 proc loadAdd(lt: LoadTracker, x: var string) =
-  var xlen: uint64
-  lt.loadAdd(xlen)
-  x = lt.strm.readStr(int(xlen))
-  #echo &"String: [{x}]/{xlen}/{x.len}"
+  var tag = lt.loadTag()
+  case tag
+  of saveString:
+    var xlen: uint64
+    lt.loadAdd(xlen)
+    x = lt.strm.readStr(int(xlen))
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled string tag {tag}")
+
+proc loadAdd(lt: LoadTracker, x: var InternKey) =
+  var xname: string
+  lt.loadAdd(xname)
+  x = internKey(xname)
 
 proc loadAdd[T](lt: LoadTracker, x: var seq[T]) =
   var tag = lt.loadTag()
@@ -527,6 +555,32 @@ proc loadAdd[T](lt: LoadTracker, x: var T) =
   else:
     echo &"Tag: {tag}"
     raise newException(Exception, &"Unhandled tag {tag}")
+
+proc loadAdd*[T](lt: LoadTracker, x: var InternTable[T]) =
+  var tag = lt.loadTag()
+  case tag
+  of saveMapping:
+    #echo &"Tag object: {tag}"
+    x = initInternTable[T]()
+    while true:
+      var childTag = lt.loadTag()
+      case childTag
+      of saveEnd: break
+
+      of saveString:
+        var namelen: uint64
+        lt.loadAdd(namelen)
+        var name = lt.strm.readStr(int(namelen))
+        var v: T
+        lt.loadAdd(v)
+        x[internKey(name)] = v
+
+      else:
+        echo &"Tag: {childTag}"
+        raise newException(Exception, &"Unhandled interntable child tag {childTag}")
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled interntable tag {tag}")
 
 proc loadAdd[T](lt: LoadTracker, x: var (ref[T] or ptr[T])) =
   var tag = lt.loadTag()

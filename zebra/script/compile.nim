@@ -57,7 +57,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
     locals: initInternTable[ScriptLocalBase](),
     states: initInternTable[ScriptStateBase](),
     events: initInternTable[ScriptEventBase](),
-    initStateIdx: -1,
+    initStateIdx: InternKey(-1),
   )
 
   if node.kind != snkRootBlock:
@@ -83,7 +83,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
       )
 
     of snkOnStateBlock:
-      if execBase.initStateIdx == -1:
+      if execBase.initStateIdx == InternKey(-1):
         execBase.initStateIdx = node.onStateNameIdx
 
       execBase.states[node.onStateNameIdx] = ScriptStateBase(
@@ -101,7 +101,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
     #raise node.newScriptCompileError(&"TODO: Compile things")
 
   # Validate a few things
-  if execBase.initStateIdx == -1:
+  if execBase.initStateIdx == InternKey(-1):
     raise node.newScriptCompileError(&"No states defined - define something using \"on state\"!")
 
   # TODO: Validate state names
