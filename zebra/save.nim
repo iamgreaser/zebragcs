@@ -4,8 +4,8 @@ import streams
 import strformat
 import tables
 
-#import typeinfo # WARNING: This is considered by the Nim developers to be unsafe and an unstable API.
-import typetraits # WARNING: This is considered by the Nim developers to be unsafe and an unstable API.
+# Only used for getting the name of a type for debugging... and all that's commented out for now --GM
+#import typetraits # WARNING: This is considered by the Nim developers to be unsafe and an unstable API.
 
 #import ./game
 #import ./types
@@ -56,18 +56,111 @@ type
 proc save*[T](x: var T, fname: string)
 proc load*[T](x: var T, fname: string)
 
-proc loadAdd*[T](lt: var LoadTracker, x: var T)
+proc saveAdd*[T](st: SaveTracker, x: var T)
+proc saveAdd*[T](st: SaveTracker, x: var seq[T])
+proc saveAdd*(st: SaveTracker, x: var (bool or uint8 or uint16 or uint32 or uint64 or uint))
+proc saveAdd*(st: SaveTracker, x: var (int8 or int16 or int32 or int64 or int))
+proc saveAdd*(st: SaveTracker, x: var string)
+proc saveAdd*[T](st: SaveTracker, x: var (ref[T] or ptr[T]))
 
-proc saveAdd*[T](st: SaveTracker, x: T)
-proc saveAdd*[T](st: SaveTracker, x: seq[T])
-proc saveAdd*(st: SaveTracker, x: bool or uint8 or uint16 or uint32 or uint64 or uint or enum)
-proc saveAdd*(st: SaveTracker, x: int8 or int16 or int32 or int64 or int)
-proc saveAdd*(st: SaveTracker, x: string)
-proc saveAdd*[T](st: SaveTracker, x: ref[T] or ptr[T])
+proc loadTag*(lt: LoadTracker): SaveNodeType
+proc loadPackedUInt*(lt: LoadTracker): uint64
+proc loadAdd*[T](lt: LoadTracker, x: var T)
+proc loadAdd*[T](lt: LoadTracker, x: var seq[T])
+proc loadAdd*(lt: LoadTracker, x: var (bool or uint or uint8 or uint16 or uint32 or uint64))
+proc loadAdd*(lt: LoadTracker, x: var (int or int8 or int16 or int32 or int64))
+proc loadAdd*(lt: LoadTracker, x: var string)
+proc loadAdd*[T](lt: LoadTracker, x: var (ref[T] or ptr[T]))
 
-proc saveAddPair*[T](st: SaveTracker, key: string, x: T) =
-  st.saveAdd(key)
+proc saveLoadAddPair*[T](st: SaveTracker, key: string, x: var T) =
+  var keyv: string = key
+  st.saveAdd(keyv)
   st.saveAdd(x)
+proc saveLoadAddPair*[T](lt: LoadTracker, key: string, x: var T) =
+  var gotKey: string = ""
+  lt.loadAdd(gotKey)
+  assert key == gotKey, &"Key mismatch: Got [{gotKey}], expected [{key}]"
+  #echo &"Loading key [{key}]"
+  lt.loadAdd(x)
+
+macro saveLoadAddKindPair*[R, T](st: SaveTracker, key: string, xRoot: var R, x: T) =
+  quote:
+    var keyv: string = `key`
+    `st`.saveAdd(keyv)
+    var xv: `T` = `x`
+    `st`.saveAdd(xv)
+macro saveLoadAddKindPair*[R, T](lt: LoadTracker, key: string, xRoot: var R, x: T) =
+  var keyNameNode = ident(key.strVal)
+  var xt = x.getType()
+  echo &"Implementing {xt.treeRepr}"
+
+  #raise newException(Exception, "TODO: Enums")
+  quote:
+    var needKey: string = `key`
+    var gotKey: string = ""
+    `lt`.loadAdd(gotKey)
+    assert needKey == gotKey, "Key mismatch: Got [" & $gotKey & ", expected [" & $needKey & "]"
+    var xv: typeof(`x`)
+    `lt`.loadAdd(xv)
+    `xRoot` = typeof(`xRoot`)(
+      `keyNameNode`: xv,
+    )
+
+proc saveLoadAdd*[T](st: SaveTracker, x: var T) =
+  st.saveAdd(x)
+proc saveLoadAdd*[T](lt: LoadTracker, x: var T) =
+  lt.loadAdd(x)
+
+proc saveLoadAddEnum*[T](st: SaveTracker, x: var T) =
+  # This one's easy.
+  var xv: string = $x
+  st.saveAdd(xv)
+macro saveLoadAddEnum*[T](lt: LoadTracker, x: var T) =
+  # This one's hard so I have to do it as a macro.
+  var xt = x.getType()
+  assert xt.len >= 2
+  var pragmas = xt[0]
+
+  var xvTok = ident("xv")
+  var output = quote:
+    var `xvTok`: string = ""
+    lt.loadAdd(`xvTok`)
+
+  case pragmas.kind
+  of nnkEmpty: discard # OK!
+  else:
+    echo &"TODO: {pragmas.treeRepr} {xt.treeRepr}"
+    raise newException(Exception, &"TODO: Enum pragmas")
+
+  var caseBlock = newTree(nnkCaseStmt, xvTok)
+  output.add(caseBlock)
+  for idx in (1..(xt.len-1)):
+    var field = xt[idx]
+    case field.kind
+    of nnkSym:
+      caseBlock.add(
+        newTree(
+          nnkOfBranch,
+          newStrLitNode(field.strVal),
+          newTree(
+            nnkStmtList,
+            newAssignment(x, ident(field.strVal)),
+            #newNimNode(nnkDiscardStmt),
+          )
+        )
+      )
+      discard
+
+    else:
+      echo &"Field {idx:3d}: {field.treeRepr}"
+      raise newException(Exception, &"TODO: Enum load field")
+
+  #echo &"out: {output.treeRepr} / {output[^1].treeRepr} / {output.len}"
+  echo &"out: {output.treeRepr}"
+  #raise newException(Exception, &"TODO: Enum loads")
+  #x = typeof(x)(xv)
+
+  return output
 
 proc saveAddPackedUInt*(st: SaveTracker, x: uint64) =
   var v: uint64 = x
@@ -77,11 +170,23 @@ proc saveAddPackedUInt*(st: SaveTracker, x: uint64) =
   st.strm.write(uint8(v))
 
 
-macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
+macro saveLoadAddImpl*[T](slt: (SaveTracker or LoadTracker), x: var T): untyped =
   var xt = x.getType()
   echo &"Implementing {xt.treeRepr}"
 
   case xt.kind
+  of nnkEnumTy:
+    var output = newNimNode(nnkStmtList)
+    assert xt.len >= 2
+    output.add(
+      newCall(
+        ident("saveLoadAddEnum"),
+        slt,
+        x,
+      )
+    )
+    return output
+
   of nnkObjectTy:
     var output = newNimNode(nnkStmtList)
     assert xt.len == 3
@@ -102,8 +207,8 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
         newCall(
           ident("procCall"),
           newCall(
-            ident("saveAdd"),
-            st,
+            ident("saveLoadAdd"),
+            slt,
             newCall(
               parents,
               x,
@@ -117,14 +222,49 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
 
     case entries.kind
     of nnkRecList:
+      var kindFields: seq[NimNode] = @[]
+
+      # Scan case kinds
+      for field in entries.children():
+        case field.kind
+
+        of nnkSym:
+          discard
+
+        of nnkRecCase:
+          assert field.len >= 2
+
+          kindFields.add(field[0])
+          discard
+
+        else:
+          echo &"TODO: {pragmas.treeRepr} {parents.treeRepr} {entries.treeRepr}"
+          echo &"TODO specifically: {field.treeRepr}"
+          raise newException(Exception, &"TODO: Object field (kinds check)")
+
+      #echo &"TODO: {pragmas.treeRepr} {parents.treeRepr} {entries.treeRepr}"
+      #raise newException(Exception, &"TODO: Object type")
+
+      for field in kindFields:
+        output.add(
+          newCall(
+            ident("saveLoadAddKindPair"),
+            slt,
+            newStrLitNode(field.strVal),
+            x,
+            newDotExpr(x, field),
+          )
+        )
+
+      # Scan main entries
       for field in entries.children():
         case field.kind
 
         of nnkSym:
           output.add(
             newCall(
-              ident("saveAddPair"),
-              st,
+              ident("saveLoadAddPair"),
+              slt,
               newStrLitNode(field.strVal),
               newDotExpr(x, field),
             )
@@ -134,15 +274,6 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
         of nnkRecCase:
           assert field.len >= 2
 
-          output.add(
-            newCall(
-              ident("saveAddPair"),
-              st,
-              newStrLitNode(field[0].strVal),
-              newDotExpr(x, field[0]),
-            )
-          )
-          discard
           var caseBlock = newTree(
             nnkCaseStmt,
             newDotExpr(x, field[0]),
@@ -162,8 +293,8 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
               of nnkSym:
                 ofBlock.add(
                   newCall(
-                    ident("saveAddPair"),
-                    st,
+                    ident("saveLoadAddPair"),
+                    slt,
                     newStrLitNode(ofField.strVal),
                     newDotExpr(x, ofField),
                   )
@@ -176,8 +307,8 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
                   of nnkSym:
                     ofBlock.add(
                       newCall(
-                        ident("saveAddPair"),
-                        st,
+                        ident("saveLoadAddPair"),
+                        slt,
                         newStrLitNode(field.strVal),
                         newDotExpr(x, field),
                       )
@@ -220,23 +351,24 @@ macro saveAddImpl*[T](st: SaveTracker, x: T): untyped =
     echo &"TODO: {xt.treeRepr}"
     raise newException(Exception, &"TODO: Type")
 
-proc saveAdd[T](st: SaveTracker, x: T) =
+proc saveAdd[T](st: SaveTracker, x: var T) =
   st.strm.write(uint8(saveObject))
-  st.saveAddImpl(x)
+  st.saveLoadAddImpl(x)
   st.strm.write(uint8(saveEnd))
 
-proc saveAdd*[T](st: SaveTracker, x: seq[T]) =
+proc saveAdd*[T](st: SaveTracker, x: var seq[T]) =
   st.strm.write(uint8(saveSequence))
-  st.saveAdd(uint64(x.len))
-  if x.len >= 1:
-    for child in x:
-      st.saveAdd(child)
+  var xlen: uint64 = uint64(x.len)
+  st.saveAdd(xlen)
+  if xlen >= 1:
+    for i in (0..(xlen-1)):
+      st.saveAdd(x[i])
 
-proc saveAdd(st: SaveTracker, x: bool or uint8 or uint16 or uint32 or uint64 or uint or enum) =
+proc saveAdd(st: SaveTracker, x: var (bool or uint8 or uint16 or uint32 or uint64 or uint)) =
   st.strm.write(uint8(saveUInt64))
   st.saveAddPackedUInt(uint64(x))
 
-proc saveAdd(st: SaveTracker, x: int8 or int16 or int32 or int64 or int) =
+proc saveAdd(st: SaveTracker, x: var (int8 or int16 or int32 or int64 or int)) =
   if x >= 0:
     st.strm.write(uint8(saveUInt64))
     st.saveAddPackedUInt(uint64(x))
@@ -244,11 +376,12 @@ proc saveAdd(st: SaveTracker, x: int8 or int16 or int32 or int64 or int) =
     st.strm.write(uint8(saveNegInt64))
     st.saveAddPackedUInt(uint64((-1'i64)-int64(x)))
 
-proc saveAdd(st: SaveTracker, x: string) =
-  st.saveAdd(uint64(x.len))
+proc saveAdd(st: SaveTracker, x: var string) =
+  var xlen: uint64 = uint64(x.len)
+  st.saveAdd(xlen)
   st.strm.write(x)
 
-proc saveAdd[T](st: SaveTracker, x: ref[T] or ptr[T]) =
+proc saveAdd[T](st: SaveTracker, x: var (ref[T] or ptr[T])) =
   if x == nil:
     st.strm.write(uint8(saveNil))
   else:
@@ -289,11 +422,134 @@ proc load[T](x: var T, fname: string) =
       strm: strm,
       refs: initTable[uint32, pointer](),
     )
+    echo "Loading game..."
     lt.loadAdd(x)
+    echo "Game loaded!"
   finally:
     strm.close()
 
-proc loadAdd[T](lt: var LoadTracker, x: var T) =
-  #var a = x.toAny()
-  #lt.loadAdd(a)
-  discard # TODO!
+proc loadTag(lt: LoadTracker): SaveNodeType =
+  var tag = lt.strm.readUInt8()
+  #echo &"Tag value: {tag:02X}"
+  SaveNodeType(tag)
+
+proc loadPackedUInt(lt: LoadTracker): uint64 =
+  var accum: uint64 = 0
+  var shift: uint64 = 0
+  while true:
+    var v: uint64 = lt.strm.readUInt8()
+    accum += (v and 0x7F'u64) shl shift
+    shift += 7
+    if (v and 0x80) == 0: break
+    assert shift < 64
+  return accum
+
+proc loadAdd(lt: LoadTracker, x: var (bool or uint or uint8 or uint16 or uint32 or uint64)) =
+  var tag = lt.loadTag()
+  case tag
+  of saveUInt64:
+    var full: uint64 = lt.loadPackedUInt()
+    #var typeName = static:
+    #  typeof(x).name()
+    #echo &"Int type: {typeName}"
+    x = typeof(x)(full)
+    var rebuilt: uint64 = uint64(x)
+    if rebuilt != full:
+      raise newException(Exception, &"UInt unpack lost information: {full:X} -> {rebuilt:X}")
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled uint tag {tag}")
+
+proc loadAdd(lt: LoadTracker, x: var (int or int8 or int16 or int32 or int64)) =
+  var tag = lt.loadTag()
+  case tag
+  # TODO: Negative ints --GM
+  of saveUInt64:
+    var full: uint64 = lt.loadPackedUInt()
+    #var typeName = static:
+    #  typeof(x).name()
+    #echo &"Int type: {typeName}"
+    x = typeof(x)(full)
+    var rebuilt: uint64 = uint64(x)
+    if rebuilt != full:
+      raise newException(Exception, &"UInt unpack lost information: {full:X} -> {rebuilt:X}")
+
+  of saveNegInt64:
+    var fullUint: uint64 = lt.loadPackedUInt()
+    var full: int64 = (-1'i64)-int64(fullUint)
+    #var typeName = static:
+    #  typeof(x).name()
+    #echo &"Int type: {typeName}"
+    x = typeof(x)(full)
+    var rebuilt: int64 = int64(x)
+    if rebuilt != full:
+      raise newException(Exception, &"UInt unpack lost information: {full:X} -> {rebuilt:X}")
+
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled uint tag {tag}")
+
+proc loadAdd(lt: LoadTracker, x: var string) =
+  var xlen: uint64
+  lt.loadAdd(xlen)
+  x = lt.strm.readStr(int(xlen))
+  #echo &"String: [{x}]/{xlen}/{x.len}"
+
+proc loadAdd[T](lt: LoadTracker, x: var seq[T]) =
+  var tag = lt.loadTag()
+  case tag
+  of saveSequence:
+    var xlen: uint64
+    lt.loadAdd(xlen)
+    x = @[]
+    x.setLen(xlen)
+    if xlen >= 1:
+      for idx in (0..(xlen-1)):
+        lt.loadAdd(x[idx])
+    #echo &"Tag sequence: {tag}"
+    #raise newException(Exception, &"Unhandled tag {tag}")
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled tag {tag}")
+
+proc loadAdd[T](lt: LoadTracker, x: var T) =
+  var tag = lt.loadTag()
+  case tag
+  of saveObject:
+    #echo &"Tag object: {tag}"
+    lt.saveLoadAddImpl(x)
+    var endTag = lt.loadTag()
+    case endTag
+    of saveEnd: discard # OK!
+    else:
+      echo &"Tag end: {endTag}"
+      raise newException(Exception, &"Unhandled end tag {endTag}")
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled tag {tag}")
+
+proc loadAdd[T](lt: LoadTracker, x: var (ref[T] or ptr[T])) =
+  var tag = lt.loadTag()
+  case tag
+  of saveNil:
+    x = nil
+
+  of saveRefSet:
+    var refIdx: uint32
+    lt.loadAdd(refIdx)
+    #echo &"Tag set {refIdx}"
+    assert not lt.refs.hasKey(refIdx)
+    x = new(typeof(x[]))
+    lt.refs[refIdx] = addr(x[])
+    lt.loadAdd(x[])
+
+  of saveRefGet:
+    var refIdx: uint32
+    lt.loadAdd(refIdx)
+    #echo &"Tag get {refIdx}"
+    #assert lt.refs.hasKey(refIdx)
+    x = cast[ref[T]](lt.refs[refIdx])
+
+  else:
+    echo &"Tag: {tag}"
+    raise newException(Exception, &"Unhandled ref tag {tag}")
