@@ -344,6 +344,11 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
 
         var posExpr = sps.parseExpr()
         var entityName = sps.readKeywordToken().toLowerAscii()
+        var entityNameIdx = internKey(entityName)
+        # Ensure that the entity exists
+        if not sps.share.entityTypeNames.contains(entityNameIdx):
+          raise sps.newScriptParseError(&"Entity type \"{entityName}\" not found")
+
         var braceToken = sps.readToken()
         var (bodyExpr, elseExpr) = case braceToken.kind
           of stkEol: (@[], @[])
@@ -390,7 +395,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           of "spawn":
             nodes.add(sps.tagPos(ScriptNode(
               kind: snkSpawn,
-              spawnEntityNameIdx: internKey(entityName),
+              spawnEntityNameIdx: entityNameIdx,
               spawnPos: posExpr,
               spawnBody: bodyExpr,
               spawnElse: elseExpr,
@@ -399,7 +404,7 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
             nodes.add(sps.tagPos(ScriptNode(
               kind: snkSpawnInto,
               spawnIntoDstExpr: dstExpr,
-              spawnEntityNameIdx: internKey(entityName),
+              spawnEntityNameIdx: entityNameIdx,
               spawnPos: posExpr,
               spawnBody: bodyExpr,
               spawnElse: elseExpr,

@@ -1,4 +1,5 @@
 import strformat
+import strutils
 
 import ./interntables
 import ./types
@@ -56,6 +57,19 @@ proc loadWorld(worldName: string): World =
     world.locals[k0] = world.resolveExpr(v0.varDefault)
 
   share.world = world
+
+  # Now load entity types
+  for entityTypeFileName in share.vfs.vfsFileList(@["scripts", "entities"]):
+    if entityTypeFileName.endsWith(".script"):
+      var entityTypeName = entityTypeFileName[0..(^8)]
+      echo &"Reserving entity type \"{entityTypeName}\""
+      share.entityTypeNames.add(internKey(entityTypeName))
+
+  for entityTypeFileName in share.vfs.vfsFileList(@["scripts", "entities"]):
+    if entityTypeFileName.endsWith(".script"):
+      var entityTypeName = entityTypeFileName[0..(^8)]
+      echo &"Loading entity type \"{entityTypeName}\""
+      share.loadEntityTypeFromFile(entityTypeName)
 
   # Now load boards
   for boardName in share.vfs.vfsDirList(@["boards"]):

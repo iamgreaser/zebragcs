@@ -10,7 +10,6 @@ proc addEntityToGrid*(board: Board, entity: Entity)
 proc addEntityToList*(board: Board, entity: Entity)
 proc broadcastEvent*(board: Board, node: ScriptNode, eventNameIdx: InternKey)
 proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
-proc getBoard*(world: World, boardName: string): var Board
 proc loadBoardFromFile*(world: World, boardName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
@@ -34,15 +33,6 @@ proc getBoardController(share: ScriptSharedExecState, controllerName: string): S
   except KeyError:
     share.loadBoardControllerFromFile(controllerName)
     share.boardControllers[controllerName]
-
-proc getBoard(world: World, boardName: string): var Board =
-  try:
-    return world.boards[boardName]
-  except KeyError:
-    # FIXME: The lookup for this is broken and results in crashes --GM
-    #raise newException(Exception, &"board \"{boardName}\" not found")
-    discard world.loadBoardFromFile(boardName)
-    return world.boards[boardName]
 
 proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
   var boardInfo = BoardInfo(

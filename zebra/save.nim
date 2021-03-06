@@ -97,7 +97,7 @@ macro saveLoadAddKindPair*[R, T](st: SaveTracker, key: string, xRoot: var R, x: 
 macro saveLoadAddKindPair*[R, T](lt: LoadTracker, key: string, xRoot: var R, x: T) =
   var keyNameNode = ident(key.strVal)
   var xt = x.getType()
-  echo &"Implementing {xt.treeRepr}"
+  #echo &"Implementing {xt.treeRepr}"
 
   #raise newException(Exception, "TODO: Enums")
   quote:
@@ -161,7 +161,7 @@ macro saveLoadAddEnum*[T](lt: LoadTracker, x: var T) =
       raise newException(Exception, &"TODO: Enum load field")
 
   #echo &"out: {output.treeRepr} / {output[^1].treeRepr} / {output.len}"
-  echo &"out: {output.treeRepr}"
+  #echo &"out: {output.treeRepr}"
   #raise newException(Exception, &"TODO: Enum loads")
   #x = typeof(x)(xv)
 
@@ -177,7 +177,7 @@ proc saveAddPackedUInt*(st: SaveTracker, x: uint64) =
 
 macro saveLoadAddImpl*[T](slt: (SaveTracker or LoadTracker), x: var T): untyped =
   var xt = x.getType()
-  echo &"Implementing {xt.treeRepr}"
+  #echo &"Implementing {xt.treeRepr}"
 
   case xt.kind
   of nnkEnumTy:
@@ -349,7 +349,7 @@ macro saveLoadAddImpl*[T](slt: (SaveTracker or LoadTracker), x: var T): untyped 
       echo &"TODO: {pragmas.treeRepr} {parents.treeRepr} {entries.treeRepr}"
       raise newException(Exception, &"TODO: Object entries")
 
-    echo &"Output:\n{output.treeRepr}\n\n"
+    #echo &"Output:\n{output.treeRepr}\n\n"
     return output
 
   else:

@@ -26,6 +26,7 @@ type
     isParsingString*: bool
     stringInterpLevel*: int64
     tokenPushStack*: seq[ScriptToken]
+    share*: ScriptSharedExecState
   ScriptParseState* = ref ScriptParseStateObj
 
   ScriptTokenKind* = enum
@@ -66,7 +67,6 @@ type
     of stkWord: wordVal*: string
   ScriptToken* = ref ScriptTokenObj
 
-type
   ScriptGlobalBaseObj = object
     varType*: ScriptValKind
   ScriptGlobalBase* = ref ScriptGlobalBaseObj
@@ -99,6 +99,7 @@ type
   ScriptSharedExecState* = ref ScriptSharedExecStateObj
   ScriptSharedExecStateObj = object
     globals*: InternTable[ScriptVal]
+    entityTypeNames*: seq[InternKey]
     entityTypes*: InternTable[ScriptExecBase]
     boardControllers*: InternTable[ScriptExecBase]
     worldController*: ScriptExecBase

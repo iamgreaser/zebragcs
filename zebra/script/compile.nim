@@ -8,7 +8,7 @@ import ../types
 import ../vfs/types as vfsTypes
 
 proc newScriptCompileError*(node: ScriptNode, message: string): ref ScriptCompileError
-proc newScriptParseState*(strm: Stream, fname: string): ScriptParseState
+proc newScriptParseState*(strm: Stream, fname: string, share: ScriptSharedExecState): ScriptParseState
 proc newScriptSharedExecState*(vfs: FsBase): ScriptSharedExecState
 proc newScriptSharedExecState*(vfs: FsBase, seed: uint64): ScriptSharedExecState
 proc loadEntityTypeFromFile*(share: ScriptSharedExecState, entityName: string)
@@ -22,10 +22,11 @@ import ./nodes
 proc newScriptCompileError(node: ScriptNode, message: string): ref ScriptCompileError =
   newException(ScriptCompileError, &"{node.fname}:{node.row}:{node.col}: {message}")
 
-proc newScriptParseState(strm: Stream, fname: string): ScriptParseState =
+proc newScriptParseState(strm: Stream, fname: string, share: ScriptSharedExecState): ScriptParseState =
   ScriptParseState(
     strm: strm,
     fname: fname,
+    share: share,
     row: 1, col: 1,
   )
 
@@ -109,7 +110,7 @@ proc compileRoot(node: ScriptNode, entityName: string): ScriptExecBase =
   return execBase
 
 proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stream, fname: string) =
-  var sps = newScriptParseState(strm, fname)
+  var sps = newScriptParseState(strm, fname, share)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot(entityName)
@@ -146,7 +147,7 @@ proc loadEntityTypeFromFile(share: ScriptSharedExecState, entityName: string) =
     strm.close()
 
 proc loadBoardController(share: ScriptSharedExecState, controllerName: string, strm: Stream, fname: string) =
-  var sps = newScriptParseState(strm, fname)
+  var sps = newScriptParseState(strm, fname, share)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot(controllerName)
@@ -164,7 +165,7 @@ proc loadBoardControllerFromFile*(share: ScriptSharedExecState, controllerName: 
     strm.close()
 
 proc loadWorldController(share: ScriptSharedExecState, strm: Stream, fname: string) =
-  var sps = newScriptParseState(strm, fname)
+  var sps = newScriptParseState(strm, fname, share)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot("world")
@@ -183,7 +184,7 @@ proc loadWorldControllerFromFile*(share: ScriptSharedExecState) =
     strm.close()
 
 proc loadPlayerController(share: ScriptSharedExecState, strm: Stream, fname: string) =
-  var sps = newScriptParseState(strm, fname)
+  var sps = newScriptParseState(strm, fname, share)
   var node = sps.parseRoot(stkEof)
   #echo &"node: {node}\n"
   var execBase = node.compileRoot("player")

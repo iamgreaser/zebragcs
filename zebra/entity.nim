@@ -13,7 +13,6 @@ proc moveTo*(entity: Entity, board: Board, x: int64, y: int64): bool
 proc newEntity*(board: Board, entityType: InternKey, x, y: int64): Entity
 
 import ./board
-import ./script/compile
 import ./script/exprs
 
 
@@ -21,8 +20,9 @@ proc getEntityType(share: ScriptSharedExecState, entityNameIdx: InternKey): Scri
   try:
     share.entityTypes[entityNameIdx]
   except KeyError:
-    share.loadEntityTypeFromFile(entityNameIdx.getInternName())
-    share.entityTypes[entityNameIdx]
+    raise newException(Exception, &"entity type \"{entityNameIdx.getInternName()}\" not found")
+    #share.loadEntityTypeFromFile(entityNameIdx.getInternName())
+    #share.entityTypes[entityNameIdx]
 
 proc newEntity(board: Board, entityType: InternKey, x, y: int64): Entity =
   var share = board.share
