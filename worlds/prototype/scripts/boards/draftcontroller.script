@@ -8,6 +8,7 @@
 
 local int %x 0
 local int %y 0
+local int %i 0
 
 local entity %tmppassage noentity
 

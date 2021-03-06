@@ -31,11 +31,11 @@ method funcSelf(entity: Entity, node: ScriptNode): ScriptVal {.locks: "unknown".
 method funcSelf(player: Player, node: ScriptNode): ScriptVal {.locks: "unknown".} =
   return ScriptVal(kind: svkPlayer, playerRef: player)
 
-method funcAt(execState: ScriptExecState, node: ScriptNode, x: int64, y: int64): ScriptVal {.base, locks: "unknown".} =
+method funcAt*(execState: ScriptExecState, node: ScriptNode, x: int64, y: int64): ScriptVal {.base, locks: "unknown".} =
   raise node.newScriptExecError(&"Unexpected type {execState} for builtin func at")
-method funcAt(board: Board, node: ScriptNode, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
+method funcAt*(board: Board, node: ScriptNode, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
   return ScriptVal(kind: svkPos, posBoardNameIdx: board.boardNameIdx, posValX: x, posValY: y)
-method funcAt(entity: Entity, node: ScriptNode, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
+method funcAt*(entity: Entity, node: ScriptNode, x: int64, y: int64): ScriptVal {.locks: "unknown".} =
   return entity.board.funcAt(node, x, y)
 
 method funcAtBoard(execState: ScriptExecState, boardName: string, x: int64, y: int64): ScriptVal {.base.} =
@@ -94,7 +94,7 @@ method funcLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: Int
         layer.layerInfo.defaultCell),
   )
 
-method setfuncLayer(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey, pos: ScriptVal, val: ScriptVal) {.base, locks: "unknown".} =
+method setfuncLayer*(execState: ScriptExecState, node: ScriptNode, layerNameIdx: InternKey, pos: ScriptVal, val: ScriptVal) {.base, locks: "unknown".} =
   if val.kind != svkCell:
     raise node.newScriptExecError(&"Attempted to write {val.kind} into layer cell")
   var (boardNameIdx, x, y) = execState.resolvePos(node, pos)

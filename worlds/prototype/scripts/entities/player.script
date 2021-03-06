@@ -24,6 +24,14 @@ local dir %pushdir idle
 local dir %shotdir idle
 
 on state main {
+  if [haslayer hud] {
+    lrectfill hud 0 0 8 2 [cell 32 15 1]
+    set [layer hud 1 0] [cell 3 12 1]
+    set [layer hud 1 1] [cell 132 3 1]
+    lprintright hud 6 0 15 1 @health
+    lprintright hud 6 1 15 1 @ammo
+  }
+
   set $playerent self
   if [eq @nextdir idle] {
     sleep 1

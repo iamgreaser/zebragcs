@@ -236,6 +236,57 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           ifElse: ifElse,
         )))
 
+      of "lprintleft":
+        var layerNameIdx = internKey(sps.readKeywordToken())
+        var x = sps.parseExpr()
+        var y = sps.parseExpr()
+        var fg = sps.parseExpr()
+        var bg = sps.parseExpr()
+        var s = sps.parseExpr()
+        nodes.add(sps.tagPos(ScriptNode(
+          kind: snkLayerPrintLeft,
+          layerPrintNameIdx: layerNameIdx,
+          layerPrintX: x,
+          layerPrintY: y,
+          layerPrintFg: fg,
+          layerPrintBg: bg,
+          layerPrintStr: s,
+        )))
+
+      of "lprintright":
+        var layerNameIdx = internKey(sps.readKeywordToken())
+        var x = sps.parseExpr()
+        var y = sps.parseExpr()
+        var fg = sps.parseExpr()
+        var bg = sps.parseExpr()
+        var s = sps.parseExpr()
+        nodes.add(sps.tagPos(ScriptNode(
+          kind: snkLayerPrintRight,
+          layerPrintNameIdx: layerNameIdx,
+          layerPrintX: x,
+          layerPrintY: y,
+          layerPrintFg: fg,
+          layerPrintBg: bg,
+          layerPrintStr: s,
+        )))
+
+      of "lrectfill":
+        var layerNameIdx = internKey(sps.readKeywordToken())
+        var x = sps.parseExpr()
+        var y = sps.parseExpr()
+        var w = sps.parseExpr()
+        var h = sps.parseExpr()
+        var cell = sps.parseExpr()
+        nodes.add(sps.tagPos(ScriptNode(
+          kind: snkLayerRectFill,
+          layerRectNameIdx: layerNameIdx,
+          layerRectX: x,
+          layerRectY: y,
+          layerRectWidth: w,
+          layerRectHeight: h,
+          layerRectCell: cell,
+        )))
+
       of "move":
         var dirExpr = sps.parseExpr()
         nodes.add(sps.tagPos(ScriptNode(

@@ -161,6 +161,38 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         cont = ScriptContinuation(codeBlock: body, codePc: 0)
         execState.continuations.add(cont)
 
+    of snkLayerPrintLeft, snkLayerPrintRight:
+      var layerNameIdx = node.layerPrintNameIdx
+      var x0 = execState.resolveExpr(node.layerPrintX).asInt(node.layerPrintX)
+      var y0 = execState.resolveExpr(node.layerPrintY).asInt(node.layerPrintY)
+      var fg = execState.resolveExpr(node.layerPrintFg).asInt(node.layerPrintFg)
+      var bg = execState.resolveExpr(node.layerPrintBg).asInt(node.layerPrintBg)
+      var s = execState.resolveExpr(node.layerPrintStr).asCoercedStr(node.layerPrintStr)
+      if node.kind == snkLayerPrintRight:
+        x0 -= s.len-1
+      let y = y0
+      var i = 0
+      while i < s.len:
+        var x = i + x0
+        var pos = execState.funcAt(node, x, y)
+        var ch = s[i]
+        execState.setfuncLayer(node, layerNameIdx, pos,
+          ScriptVal(kind: svkCell, cellVal: LayerCell(ch: uint16(ch), fg: uint8(fg), bg: uint8(bg))))
+        i += 1
+
+    of snkLayerRectFill:
+      var layerNameIdx = node.layerRectNameIdx
+      var cell: ScriptVal = execState.resolveExpr(node.layerRectCell)
+      var x0 = execState.resolveExpr(node.layerRectX).asInt(node.layerRectX)
+      var y0 = execState.resolveExpr(node.layerRectY).asInt(node.layerRectY)
+      var w = execState.resolveExpr(node.layerRectWidth).asInt(node.layerRectWidth)
+      var h = execState.resolveExpr(node.layerRectHeight).asInt(node.layerRectHeight)
+      if w >= 1 and h >= 1:
+        for y in (y0..(y0+h-1)):
+          for x in (x0..(x0+w-1)):
+            var pos = execState.funcAt(node, x, y)
+            execState.setfuncLayer(node, layerNameIdx, pos, cell)
+
     of snkMove:
       var moveDir = execState.resolveExpr(node.moveDirExpr)
       var didMove = case moveDir.kind

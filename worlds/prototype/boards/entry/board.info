@@ -10,6 +10,9 @@ layer floor {
 layer walls {
   solid true
 }
+layer hud {
+  solid false
+}
 layer forest {
   solid true
 }

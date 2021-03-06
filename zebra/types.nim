@@ -313,6 +313,9 @@ type
     snkGlobalVar,
     snkGoto,
     snkIfBlock,
+    snkLayerPrintLeft,
+    snkLayerPrintRight,
+    snkLayerRectFill,
     snkLocalDef,
     snkLocalVar,
     snkMove,
@@ -349,6 +352,20 @@ type
     of snkWhileBlock:
       whileTest*: ScriptNode
       whileBody*: seq[ScriptNode]
+    of snkLayerPrintLeft, snkLayerPrintRight:
+      layerPrintNameIdx*: InternKey
+      layerPrintX*: ScriptNode
+      layerPrintY*: ScriptNode
+      layerPrintFg*: ScriptNode
+      layerPrintBg*: ScriptNode
+      layerPrintStr*: ScriptNode
+    of snkLayerRectFill:
+      layerRectNameIdx*: InternKey
+      layerRectX*: ScriptNode
+      layerRectY*: ScriptNode
+      layerRectWidth*: ScriptNode
+      layerRectHeight*: ScriptNode
+      layerRectCell*: ScriptNode
     of snkConst:
       constVal*: ScriptVal
     of snkStringBlock:
@@ -440,6 +457,9 @@ proc `$`*(x: ScriptNode): string =
   of snkGlobalVar: return &"GlobalVar(${x.globalVarNameIdx.getInternName()})"
   of snkGoto: return &"Goto({x.gotoStateNameIdx.getInternName()})"
   of snkIfBlock: return &"If({x.ifTest}, then {x.ifBody}, else {x.ifElse})"
+  of snkLayerPrintLeft: return &"LayerPrintLeft(@{x.layerPrintNameIdx.getInternName()}: ({x.layerPrintX}, {x.layerPrintY}), (fg={x.layerPrintFg}, bg={x.layerPrintBg}: {x.layerPrintStr}"
+  of snkLayerPrintRight: return &"LayerPrintRight(@{x.layerPrintNameIdx.getInternName()}: ({x.layerPrintX}, {x.layerPrintY}), (fg={x.layerPrintFg}, bg={x.layerPrintBg}: {x.layerPrintStr}"
+  of snkLayerRectFill: return &"LayerRectFill(@{x.layerRectNameIdx.getInternName()}: ({x.layerRectX}, {x.layerRectY}), {x.layerRectWidth} x {x.layerRectHeight}: {x.layerRectCell}"
   of snkLocalDef: return &"LocalDef(@{x.localDefNameIdx.getInternName()}: {x.localDefType} := {x.localDefInitValue})"
   of snkLocalVar: return &"LocalVar(@{x.localVarNameIdx.getInternName()})"
   of snkMove: return &"Move({x.moveDirExpr} else {x.moveElse})"
