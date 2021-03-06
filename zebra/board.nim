@@ -110,15 +110,27 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
 
       of "layer":
         var layerName = sps.readKeywordToken()
+        if not hasSize:
+          raise tok.newScriptParseError(&"layer {layerName} defined before board size")
         sps.expectToken(stkBraceOpen)
 
         var hasDefaultChar: bool = false
         var hasDefaultBgColor: bool = false
         var hasDefaultFgColor: bool = false
+        var hasFixed: bool = false
+        var hasOverlay: bool = false
+        var hasLayerSize: bool = false
+        var hasLayerOffset: bool = false
         var defaultChar: int64 = 0
         var defaultBgColor: int64 = 0
         var defaultFgColor: int64 = 0
         var solidityCheck: ScriptNode = nil
+        var fixedMode: bool = false
+        var overlayMode: bool = false
+        var sizeWidth: int64 = boardInfo.w
+        var sizeHeight: int64 = boardInfo.h
+        var offsetX: int64 = 0
+        var offsetY: int64 = 0
 
         var expectEol: bool = false
         while true:
@@ -157,6 +169,32 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
               defaultBgColor = sps.readInt()
               hasDefaultBgColor = true
 
+            of "fixed":
+              if hasFixed:
+                raise tok.newScriptParseError(&"\"fixed\" already defined earlier for layer {layerName}")
+              fixedMode = sps.readBool()
+              hasFixed = true
+
+            of "offset":
+              if hasLayerOffset:
+                raise tok.newScriptParseError(&"\"offset\" already defined earlier for layer {layerName}")
+              offsetX = sps.readInt()
+              offsetY = sps.readInt()
+              hasLayerOffset = true
+
+            of "overlay":
+              if hasOverlay:
+                raise tok.newScriptParseError(&"\"overlay\" already defined earlier for layer {layerName}")
+              overlayMode = sps.readBool()
+              hasOverlay = true
+
+            of "size":
+              if hasLayerSize:
+                raise tok.newScriptParseError(&"\"size\" already defined earlier for layer {layerName}")
+              sizeWidth = sps.readInt()
+              sizeHeight = sps.readInt()
+              hasLayerSize = true
+
             of "solid":
               if solidityCheck != nil:
                 raise tok.newScriptParseError(&"\"solid\" already defined earlier for layer {layerName}")
@@ -174,6 +212,12 @@ proc loadBoardInfo(strm: Stream, boardName: string, fname: string): BoardInfo =
           layerNameIdx: internKey(layerName),
           solidityCheck: solidityCheck,
           zorder: nextLayerZorder,
+          x: offsetX,
+          y: offsetY,
+          w: sizeWidth,
+          h: sizeHeight,
+          fixedMode: fixedMode,
+          overlayMode: overlayMode,
           defaultCell: LayerCell(
             ch: uint16(defaultChar),
             fg: uint8(defaultFgColor),
@@ -250,6 +294,8 @@ proc loadBoard(world: World, boardName: string, strm: Stream, fname: string): Bo
     board.layers[k0] = Layer(
       layerInfo: layerInfo,
       board: board,
+      x: layerInfo.x,
+      y: layerInfo.y,
       grid: newGrid[LayerCell](
         w = boardInfo.w,
         h = boardInfo.h,
@@ -301,8 +347,16 @@ proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bo
 
     for layerNameIdx, layer in board.layers.indexedPairs():
       var layerInfo = layer.layerInfo
-      var cell = if x >= 0 and x < layer.grid.w and y >= 0 and y < layer.grid.h:
-          layer.grid[x, y]
+
+      # FIXME: Solid fixed layers won't work properly right now --GM
+      if layerInfo.fixedMode:
+        continue
+
+      var (lx, ly) = (x, y)
+      lx -= layer.x
+      ly -= layer.y
+      var cell = if lx >= 0 and lx < layer.grid.w and ly >= 0 and ly < layer.grid.h:
+          layer.grid[lx, ly]
         else:
           layerInfo.defaultCell
 

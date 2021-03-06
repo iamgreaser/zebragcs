@@ -3,4 +3,8 @@ controller second
 
 layer hud {
   solid false
+  overlay true
+  fixed true
+  size 80 25
+  offset 2 1
 }

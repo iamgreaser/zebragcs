@@ -211,10 +211,15 @@ type
     layerNameIdx*: InternKey
     zorder*: int64
     solidityCheck*: ScriptNode
+    fixedMode*: bool
+    overlayMode*: bool
+    x*, y*: int64
+    w*, h*: int64
     defaultCell*: LayerCell
   LayerInfo* = ref LayerInfoObj
   LayerObj = object
     layerInfo*: LayerInfo
+    x*, y*: int64
     board*: Board
     grid*: Grid[LayerCell]
   Layer* = ref LayerObj

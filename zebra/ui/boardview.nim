@@ -39,7 +39,7 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
           var bgcolor = try: uint64(entity.params["bgcolor"].asInt(nil))
             except KeyError: 0x00'u64
 
-          bestZorder = 100
+          bestZorder = 9000
           (fgcolor, bgcolor, ch)
 
         else:
@@ -47,15 +47,28 @@ method drawWidgetBase(widget: UiBoardView, crop: GfxCrop) =
 
       for layerIdx, layer in board.layers.indexedPairs():
         var layerInfo = layer.layerInfo
-        if layerInfo.zorder < bestZorder:
+
+        var (lx, ly) = if layerInfo.fixedMode:
+            (x, y)
+          else:
+            (px, py)
+
+        lx -= layer.x
+        ly -= layer.y
+
+        var layerZorder = layerInfo.zorder
+        if layerInfo.overlayMode:
+          layerZorder += 10000
+        if layerZorder < bestZorder:
           continue
 
-        var cell = layer.grid[px, py]
-        if cell != LayerCell(ch: 0, fg: 0, bg: 0):
-          bestZorder = layerInfo.zorder
-          ch = cell.ch
-          fgcolor = cell.fg
-          bgcolor = cell.bg
+        if lx >= 0 and ly >= 0 and lx < layer.grid.w and ly < layer.grid.h:
+          var cell = layer.grid[lx, ly]
+          if cell != LayerCell(ch: 0, fg: 0, bg: 0):
+            bestZorder = layerZorder
+            ch = cell.ch
+            fgcolor = cell.fg
+            bgcolor = cell.bg
 
       crop.drawChar(
         x = px, y = py,

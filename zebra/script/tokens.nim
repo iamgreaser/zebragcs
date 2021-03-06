@@ -11,6 +11,7 @@ proc newScriptParseError*(sps: ScriptParseState, message: string): ref ScriptPar
 proc newScriptParseError*(tok: ScriptToken, message: string): ref ScriptParseError
 proc newScriptParseError*(node: ScriptNode, message: string): ref ScriptParseError
 proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
+proc readBool*(sps: ScriptParseState): bool
 proc readExpectedToken*(sps: ScriptParseState, kind: ScriptTokenKind): ScriptToken
 proc readGlobalName*(sps: ScriptParseState): string
 proc readInt*(sps: ScriptParseState): int64
@@ -206,6 +207,14 @@ proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
   of "str": svkStr
   else:
     raise newScriptParseError(sps, &"Expected type keyword, got \"{varTypeName}\" instead")
+
+proc readBool(sps: ScriptParseState): bool =
+  var kw = sps.readKeywordToken()
+  case kw
+    of "true": true
+    of "false": false
+    else:
+      raise newScriptParseError(sps, &"Expected boolean keyword, got \"{kw}\" instead")
 
 proc readInt(sps: ScriptParseState): int64 =
   sps.readExpectedToken(stkInt).intVal
