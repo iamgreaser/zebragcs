@@ -299,6 +299,8 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
 
       if src.kind != svkList:
         raise dst.newScriptExecError(&"Expected list, got {src.kind} instead")
+      if not matchesTypeOfVal(src.listCellType, val):
+        raise dst.newScriptExecError(&"Expected cell type {src.listCellType}, got {val.kind} instead")
 
       try:
         src.listCells[idx] = val
@@ -315,6 +317,8 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
 
       if src.kind != svkList:
         raise dst.newScriptExecError(&"Expected list, got {src.kind} instead")
+      if not matchesTypeOfVal(src.listCellType, val):
+        raise dst.newScriptExecError(&"Expected cell type {src.listCellType}, got {val.kind} instead")
 
       try:
         src.listCells[(src.listCells.len-1)-idx] = val

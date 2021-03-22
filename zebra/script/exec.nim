@@ -199,9 +199,9 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
       var oldSrc = execState.resolveExpr(dst)
 
       if oldSrc.kind != svkList:
-        raise node.moveDirExpr.newScriptExecError(&"Expected list, got {oldSrc} instead")
+        raise node.newScriptExecError(&"Expected list, got {oldSrc} instead")
       if not matchesTypeOfVal(oldSrc.listCellType, val):
-        raise node.moveDirExpr.newScriptExecError(&"Expected cell type {oldSrc.listCellType}, got {val.kind} instead")
+        raise node.newScriptExecError(&"Expected cell type {oldSrc.listCellType}, got {val.kind} instead")
 
       # FIXME: This is probably slow --GM
       var newList: seq[ScriptVal] = @[]
