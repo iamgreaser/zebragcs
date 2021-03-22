@@ -1,0 +1,33 @@
+param int @char 4
+param int @fgcolor 14
+param int @bgcolor 0
+
+param [list pos] @path [list pos]
+local int %pathidx 0
+
+local dir %seekdir idle
+
+on state main {
+  if [ge [llength @path] 1] {
+    set %seekdir [seek [lindex @path %pathidx]]
+    if [eq %seekdir idle] {
+      inc %pathidx 1
+      if [ge %pathidx [llength @path]] {
+        set %pathidx 0
+      }
+      set %seekdir [seek [lindex @path %pathidx]]
+    }
+
+    if [eq %seekdir idle] {
+      # Pathing is borked here
+      sleep 1
+    } else {
+      # Go towards waypoint
+      move %seekdir else { move [randomdir] }
+      sleep 1
+    }
+
+  } else {
+    sleep 1
+  }
+}

@@ -42,3 +42,12 @@ entity 23 2 2 tiger
 
 entity 10 29 11 sliderns
 entity 11 29 10 sliderew
+
+entity 40 3 3 patroller {
+  set @path [list pos
+    [at 3 3]
+    [at 53 3]
+    [at 53 20]
+    [at 3 21]
+  ]
+}

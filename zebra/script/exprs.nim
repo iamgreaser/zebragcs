@@ -496,6 +496,15 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         i += 1
       return ScriptVal(kind: svkList, listCellType: listCellType, listCells: listCells)
 
+    of "llength":
+      assert expr.funcArgs.len == 1
+      var src = execState.resolveExpr(expr.funcArgs[0])
+
+      if src.kind != svkList:
+        raise expr.newScriptExecError(&"Expected list, got {src.kind} instead")
+
+      return ScriptVal(kind: svkInt, intVal: src.listCells.len)
+
     of "lindex":
       assert expr.funcArgs.len == 2
       var src = execState.resolveExpr(expr.funcArgs[0])
