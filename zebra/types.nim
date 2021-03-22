@@ -461,6 +461,11 @@ proc `$`*(x: LayerCell): string =
   &"Cell(ch={x.ch}, fg={x.fg}, bg={x.bg})"
 
 proc `==`*(x, y: ScriptValKind): bool =
+  if x.isNil():
+    return y.isNil()
+  elif y.isNil():
+    return false
+
   case x.kind
   of svkList: x.kind == y.kind and x.listCellType == y.listCellType
   else: x.kind == y.kind
