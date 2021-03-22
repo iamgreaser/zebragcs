@@ -96,7 +96,7 @@ macro saveLoadAddKindPair*[R, T](st: SaveTracker, key: string, xRoot: var R, x: 
     `st`.saveAdd(xv)
 macro saveLoadAddKindPair*[R, T](lt: LoadTracker, key: string, xRoot: var R, x: T) =
   var keyNameNode = ident(key.strVal)
-  var xt = x.getType()
+  #var xt = x.getType()
   #echo &"Implementing {xt.treeRepr}"
 
   #raise newException(Exception, "TODO: Enums")

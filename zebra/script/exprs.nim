@@ -1,4 +1,6 @@
+import sequtils
 import strformat
+import strutils
 
 import ../grid
 import ../interntables
@@ -9,6 +11,8 @@ proc asBool*(x: ScriptVal, node: ScriptNode): bool
 proc asCoercedStr*(x: ScriptVal, node: ScriptNode): string
 proc asInt*(x: ScriptVal, node: ScriptNode): int64
 proc asStr*(x: ScriptVal, node: ScriptNode): string
+proc asType*(x: ScriptVal, node: ScriptNode): ScriptValKind
+proc matchesTypeOfVal*(kind: ScriptValKind, val: ScriptVal): bool
 proc newScriptExecError*(node: ScriptNode, message: string): ref ScriptExecError
 proc resolveExpr*(execState: ScriptExecState, expr: ScriptNode): ScriptVal
 proc storeAtExpr*(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal)
@@ -18,6 +22,14 @@ proc newScriptExecError(node: ScriptNode, message: string): ref ScriptExecError 
     newException(ScriptExecError, &"system: {message}")
   else:
     newException(ScriptExecError, &"{node.fname}:{node.row}:{node.col}: {message}")
+
+proc matchesTypeOfVal(kind: ScriptValKind, val: ScriptVal): bool =
+  case kind.kind
+  of svkList: (kind.kind == val.kind and kind.listCellType == val.listCellType)
+  of svkBool, svkInt, svkStr: (kind.kind == val.kind)
+  of svkCell, svkDir, svkPos: (kind.kind == val.kind)
+  of svkType: (kind.kind == val.kind)
+  of svkEntity, svkPlayer: (kind.kind == val.kind)
 
 method funcThisPos(execState: ScriptExecState, node: ScriptNode): ScriptVal {.base, locks: "unknown".} =
   raise node.newScriptExecError(&"Unexpected type {execState} for builtin func thispos (or posof)")
@@ -144,6 +156,12 @@ proc asStr(x: ScriptVal, node: ScriptNode): string =
   else:
     raise node.newScriptExecError(&"Expected str, got {x} instead")
 
+proc asType(x: ScriptVal, node: ScriptNode): ScriptValKind =
+  case x.kind
+  of svkType: x.typeVal
+  else:
+    raise node.newScriptExecError(&"Expected type, got {x} instead")
+
 proc asCoercedStr(x: ScriptVal, node: ScriptNode): string =
   case x.kind
   of svkBool:
@@ -158,6 +176,11 @@ proc asCoercedStr(x: ScriptVal, node: ScriptNode): string =
   of svkStr: x.strVal
   of svkDir: &"rel {x.dirValX} {x.dirValY}"
   of svkPos: &"at {x.posValX} {x.posValY}"
+  of svkType: &"<type {x.typeVal}>"
+  of svkList: "[" & map(
+    x.listCells,
+    (proc (x: ScriptVal): string = x.asCoercedStr(node)),
+  ).join(" ") & "]"
 
 method funcDirComponents(execState: ScriptExecState, node: ScriptNode, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base, locks: "unknown".} =
   case dir.kind:
@@ -198,15 +221,18 @@ method funcSeek(entity: Entity, node: ScriptNode, pos: ScriptVal): ScriptVal =
     return ScriptVal(kind: svkDir, dirValX: dx, dirValY: 0)
 
 proc defaultScriptVal(execState: ScriptExecState, node: ScriptNode, kind: ScriptValKind): ScriptVal =
-  case kind
-  of svkBool: ScriptVal(kind: kind, boolVal: false)
-  of svkCell: ScriptVal(kind: kind, cellVal: LayerCell(ch: 0, fg: 0, bg: 0))
-  of svkDir: ScriptVal(kind: kind, dirValX: 0, dirValY: 0)
-  of svkEntity: ScriptVal(kind: kind, entityRef: nil)
-  of svkInt: ScriptVal(kind: kind, intVal: 0)
-  of svkPlayer: ScriptVal(kind: kind, playerRef: nil)
+  let k = kind.kind
+  case k
+  of svkBool: ScriptVal(kind: k, boolVal: false)
+  of svkCell: ScriptVal(kind: k, cellVal: LayerCell(ch: 0, fg: 0, bg: 0))
+  of svkDir: ScriptVal(kind: k, dirValX: 0, dirValY: 0)
+  of svkEntity: ScriptVal(kind: k, entityRef: nil)
+  of svkInt: ScriptVal(kind: k, intVal: 0)
+  of svkList: ScriptVal(kind: k, listCellType: kind.listCellType, listCells: @[])
+  of svkPlayer: ScriptVal(kind: k, playerRef: nil)
   of svkPos: execState.funcAt(node, 0, 0) # TODO: Consider making pos not have a default, and throw an exception instead --GM
-  of svkStr: ScriptVal(kind: kind, strVal: "")
+  of svkStr: ScriptVal(kind: k, strVal: "")
+  of svkType: ScriptVal(kind: k, typeVal: nil)
 
 proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
   var execBase = execState.execBase
@@ -222,7 +248,7 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
       except KeyError:
         raise dst.newScriptExecError(&"Undeclared global \"${dst.globalVarNameIdx.getInternName()}\"")
 
-    if expectedType == val.kind:
+    if expectedType.matchesTypeOfVal(val):
       share.globals[dst.globalVarNameIdx] = val
     else:
       raise dst.newScriptExecError(&"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
@@ -233,7 +259,7 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
       except KeyError:
         raise dst.newScriptExecError(&"Undeclared param \"@{dst.paramVarNameIdx.getInternName()}\"")
 
-    if expectedType == val.kind:
+    if expectedType.matchesTypeOfVal(val):
       execState.params[dst.paramVarNameIdx] = val
     else:
       raise dst.newScriptExecError(&"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
@@ -244,7 +270,7 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
       except KeyError:
         raise dst.newScriptExecError(&"Undeclared local \"%{dst.localVarNameIdx.getInternName()}\"")
 
-    if expectedType == val.kind:
+    if expectedType.matchesTypeOfVal(val):
       execState.locals[dst.localVarNameIdx] = val
     else:
       raise dst.newScriptExecError(&"Attempted to write {val.kind} into {dst} which is of type {expectedType}")
@@ -265,6 +291,35 @@ proc storeAtExpr(execState: ScriptExecState, dst: ScriptNode, val: ScriptVal) =
         execState.setfuncLayer(dst, internKey(layerName), pos, val)
       else:
         raise dst.newScriptExecError(&"Invalid arg count for setfunc \"{dst.funcType.getInternName()}\" for expr {dst} - expected 2 or 3")
+
+    of "lindex":
+      assert dst.funcArgs.len == 2
+      var src = execState.resolveExpr(dst.funcArgs[0])
+      var idx = execState.resolveExpr(dst.funcArgs[1]).asInt(dst.funcArgs[1])
+
+      if src.kind != svkList:
+        raise dst.newScriptExecError(&"Expected list, got {src.kind} instead")
+
+      try:
+        src.listCells[idx] = val
+      except KeyError:
+        raise dst.newScriptExecError(&"Index {dst.funcArgs[1]} out of range")
+
+    of "lend":
+      assert dst.funcArgs.len == 1 or dst.funcArgs.len == 2
+      var src = execState.resolveExpr(dst.funcArgs[0])
+      var idx = if dst.funcArgs.len >= 2:
+          execState.resolveExpr(dst.funcArgs[1]).asInt(dst.funcArgs[1])
+        else:
+          0
+
+      if src.kind != svkList:
+        raise dst.newScriptExecError(&"Expected list, got {src.kind} instead")
+
+      try:
+        src.listCells[(src.listCells.len-1)-idx] = val
+      except KeyError:
+        raise dst.newScriptExecError(&"Reverse index {dst.funcArgs[1]} out of range")
 
     else: raise dst.newScriptExecError(&"Unhandled setfunc kind \"{dst.funcType.getInternName()}\" for expr {dst}")
 
@@ -321,12 +376,16 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
           v1.kind == svkEntity and v0.entityRef == v1.entityRef
         of svkDir:
           v1.kind == svkDir and v0.dirValX == v1.dirValX and v0.dirValY == v1.dirValY
+        of svkList:
+          v1.kind == svkList and v0.listCellType == v1.listCellType and v0.listCells == v1.listCells
         of svkPlayer:
           v1.kind == svkPlayer and v0.playerRef == v1.playerRef
         of svkPos:
           v1.kind == svkPos and v0.posValX == v1.posValX and v0.posValY == v1.posValY
         of svkStr:
           v1.kind == svkStr and v0.strVal == v1.strVal
+        of svkType:
+          v1.kind == svkType and v0.typeVal == v1.typeVal
         #else:
         #  raise v0.newScriptExecError(&"Unhandled bool kind {v0.kind}")
       return ScriptVal(kind: svkBool, boolVal: (iseq == (expr.funcType == internKeyCT("eq"))))
@@ -419,6 +478,52 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
         return execState.funcLayer(expr, internKey(layerName), pos)
       else:
         raise expr.newScriptExecError(&"Invalid arg count for func \"{expr.funcType.getInternName()}\" for expr {expr} - expected 2 or 3")
+
+    of "list":
+      assert expr.funcArgs.len >= 1
+
+      var listCellTypeType = execState.resolveExpr(expr.funcArgs[0])
+      assert listCellTypeType.kind == svkType
+      var listCellType = listCellTypeType.typeVal
+      var listCells: seq[ScriptVal] = @[]
+      var i = 1
+      while i < expr.funcArgs.len:
+        listCells.add(execState.resolveExpr(expr.funcArgs[i]))
+        i += 1
+      return ScriptVal(kind: svkList, listCellType: listCellType, listCells: listCells)
+
+    of "lindex":
+      assert expr.funcArgs.len == 2
+      var src = execState.resolveExpr(expr.funcArgs[0])
+      var idx = execState.resolveExpr(expr.funcArgs[1]).asInt(expr.funcArgs[1])
+
+      if src.kind != svkList:
+        raise expr.newScriptExecError(&"Expected list, got {src.kind} instead")
+
+      var v = try:
+          src.listCells[idx]
+        except KeyError:
+          raise expr.newScriptExecError(&"Index {expr.funcArgs[1]} out of range")
+
+      return v
+
+    of "lend":
+      assert expr.funcArgs.len == 1 or expr.funcArgs.len == 2
+      var src = execState.resolveExpr(expr.funcArgs[0])
+      var idx = if expr.funcArgs.len >= 2:
+          execState.resolveExpr(expr.funcArgs[1]).asInt(expr.funcArgs[1])
+        else:
+          0
+
+      if src.kind != svkList:
+        raise expr.newScriptExecError(&"Expected list, got {src.kind} instead")
+
+      var v = try:
+          src.listCells[(src.listCells.len-1)-idx]
+        except KeyError:
+          raise expr.newScriptExecError(&"Reverse index {expr.funcArgs[1]} out of range")
+
+      return v
 
     of "dirx":
       assert expr.funcArgs.len == 1

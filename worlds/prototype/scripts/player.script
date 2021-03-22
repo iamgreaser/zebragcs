@@ -2,6 +2,7 @@ param entity @playerent noentity
 param pos @camerapos [atboard entry 30 12]
 
 local bool %awaitrespawn false
+local [list int] %baselist [list int 0]
 
 on state doingrespawn {
   if @playerent {
@@ -44,3 +45,16 @@ on event pressshift { send @playerent pressshift }
 on event releaseshift { send @playerent releaseshift }
 
 on event typew { send @playerent typew }
+
+on event typec {
+  set %baselist [list int 0]
+  say "List status: \(%baselist)"
+}
+on event typez {
+  inc [lend %baselist] 1
+  say "List status: \(%baselist)"
+}
+on event typex {
+  lappend %baselist 0
+  say "List status: \(%baselist)"
+}

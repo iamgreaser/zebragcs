@@ -118,7 +118,7 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
   # Preset a few things
   if not execBase.params.contains("physblock"):
     execBase.params["physblock"] = ScriptParamBase(
-      varType: svkBool,
+      varType: ScriptValKind(kind: svkBool),
       varDefault: ScriptNode(
         kind: snkConst,
         constVal: ScriptVal(kind: svkBool, boolVal: true),
@@ -126,7 +126,7 @@ proc loadEntityType(share: ScriptSharedExecState, entityName: string, strm: Stre
     )
   if not execBase.params.contains("physghost"):
     execBase.params["physghost"] = ScriptParamBase(
-      varType: svkBool,
+      varType: ScriptValKind(kind: svkBool),
       varDefault: ScriptNode(
         kind: snkConst,
         constVal: ScriptVal(kind: svkBool, boolVal: false),

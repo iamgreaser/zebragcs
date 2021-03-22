@@ -108,28 +108,52 @@ type
     vfs*: FsBase
     seed*: uint64
 
-  ScriptValKind* = enum
+  ScriptValKindEnum* = enum
+    # Primitive
     svkBool,
+    svkInt,
+    svkStr,
+
+    # Builtin tuple
     svkCell,
     svkDir,
-    svkEntity,
-    svkInt,
-    svkPlayer,
     svkPos,
-    svkStr,
+
+    # Reference
+    svkEntity,
+    svkPlayer,
+
+    # Meta
+    svkType,
+
+    # Generic
+    svkList,
+
+  ScriptValKind* = ref ScriptValKindObj
+  ScriptValKindObj* = object
+    case kind*: ScriptValKindEnum
+    of svkBool, svkInt, svkStr: discard
+    of svkCell, svkDir, svkPos: discard
+    of svkEntity, svkPlayer: discard
+    of svkType: discard
+    of svkList: listCellType*: ScriptValKind
   ScriptVal* = ref ScriptValObj
   ScriptValObj = object
-    case kind*: ScriptValKind
+    case kind*: ScriptValKindEnum
     of svkBool: boolVal*: bool
     of svkCell: cellVal*: LayerCell
     of svkDir: dirValX*, dirValY*: int64
     of svkEntity: entityRef*: Entity
     of svkInt: intVal*: int64
+    of svkList:
+      listCellType*: ScriptValKind
+      listCells*: seq[ScriptVal]
     of svkPlayer: playerRef*: Player
     of svkPos:
       posBoardNameIdx*: InternKey
       posValX*, posValY*: int64
     of svkStr: strVal*: string
+    of svkType: typeVal*: ScriptValKind
 
   ScriptContinuation* = ref ScriptContinuationObj
   ScriptContinuationObj = object
@@ -322,6 +346,7 @@ type
     snkLayerPrintLeft,
     snkLayerPrintRight,
     snkLayerRectFill,
+    snkListAppend,
     snkLocalDef,
     snkLocalVar,
     snkMove,
@@ -372,6 +397,9 @@ type
       layerRectWidth*: ScriptNode
       layerRectHeight*: ScriptNode
       layerRectCell*: ScriptNode
+    of snkListAppend:
+      listAppendDst*: ScriptNode
+      listAppendVal*: ScriptNode
     of snkConst:
       constVal*: ScriptVal
     of snkStringBlock:
@@ -432,6 +460,24 @@ proc `$`*(x: Player): string
 proc `$`*(x: LayerCell): string =
   &"Cell(ch={x.ch}, fg={x.fg}, bg={x.bg})"
 
+proc `==`*(x, y: ScriptValKind): bool =
+  case x.kind
+  of svkList: x.kind == y.kind and x.listCellType == y.listCellType
+  else: x.kind == y.kind
+
+proc `$`*(x: ScriptValKind): string =
+  case x.kind
+  of svkList: &"T:[list {x.listCellType}]"
+  of svkBool: &"T:bool"
+  of svkCell: &"T:cell"
+  of svkDir: &"T:dir"
+  of svkEntity: &"T:entity"
+  of svkInt: &"T:int"
+  of svkPlayer: &"T:player"
+  of svkPos: &"T:pos"
+  of svkStr: &"T:str"
+  of svkType: &"T:type"
+
 proc `$`*(x: ScriptVal): string =
   case x.kind
   of svkBool: &"BoolV({x.boolVal})"
@@ -443,6 +489,7 @@ proc `$`*(x: ScriptVal): string =
     else:
       &"EntityV(nil)"
   of svkInt: &"IntV({x.intVal})"
+  of svkList: &"ListV({x.listCellType}: {x.listCells})"
   of svkPlayer:
     if x.playerRef != nil:
       &"PlayerV({x.playerRef})"
@@ -450,6 +497,7 @@ proc `$`*(x: ScriptVal): string =
       &"PlayerV(nil)"
   of svkPos: &"PosV({x.posBoardNameIdx.getInternName()}, {x.posValX}, {x.posValY})"
   of svkStr: &"StrV({x.strVal})"
+  of svkType: &"TypeV({x.typeVal})"
 
 proc `$`*(x: ScriptNode): string =
   case x.kind
@@ -466,6 +514,7 @@ proc `$`*(x: ScriptNode): string =
   of snkLayerPrintLeft: return &"LayerPrintLeft(@{x.layerPrintNameIdx.getInternName()}: ({x.layerPrintX}, {x.layerPrintY}), (fg={x.layerPrintFg}, bg={x.layerPrintBg}: {x.layerPrintStr}"
   of snkLayerPrintRight: return &"LayerPrintRight(@{x.layerPrintNameIdx.getInternName()}: ({x.layerPrintX}, {x.layerPrintY}), (fg={x.layerPrintFg}, bg={x.layerPrintBg}: {x.layerPrintStr}"
   of snkLayerRectFill: return &"LayerRectFill(@{x.layerRectNameIdx.getInternName()}: ({x.layerRectX}, {x.layerRectY}), {x.layerRectWidth} x {x.layerRectHeight}: {x.layerRectCell}"
+  of snkListAppend: return &"ListAppend({x.listAppendDst} <- {x.listAppendVal})"
   of snkLocalDef: return &"LocalDef(@{x.localDefNameIdx.getInternName()}: {x.localDefType} := {x.localDefInitValue})"
   of snkLocalVar: return &"LocalVar(@{x.localVarNameIdx.getInternName()})"
   of snkMove: return &"Move({x.moveDirExpr} else {x.moveElse})"

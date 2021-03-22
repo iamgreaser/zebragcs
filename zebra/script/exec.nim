@@ -193,6 +193,28 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
             var pos = execState.funcAt(node, x, y)
             execState.setfuncLayer(node, layerNameIdx, pos, cell)
 
+    of snkListAppend:
+      var dst = node.listAppendDst
+      var val = execState.resolveExpr(node.listAppendVal)
+      var oldSrc = execState.resolveExpr(dst)
+
+      if oldSrc.kind != svkList:
+        raise node.moveDirExpr.newScriptExecError(&"Expected list, got {oldSrc} instead")
+      if not matchesTypeOfVal(oldSrc.listCellType, val):
+        raise node.moveDirExpr.newScriptExecError(&"Expected cell type {oldSrc.listCellType}, got {val.kind} instead")
+
+      # FIXME: This is probably slow --GM
+      var newList: seq[ScriptVal] = @[]
+      for v in oldSrc.listCells:
+        newList.add(v)
+      newList.add(val)
+
+      execState.storeAtExpr(dst, ScriptVal(
+        kind: svkList,
+        listCellType: oldSrc.listCellType,
+        listCells: newList,
+      ))
+
     of snkMove:
       var moveDir = execState.resolveExpr(node.moveDirExpr)
       var didMove = case moveDir.kind
@@ -305,7 +327,7 @@ proc tickEvent(execState: ScriptExecState, node: ScriptNode, eventNameIdx: Inter
   # TODO: Tie this to some sort of dynamic binding stack --GM
   if args.len != eventBlock.eventParams.len:
     raise node.newScriptExecError(&"send arg mismatch for event {eventNameIdx.getInternName()} to entity type {execBase.entityNameIdx.getInternName()}: expected {eventBlock.eventParams.len}, got {args.len}")
-    
+
   for i in 0..(args.len-1):
     var arg = args[i]
     var param = eventBlock.eventParams[i]

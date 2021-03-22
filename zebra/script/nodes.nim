@@ -68,6 +68,11 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
             kind: svkStr, strVal: sps.readKeywordToken().toLowerAscii(),
           ))),
         ]
+        of "list": @[
+          tok.tagPos(ScriptNode(kind: snkConst, constVal: ScriptVal(
+            kind: svkType, typeVal: sps.readVarType(),
+          ))),
+        ]
         else: @[])
 
       while true:
@@ -90,6 +95,7 @@ proc parseExpr(sps: ScriptParseState): ScriptNode =
 
         of "noentity": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkEntity, entityRef: nil))
         of "noplayer": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkPlayer, playerRef: nil))
+        of "notype": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkType, typeVal: nil))
 
         of "i", "idle": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: 0))
         of "n", "north": ScriptNode(kind: snkConst, constVal: ScriptVal(kind: svkDir, dirValX: 0, dirValY: -1))
@@ -235,6 +241,16 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           ifBody: ifBody,
           ifElse: ifElse,
         )))
+
+      of "lappend":
+        var listDst = sps.parseExpr()
+        var listVal = sps.parseExpr()
+        nodes.add(sps.tagPos(ScriptNode(
+          kind: snkListAppend,
+          listAppendDst: listDst,
+          listAppendVal: listVal,
+        )))
+        awaitingEol = true
 
       of "lprintleft":
         var layerNameIdx = internKey(sps.readKeywordToken())
@@ -443,7 +459,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         nodes.add(sps.parseOnBlock())
 
       of "global":
-        var varType = sps.readVarTypeKeyword()
+        var varType = sps.readVarType()
         var varName = sps.readGlobalName()
         nodes.add(sps.tagPos(ScriptNode(
           kind: snkGlobalDef,
@@ -452,7 +468,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         )))
 
       of "param":
-        var varType = sps.readVarTypeKeyword()
+        var varType = sps.readVarType()
         var varName = sps.readParamName()
         var valueNode = sps.parseExpr()
 
@@ -464,7 +480,7 @@ proc parseRoot(sps: ScriptParseState, endKind: ScriptTokenKind): ScriptNode =
         )))
 
       of "local":
-        var varType = sps.readVarTypeKeyword()
+        var varType = sps.readVarType()
         var varName = sps.readLocalName()
         var valueNode = sps.parseExpr()
 

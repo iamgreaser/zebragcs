@@ -7,9 +7,10 @@ import ../types
 
 proc expectEolOrEof*(sps: ScriptParseState)
 proc expectToken*(sps: ScriptParseState, kind: ScriptTokenKind)
+proc newScriptParseError*(node: ScriptNode, message: string): ref ScriptParseError
 proc newScriptParseError*(sps: ScriptParseState, message: string): ref ScriptParseError
 proc newScriptParseError*(tok: ScriptToken, message: string): ref ScriptParseError
-proc newScriptParseError*(node: ScriptNode, message: string): ref ScriptParseError
+proc parseVarTypeKeyword*(sps: ScriptParseState, varTypeName: string): ScriptValKindEnum
 proc pushBackToken*(sps: ScriptParseState, tok: ScriptToken)
 proc readBool*(sps: ScriptParseState): bool
 proc readExpectedToken*(sps: ScriptParseState, kind: ScriptTokenKind): ScriptToken
@@ -19,7 +20,7 @@ proc readKeywordToken*(sps: ScriptParseState): string
 proc readLocalName*(sps: ScriptParseState): string
 proc readParamName*(sps: ScriptParseState): string
 proc readToken*(sps: ScriptParseState): ScriptToken
-proc readVarTypeKeyword*(sps: ScriptParseState): ScriptValKind
+proc readVarType*(sps: ScriptParseState): ScriptValKind
 
 const maxPeekDist = 200
 
@@ -194,8 +195,7 @@ proc readKeywordToken(sps: ScriptParseState): string =
   else:
     raise newScriptParseError(sps, &"Expected keyword token, got {tok} instead")
 
-proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
-  var varTypeName = sps.readKeywordToken()
+proc parseVarTypeKeyword(sps: ScriptParseState, varTypeName: string): ScriptValKindEnum =
   case varTypeName
   of "bool": svkBool
   of "cell": svkCell
@@ -207,6 +207,23 @@ proc readVarTypeKeyword(sps: ScriptParseState): ScriptValKind =
   of "str": svkStr
   else:
     raise newScriptParseError(sps, &"Expected type keyword, got \"{varTypeName}\" instead")
+
+proc readVarType(sps: ScriptParseState): ScriptValKind =
+  var tok = sps.readToken()
+  case tok.kind
+  of stkWord: ScriptValKind(kind: sps.parseVarTypeKeyword(tok.wordVal))
+  of stkSquareOpen:
+    var varTypeName = sps.readKeywordToken()
+    case varTypeName
+    of "list":
+      var listCellType = sps.readVarType()
+      sps.expectToken(stkSquareClosed)
+      ScriptValKind(kind: svkList, listCellType: listCellType)
+    else:
+      raise newScriptParseError(sps, &"Unexpected generic type \"{varTypeName}\"")
+
+  else:
+    raise newScriptParseError(sps, &"Expected keyword or '[' token, got {tok} instead")
 
 proc readBool(sps: ScriptParseState): bool =
   var kw = sps.readKeywordToken()
