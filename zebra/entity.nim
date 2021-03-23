@@ -77,7 +77,6 @@ proc customiseFromBody(entity: Entity, execState: ScriptExecState, body: seq[Scr
       raise newException(ScriptExecError, &"Unhandled spawn statement/block kind {spawnNode}")
 
 proc canMoveTo(entity: Entity, board: Board, x: int64, y: int64): bool =
-  var board = entity.board
   if board == nil:
     false
   elif x == entity.x and y == entity.y:

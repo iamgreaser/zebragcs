@@ -406,5 +406,5 @@ method tick(board: Board) =
       entity.tick()
       i += 1
     else:
-      board.removeEntityFromGrid(entity)
+      # Entity should already not be on the grid
       board.entities.delete(i)
