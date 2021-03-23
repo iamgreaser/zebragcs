@@ -89,7 +89,7 @@ on event disown {
 }
 
 on event teleport %teleportpos {
-  move %teleportpos
+  forcemove %teleportpos
 }
 
 on event pressshift { set @shiftpressed true }

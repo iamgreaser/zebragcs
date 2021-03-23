@@ -338,6 +338,7 @@ type
     snkConst,
     snkDie,
     snkForceMove,
+    snkForceSpawnInto,
     snkFunc,
     snkGlobalDef,
     snkGlobalVar,
@@ -427,7 +428,7 @@ type
       sendEventNameIdx*: InternKey
       sendPos*: ScriptNode
       sendArgs*: seq[ScriptNode]
-    of snkSpawn, snkSpawnInto:
+    of snkSpawn, snkSpawnInto, snkForceSpawnInto:
       spawnIntoDstExpr*: ScriptNode
       spawnEntityNameIdx*: InternKey
       spawnPos*: ScriptNode
@@ -511,6 +512,7 @@ proc `$`*(x: ScriptNode): string =
   of snkConst: return &"Const({x.constVal})"
   of snkDie: return &"Die"
   of snkForceMove: return &"ForceMove({x.moveDirExpr})"
+  of snkForceSpawnInto: return &"ForceSpawnInto({x.spawnIntoDstExpr} := {x.spawnEntityNameIdx.getInternName()} -> {x.spawnPos}: {x.spawnBody} else {x.spawnElse})"
   of snkFunc: return &"Func:{x.funcType}({x.funcArgs})"
   of snkGlobalDef: return &"GlobalDef(${x.globalDefNameIdx.getInternName()}: {x.globalDefType})"
   of snkGlobalVar: return &"GlobalVar(${x.globalVarNameIdx.getInternName()})"

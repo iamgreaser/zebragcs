@@ -9,7 +9,7 @@ import ./types
 proc addEntityToGrid*(board: Board, entity: Entity)
 proc addEntityToList*(board: Board, entity: Entity)
 proc broadcastEvent*(board: Board, node: ScriptNode, eventNameIdx: InternKey)
-proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64): bool
+proc canAddEntityToGridPos*(board: Board, entity: Entity, x: int64, y: int64, forced: bool = false): bool
 proc loadBoardFromFile*(world: World, boardName: string): Board
 proc removeEntityFromGrid*(board: Board, entity: Entity)
 proc removeEntityFromList*(board: Board, entity: Entity)
@@ -319,9 +319,11 @@ proc loadBoardFromFile(world: World, boardName: string): Board =
   finally:
     strm.close()
 
-proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64): bool =
+proc canAddEntityToGridPos(board: Board, entity: Entity, x: int64, y: int64, forced: bool = false): bool =
   if not (x >= 0 and x < board.grid.w and y >= 0 and y < board.grid.h):
     false
+  elif forced:
+    true
   else:
     if entity.hasPhysGhost():
       return true

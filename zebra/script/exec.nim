@@ -78,7 +78,7 @@ method stmtSend(execState: ScriptExecState, node: ScriptNode, dirOrPos: ScriptVa
     assert board != nil
     board.sendEventToPos(node, eventNameIdx, x, y, sendArgs)
 
-method stmtSpawn(execState: ScriptExecState, node: ScriptNode, entityNameIdx: InternKey, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode]): Entity {.base, locks: "unknown".} =
+method stmtSpawn(execState: ScriptExecState, node: ScriptNode, entityNameIdx: InternKey, dirOrPos: ScriptVal, spawnBody: seq[ScriptNode], spawnElse: seq[ScriptNode], forced: bool): Entity {.base, locks: "unknown".} =
   var share = execState.share
   assert share != nil
   var world = share.world
@@ -93,7 +93,7 @@ method stmtSpawn(execState: ScriptExecState, node: ScriptNode, entityNameIdx: In
       raise node.newScriptExecError(&"Board \"{boardNameIdx.getInternName()}\" does not exist")
   assert board != nil
 
-  var newEntity = board.newEntity(entityNameIdx, x, y)
+  var newEntity = board.newEntity(entityNameIdx, x, y, forced=forced)
   return newEntity
 
 proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
@@ -250,10 +250,15 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
         execState.sleepTicksLeft = sleepTime
         return
 
-    of snkSpawn, snkSpawnInto:
+    of snkSpawn, snkSpawnInto, snkForceSpawnInto:
       var dstExpr = case node.kind
         of snkSpawn: nil
-        of snkSpawnInto: node.spawnIntoDstExpr
+        of snkSpawnInto, snkForceSpawnInto: node.spawnIntoDstExpr
+        else:
+          raise node.newScriptExecError(&"EDOOFUS: Unhandled spawn type {node}!")
+      var forced = case node.kind
+        of snkSpawn, snkSpawnInto: false
+        of snkForceSpawnInto: true
         else:
           raise node.newScriptExecError(&"EDOOFUS: Unhandled spawn type {node}!")
       var dirOrPos = execState.resolveExpr(node.spawnPos)
@@ -261,7 +266,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
       var spawnBody = node.spawnBody
       var spawnElse = node.spawnElse
 
-      var newEntity = execState.stmtSpawn(node, entityNameIdx, dirOrPos, spawnBody, spawnElse)
+      var newEntity = execState.stmtSpawn(node, entityNameIdx, dirOrPos, spawnBody, spawnElse, forced)
       if newEntity == nil:
         cont = ScriptContinuation(codeBlock: node.spawnElse, codePc: 0)
         execState.continuations.add(cont)
@@ -270,7 +275,7 @@ proc tickContinuations(execState: ScriptExecState, lowerBound: uint64) =
 
       case node.kind
         of snkSpawn: discard
-        of snkSpawnInto:
+        of snkSpawnInto, snkForceSpawnInto:
           execState.storeAtExpr(dstExpr, ScriptVal(kind: svkEntity, entityRef: newEntity))
         else:
           raise node.newScriptExecError(&"EDOOFUS: Unhandled spawn type {node}!")

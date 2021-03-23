@@ -351,8 +351,9 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           sleepTimeExpr: timeExpr,
         )))
 
-      of "spawn", "spawninto":
+      of "spawn", "spawninto", "forcespawninto":
         var dstExpr = case tok.wordVal.toLowerAscii()
+          of "forcespawninto": sps.parseExpr()
           of "spawninto": sps.parseExpr()
           of "spawn": nil
           else:
@@ -419,6 +420,15 @@ proc parseCodeBlock(sps: ScriptParseState, endKind: ScriptTokenKind): seq[Script
           of "spawninto":
             nodes.add(sps.tagPos(ScriptNode(
               kind: snkSpawnInto,
+              spawnIntoDstExpr: dstExpr,
+              spawnEntityNameIdx: entityNameIdx,
+              spawnPos: posExpr,
+              spawnBody: bodyExpr,
+              spawnElse: elseExpr,
+            )))
+          of "forcespawninto":
+            nodes.add(sps.tagPos(ScriptNode(
+              kind: snkForceSpawnInto,
               spawnIntoDstExpr: dstExpr,
               spawnEntityNameIdx: entityNameIdx,
               spawnPos: posExpr,
