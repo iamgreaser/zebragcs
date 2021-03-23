@@ -175,12 +175,26 @@ proc asCoercedStr(x: ScriptVal, node: ScriptNode): string =
   of svkInt: $x.intVal
   of svkStr: x.strVal
   of svkDir: &"rel {x.dirValX} {x.dirValY}"
-  of svkPos: &"at {x.posValX} {x.posValY}"
+  of svkPos: &"atboard {x.posBoardNameIdx.getInternName()} {x.posValX} {x.posValY}"
   of svkType: &"<type {x.typeVal}>"
   of svkList: "[" & map(
     x.listCells,
     (proc (x: ScriptVal): string = x.asCoercedStr(node)),
   ).join(" ") & "]"
+
+method funcPosComponents(execState: ScriptExecState, node: ScriptNode, pos: ScriptVal): tuple[dx: int64, dy: int64] {.base, locks: "unknown".} =
+  case pos.kind:
+    of svkPos: (pos.posValX, pos.posValY)
+    else:
+      raise node.newScriptExecError(&"Expected pos, got {pos} instead")
+method funcPosComponents(entity: Entity, node: ScriptNode, pos: ScriptVal): tuple[dx: int64, dy: int64] =
+  case pos.kind:
+    of svkDir:
+      (pos.posValX + entity.x, pos.posValY + entity.y)
+    of svkPos:
+      (pos.posValX, pos.posValY)
+    else:
+      raise node.newScriptExecError(&"Expected dir or pos, got {pos} instead")
 
 method funcDirComponents(execState: ScriptExecState, node: ScriptNode, dir: ScriptVal): tuple[dx: int64, dy: int64] {.base, locks: "unknown".} =
   case dir.kind:
@@ -538,6 +552,12 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
 
       return v
 
+    of "dir":
+      assert expr.funcArgs.len == 2
+      var dx = execState.resolveExpr(expr.funcArgs[0]).asInt(expr.funcArgs[0])
+      var dy = execState.resolveExpr(expr.funcArgs[1]).asInt(expr.funcArgs[1])
+      return ScriptVal(kind: svkDir, dirValX: dx, dirValY: dy)
+
     of "dirx":
       assert expr.funcArgs.len == 1
       var v0 = execState.resolveExpr(expr.funcArgs[0])
@@ -549,6 +569,18 @@ proc resolveExpr(execState: ScriptExecState, expr: ScriptNode): ScriptVal =
       var v0 = execState.resolveExpr(expr.funcArgs[0])
       var (_, dy) = execState.funcDirComponents(expr.funcArgs[0], v0)
       return ScriptVal(kind: svkInt, intVal: dy)
+
+    of "posx":
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      var (x, _) = execState.funcPosComponents(expr.funcArgs[0], v0)
+      return ScriptVal(kind: svkInt, intVal: x)
+
+    of "posy":
+      assert expr.funcArgs.len == 1
+      var v0 = execState.resolveExpr(expr.funcArgs[0])
+      var (_, y) = execState.funcPosComponents(expr.funcArgs[0], v0)
+      return ScriptVal(kind: svkInt, intVal: y)
 
     of "random":
       assert expr.funcArgs.len == 2
